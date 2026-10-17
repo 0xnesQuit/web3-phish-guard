@@ -10,9 +10,20 @@
 interface Ctx { poster?: string; posterVerified?: boolean; isReply?: boolean; display?: string }
 
 const BADGE_ATTR = "data-w3pg";
-const hostCache = new Map<string, { band: string; score: number; reasons: string[] }>();
+type HostVerdict = { host: string; band: string; score: number; reasons: string[] };
+const hostCache = new Map<string, HostVerdict>();
+
+/** X wraps every external link in t.co; profile/hashtag/status links are same-origin paths. */
+function isExternalLink(a: HTMLAnchorElement): boolean {
+  try {
+    return new URL(a.href, location.href).hostname === "t.co";
+  } catch {
+    return false;
+  }
+}
 
 function displayHost(a: HTMLAnchorElement): string | null {
+  if (!isExternalLink(a)) return null;
   const text = (a.textContent || "").trim().replace(/…$/, "");
   const m = text.match(/^(?:https?:\/\/)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)/i);
   if (!m) return null;
@@ -60,13 +71,13 @@ document.addEventListener(
 );
 
 // ---- 2. proactive badges -----------------------------------------------------
-function badge(a: HTMLAnchorElement, v: { band: string; score: number; reasons: string[] }) {
+function badge(a: HTMLAnchorElement, v: HostVerdict) {
   if (a.hasAttribute(BADGE_ATTR)) return;
   a.setAttribute(BADGE_ATTR, v.band);
   if (v.band === "none") return;
   const s = document.createElement("span");
   s.textContent = v.band === "block" ? " ⛔ scam?" : " ⚠️ şüpheli";
-  s.title = `Web3 Phish Guard · risk ${v.score}/100\n${v.reasons.join("\n")}`;
+  s.title = `Web3 Phish Guard · ${v.host} · risk ${v.score}/100\n${v.reasons.join("\n")}`;
   s.style.cssText = `display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;font:600 11px/18px system-ui,sans-serif;color:#fff;background:${v.band === "block" ? "#e5484d" : "#d08700"};vertical-align:middle;`;
   a.insertAdjacentElement("afterend", s);
 }
@@ -96,10 +107,13 @@ async function flush() {
     let v = hostCache.get(host);
     if (!v) {
       const ctx = contextOf(tweetOf(anchors[0]));
+      let r: Omit<HostVerdict, "host"> | null = null;
       try {
-        v = (await chrome.runtime.sendMessage({ type: "w3pg:scoreHost", host, ctx })) as typeof v;
-      } catch { v = undefined; }
-      if (!v) continue;
+        r = (await chrome.runtime.sendMessage({ type: "w3pg:scoreHost", host, ctx })) as Omit<HostVerdict, "host"> | null;
+      } catch { r = null; }
+      if (!r) continue;
+      v = { ...r, host };
+      if (v.band !== "none") console.debug("[w3pg]", host, v.score, v.reasons);
       hostCache.set(host, v);
     }
     for (const a of anchors) badge(a, v);
