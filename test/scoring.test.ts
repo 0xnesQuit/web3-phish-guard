@@ -22,6 +22,12 @@ function run(url: string, extra: Partial<Parameters<typeof score>[2]> = {}) {
   const p = parseHost(url, freeHosts)!;
   return score(url, p, { brands, lists, ...extra });
 }
+/** Same seed list but Axis Robotics' official domain unknown: models a pre-token project nobody has verified yet. */
+const brandsUnverified: Brand[] = brands.map((b) => (b.name === "Axis Robotics" ? { ...b, domains: [], x: "" } : b));
+function runU(url: string, extra: Partial<Parameters<typeof score>[2]> = {}) {
+  const p = parseHost(url, freeHosts)!;
+  return score(url, p, { brands: brandsUnverified, lists, ...extra });
+}
 
 describe("parseHost", () => {
   it("splits registrable domain and sub labels", () => {
@@ -55,16 +61,23 @@ describe("parseHost", () => {
 });
 
 describe("scam examples", () => {
-  it("rewards-axisrobotics.xyz is at least a warning without age, blocked with fresh age", () => {
+  it("rewards-axisrobotics.xyz with the official domain known: impersonation, warn -> block with age", () => {
     const v = run("https://rewards-axisrobotics.xyz/");
+    expect(v.band).toBe("warn");
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["action-strong", "brand-impersonation", "tld-weak"]));
+    expect(v.needsAgeCheck).toBe(true);
+    expect(run("https://rewards-axisrobotics.xyz/", { ageDays: 3 }).band).toBe("block");
+  });
+  it("rewards-axisrobotics.xyz with the official domain unknown: unverified brand, still warn -> block with age", () => {
+    const v = runU("https://rewards-axisrobotics.xyz/");
     expect(v.band).toBe("warn");
     expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["action-strong", "brand-unverified", "tld-weak"]));
     expect(v.needsAgeCheck).toBe(true);
-    const v2 = run("https://rewards-axisrobotics.xyz/", { ageDays: 3 });
-    expect(v2.band).toBe("block");
+    expect(runU("https://rewards-axisrobotics.xyz/", { ageDays: 3 }).band).toBe("block");
   });
   it("checker-axisrobotics.live", () => {
-    expect(run("https://checker-axisrobotics.live/").band).toBe("warn");
+    expect(runU("https://checker-axisrobotics.live/").band).toBe("warn");
+    expect(runU("https://checker-axisrobotics.live/", { ageDays: 10 }).band).toBe("block");
     expect(run("https://checker-axisrobotics.live/", { ageDays: 10 }).band).toBe("block");
   });
   it("known brand + action on free host is blocked outright", () => {
@@ -168,8 +181,8 @@ describe("generated (DefiLlama) brands are lower confidence", () => {
 
 describe("social origin context", () => {
   it("coming from X raises the score and forces the age check", () => {
-    const plain = run("https://rewards-axisrobotics.xyz/");
-    const fromX = run("https://rewards-axisrobotics.xyz/", { origin: { source: "x", at: 0 } });
+    const plain = runU("https://rewards-axisrobotics.xyz/");
+    const fromX = runU("https://rewards-axisrobotics.xyz/", { origin: { source: "x", at: 0 } });
     expect(fromX.score).toBeGreaterThan(plain.score);
     expect(fromX.needsAgeCheck).toBe(true);
   });
@@ -188,9 +201,13 @@ describe("social origin context", () => {
     expect(v.signals.some((s) => s.id === "poster-mismatch")).toBe(false);
   });
   it("suspicious poster name for a brand without a known handle", () => {
-    const v = run("https://claim-axisrobotics.xyz/", { origin: { source: "x", at: 0, poster: "AxisRobotics_Airdrop", isReply: true } });
+    const v = runU("https://claim-axisrobotics.xyz/", { origin: { source: "x", at: 0, poster: "AxisRobotics_Airdrop", isReply: true } });
     expect(v.band).toBe("block");
     expect(v.signals.some((s) => s.id === "poster-name")).toBe(true);
+    // with the official handle known, the same post is a plain poster mismatch
+    const w = run("https://claim-axisrobotics.xyz/", { origin: { source: "x", at: 0, poster: "AxisRobotics_Airdrop", isReply: true } });
+    expect(w.signals.some((s) => s.id === "poster-mismatch")).toBe(true);
+    expect(w.band).toBe("block");
   });
   it("ordinary site shared on X with no other signal stays silent", () => {
     expect(run("https://github.com/", { origin: { source: "x", at: 0, poster: "someone", isReply: true } }).band).toBe("none");
