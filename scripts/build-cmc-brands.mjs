@@ -15,7 +15,7 @@ if (!key) throw new Error("CMC_API_KEY env var missing");
 const LIMIT = Number(process.argv[2] || 5000);
 const H = { "X-CMC_PRO_API_KEY": key, accept: "application/json" };
 
-const GENERIC = new Set(["token", "coin", "protocol", "network", "finance", "chain", "labs", "dao", "swap", "money", "cash", "gold", "dollar", "wrapped", "staked", "bridged", "liquid", "bitcoin", "ethereum", "binance", "pegged", "stable", "usd", "the", "and", "inu", "doge", "pepe", "meme", "ai", "agent", "official"]);
+const GENERIC = new Set(["yield", "index", "smart", "super", "meta", "world", "space", "star", "moon", "rocket", "baby", "safe", "green", "black", "white", "silver", "pixel", "magic", "dragon", "shiba", "floki", "king", "queen", "pump", "high", "bond", "tokenized", "global", "digital", "first", "united", "alpha", "beta", "omega", "prime", "capital", "ventures", "token", "coin", "protocol", "network", "finance", "chain", "labs", "dao", "swap", "money", "cash", "gold", "dollar", "wrapped", "staked", "bridged", "liquid", "bitcoin", "ethereum", "binance", "pegged", "stable", "usd", "the", "and", "inu", "doge", "pepe", "meme", "ai", "agent", "official"]);
 const freeHosts = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
 const SHARED = new Set([...freeHosts.strong, ...freeHosts.weak, "x.com", "twitter.com", "github.com", "t.me", "medium.com", "youtube.com", "google.com", "discord.gg", "discord.com", "linktr.ee", "notion.site", "gitbook.io", "coinmarketcap.com", "coingecko.com", "pump.fun", "etherscan.io", "bscscan.com", "solscan.io", "dexscreener.com", "uniswap.org", "raydium.io"]);
 
