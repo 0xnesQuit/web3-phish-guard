@@ -13,8 +13,10 @@ function tokensFromName(name) {
   const out = new Set();
   const glued = base.replace(/[^a-z0-9]/g, "");
   if (glued.length >= 5 && !GENERIC.has(glued)) out.add(glued);
-  const words = base.split(/[^a-z0-9]+/).filter((w) => w.length >= 5 && !GENERIC.has(w) && !/^\d+$/.test(w));
-  for (const w of words) out.add(w);
+  // Only the first word is the brand ("Dexalot Portfolio" -> dexalot, "Kamino Lend" -> kamino); later words are
+  // product descriptors and ordinary English, which caused "my-portfolio.netlify.app" to look like an impersonation.
+  const first = base.split(/[^a-z0-9]+/).filter(Boolean)[0];
+  if (first && first.length >= 5 && !GENERIC.has(first) && !/^\d+$/.test(first)) out.add(first);
   return [...out];
 }
 

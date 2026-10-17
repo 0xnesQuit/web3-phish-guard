@@ -162,7 +162,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     } else if (brandSignalKind === "impersonation") {
       // auto-imported brand: names are often common words and domains drift (kamino.finance vs kamino.com),
       // so it only counts alongside an action word or free hosting
-      if (hasAction || p.freeHost) signals.push({ id: "brand-impersonation-weak", weight: 30, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
+      // a bait word is required: a free host alone is where hobby projects live ("my-portfolio.netlify.app")
+      if (hasAction) signals.push({ id: "brand-impersonation-weak", weight: 30, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
       else brandFlagged = false;
     } else if (brandSignalKind === "typo") {
       signals.push({ id: "brand-typo", weight: 35, key: "sig_brand_typo", sub: [matchedBrand.name] });

@@ -175,6 +175,12 @@ describe("generated (DefiLlama) brands are lower confidence", () => {
   it("generated brand + action word on free host blocks", () => {
     expect(runG("https://kamino-claim.vercel.app/").band).toBe("block");
   });
+  it("generated brand on a free host without a bait word is not an impersonation", () => {
+    const gen2: Brand[] = [{ name: "Dexalot Portfolio", tokens: ["dexalot"], domains: ["dexalot.com"] }];
+    const v = score("https://my-portfolio.netlify.app/", parseHost("https://my-portfolio.netlify.app/", freeHosts)!, { brands: mergeBrands(brands, gen2), lists });
+    expect(v.signals.some((s) => s.id.startsWith("brand-"))).toBe(false);
+    expect(runG("https://kamino.vercel.app/").signals.some((s) => s.id.startsWith("brand-"))).toBe(false);
+  });
   it("seed entries keep their tier after merge", () => {
     expect(merged.find((b) => b.name === "Uniswap")?.tier).toBe("seed");
     expect(merged.find((b) => b.name === "Kamino Lend")?.tier).toBe("generated");
