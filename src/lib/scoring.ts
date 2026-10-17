@@ -1,4 +1,4 @@
-import type { Band, Brand, ParsedHost, Signal, SignalLists, Verdict } from "./types";
+import type { Band, Brand, OriginContext, ParsedHost, Signal, SignalLists, Verdict } from "./types";
 import { isUnderDomain, levenshtein, tokenize } from "./hostname";
 
 export const BLOCK_THRESHOLD = 70;
@@ -15,7 +15,13 @@ export interface ScoreContext {
   userAllowed?: boolean;
   /** domain age in days from RDAP, undefined = unknown / not fetched */
   ageDays?: number;
+  /** social-platform origin of this navigation (X, Discord, ...) */
+  origin?: OriginContext;
 }
+
+const SOURCE_LABEL: Record<OriginContext["source"], string> = {
+  x: "X (Twitter)", discord: "Discord", telegram: "Telegram", reddit: "Reddit", youtube: "YouTube", other: "sosyal medya",
+};
 
 /** Hostname tokens that are too generic to count as a brand on their own */
 const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "shop", "home", "info", "base", "blast", "scroll", "across", "blur", "eigen", "pudgy", "jupiter", "phantom", "ledger", "linea", "zama", "zora", "tensor", "highlight", "manifold", "optimism"]);
@@ -156,6 +162,28 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     signals.push({ id: "long-host", weight: 5, label: "Olağandışı uzun alan adı" });
   }
 
+  // ---- social origin ----------------------------------------------------------
+  // Only ever raises the score: hijacked official accounts post scam links too.
+  const o = ctx.origin;
+  if (o) {
+    signals.push({ id: "origin-social", weight: 10, label: `Linke ${SOURCE_LABEL[o.source]} üzerinden gelindi` });
+    const poster = o.poster?.toLowerCase().replace(/^@/, "");
+    if (matchedBrand && poster) {
+      const official = matchedBrand.x?.toLowerCase().replace(/^@/, "");
+      if (official && poster !== official) {
+        signals.push({ id: "poster-mismatch", weight: 30, label: `Paylaşan hesap @${poster}, projenin resmi hesabı @${official} değil` });
+      } else if (!official && /(claim|airdrop|drop|reward|official|support|mint|giveaway|bonus)/i.test(poster)) {
+        signals.push({ id: "poster-name", weight: 15, label: `Paylaşan hesap adı şüpheli (@${poster})` });
+      }
+    }
+    if (o.isReply && (hasAction || matchedBrand)) {
+      signals.push({ id: "poster-reply", weight: 10, label: "Link bir yanıt olarak paylaşılmış (resmi duyurunun altına sahte claim linki kalıbı)" });
+    }
+    if (o.display && o.display.toLowerCase() !== p.host && !p.host.endsWith(o.display.toLowerCase())) {
+      signals.push({ id: "display-mismatch", weight: 10, label: `X'te gösterilen adres (${o.display}) ile açılan adres farklı` });
+    }
+  }
+
   // ---- domain age -----------------------------------------------------------
   if (ctx.ageDays !== undefined) {
     if (ctx.ageDays < 7) signals.push({ id: "age-7", weight: 25, label: `Alan adı ${Math.max(0, Math.floor(ctx.ageDays))} gün önce kaydedilmiş` });
@@ -175,6 +203,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   }
 
   // Age lookup is worth doing only when it could move the band.
-  v.needsAgeCheck = ctx.ageDays === undefined && !ctx.blocklistHit && !p.freeHost && v.score >= 20 && v.score < BLOCK_THRESHOLD;
+  const floor = ctx.origin ? 10 : 20;
+  v.needsAgeCheck = ctx.ageDays === undefined && !ctx.blocklistHit && !p.freeHost && v.score >= floor && v.score < BLOCK_THRESHOLD;
   return v;
 }

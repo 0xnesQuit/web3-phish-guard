@@ -166,6 +166,37 @@ describe("generated (DefiLlama) brands are lower confidence", () => {
   });
 });
 
+describe("social origin context", () => {
+  it("coming from X raises the score and forces the age check", () => {
+    const plain = run("https://rewards-axisrobotics.xyz/");
+    const fromX = run("https://rewards-axisrobotics.xyz/", { origin: { source: "x", at: 0 } });
+    expect(fromX.score).toBeGreaterThan(plain.score);
+    expect(fromX.needsAgeCheck).toBe(true);
+  });
+  it("poster is not the brand's official handle", () => {
+    const v = run("https://uniswap-rewards.com/", { origin: { source: "x", at: 0, poster: "Uniswap_Claims", isReply: true } });
+    expect(v.band).toBe("block");
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["poster-mismatch", "poster-reply", "origin-social"]));
+  });
+  it("official handle posting its own domain stays clean", () => {
+    const v = run("https://app.uniswap.org/", { origin: { source: "x", at: 0, poster: "Uniswap" } });
+    expect(v.band).toBe("none");
+  });
+  it("origin never allowlists: official poster + lookalike domain still warns", () => {
+    const v = run("https://uniswap-rewards.com/", { origin: { source: "x", at: 0, poster: "Uniswap", posterVerified: true } });
+    expect(v.band).not.toBe("none");
+    expect(v.signals.some((s) => s.id === "poster-mismatch")).toBe(false);
+  });
+  it("suspicious poster name for a brand without a known handle", () => {
+    const v = run("https://claim-axisrobotics.xyz/", { origin: { source: "x", at: 0, poster: "AxisRobotics_Airdrop", isReply: true } });
+    expect(v.band).toBe("block");
+    expect(v.signals.some((s) => s.id === "poster-name")).toBe(true);
+  });
+  it("ordinary site shared on X with no other signal stays silent", () => {
+    expect(run("https://github.com/", { origin: { source: "x", at: 0, poster: "someone", isReply: true } }).band).toBe("none");
+  });
+});
+
 describe("blocklist helpers", () => {
   it("extractDomains handles plain arrays and nested configs", () => {
     expect(extractDomains(["a.com", "https://b.com/x"], ["blocklist"])).toEqual(["a.com", "b.com"]);

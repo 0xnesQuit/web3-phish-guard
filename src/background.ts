@@ -4,7 +4,8 @@ import { loadStaticData } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, listStatus } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
-import type { ProviderEvent, Verdict } from "./lib/types";
+import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick } from "./lib/origin";
+import type { OriginContext, ProviderEvent, Verdict } from "./lib/types";
 
 const WARNING_PAGE = chrome.runtime.getURL("warning.html");
 
@@ -40,7 +41,7 @@ async function ensureReady() {
 // ---------------------------------------------------------------------------
 // evaluation
 // ---------------------------------------------------------------------------
-async function evaluate(url: string, extra: { ageDays?: number } = {}): Promise<Verdict | null> {
+async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext } = {}): Promise<Verdict | null> {
   if (!/^https?:/.test(url)) return null;
   const { brands, lists } = await ensureReady();
   const p = parseHost(url, [...lists.freeHostsStrong, ...lists.freeHostsWeak]);
@@ -55,7 +56,15 @@ async function evaluate(url: string, extra: { ageDays?: number } = {}): Promise<
     allowlistHit: allowlistHit(p.host),
     userAllowed: userAllow.some((d) => p.host === d || p.host.endsWith("." + d)),
     ageDays: extra.ageDays,
+    origin: extra.origin,
   });
+}
+
+/** Pure hostname scoring for the X timeline badges: no RDAP, no tab state. */
+async function scoreHostOnly(host: string, ctx: Partial<OriginContext>): Promise<{ band: string; score: number; reasons: string[] } | null> {
+  const v = await evaluate(`https://${host}/`, { origin: { source: "x", at: Date.now(), ...ctx } });
+  if (!v) return null;
+  return { band: v.band, score: v.score, reasons: v.signals.filter((s) => s.weight > 0).map((s) => s.label) };
 }
 
 async function applyVerdict(tabId: number, v: Verdict) {
@@ -77,7 +86,19 @@ async function applyVerdict(tabId: number, v: Verdict) {
 chrome.webNavigation.onCommitted.addListener(async (d) => {
   if (d.frameId !== 0) return;
   try {
-    const v = await evaluate(d.url);
+    // Redirector hop (t.co, out.reddit.com...): remember the source for the hop that follows.
+    let host = "";
+    try { host = new URL(d.url).hostname; } catch { /* ignore */ }
+    const src = host ? sourceFromHost(host) : null;
+    if (src && (host === "t.co" || host === "out.reddit.com")) {
+      const pending = await takePendingClick();
+      await setTabOrigin(d.tabId, { source: src, at: Date.now(), ...(pending ?? {}) });
+      return;
+    }
+    if (src) return; // the social site itself is never evaluated
+
+    const origin = await getTabOrigin(d.tabId);
+    const v = await evaluate(d.url, { origin });
     if (!v) {
       await clearTab(d.tabId);
       await chrome.action.setBadgeText({ tabId: d.tabId, text: "" }).catch(() => undefined);
@@ -89,7 +110,7 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
     if (v.needsAgeCheck) {
       const ageDays = await domainAgeDays(v.registrable);
       if (ageDays !== undefined) {
-        const v2 = await evaluate(d.url, { ageDays });
+        const v2 = await evaluate(d.url, { ageDays, origin });
         if (v2 && v2.band !== v.band) await applyVerdict(d.tabId, v2);
         else if (v2) await setTabVerdict(d.tabId, v2);
       }
@@ -147,6 +168,40 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const v: Verdict = { ...prev, signals, score: total, band: bandOf(total), at: Date.now() };
         await applyVerdict(tabId, v);
         sendResponse(v);
+        return;
+      }
+      case "w3pg:referrer": {
+        // Fallback when no redirector hop was seen (e.g. Discord opens links directly).
+        const tabId = sender.tab?.id;
+        if (tabId === undefined || sender.frameId !== 0 || !sender.url) return;
+        let rh = "";
+        try { rh = new URL(String(msg.referrer)).hostname; } catch { return; }
+        const src = sourceFromHost(rh);
+        if (!src) return;
+        if (await getTabOrigin(tabId)) return;
+        const origin: OriginContext = { source: src, at: Date.now() };
+        await setTabOrigin(tabId, origin);
+        const v = await evaluate(sender.url, { origin });
+        if (v) {
+          await applyVerdict(tabId, v);
+          if (v.needsAgeCheck) {
+            const ageDays = await domainAgeDays(v.registrable);
+            if (ageDays !== undefined) {
+              const v2 = await evaluate(sender.url, { ageDays, origin });
+              if (v2) await applyVerdict(tabId, v2);
+            }
+          }
+        }
+        return;
+      }
+      case "w3pg:xclick": {
+        const c = (msg.ctx ?? {}) as Partial<OriginContext>;
+        await setPendingClick({ source: "x", at: Date.now(), poster: c.poster, posterVerified: c.posterVerified, isReply: c.isReply, display: c.display });
+        sendResponse(true);
+        return;
+      }
+      case "w3pg:scoreHost": {
+        sendResponse(await scoreHostOnly(String(msg.host), (msg.ctx ?? {}) as Partial<OriginContext>));
         return;
       }
       case "w3pg:refreshNow": {

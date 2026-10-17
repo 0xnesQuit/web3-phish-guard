@@ -16,8 +16,13 @@
     },
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["bridge.js"],
+      "js": ["bridge.js", "referrer.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://x.com/*", "https://*.x.com/*", "https://twitter.com/*", "https://*.twitter.com/*"],
+      "js": ["x-watch.js"],
+      "run_at": "document_idle"
     },
     {
       "matches": ["http://*/*", "https://*/*"],

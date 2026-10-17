@@ -54,6 +54,19 @@ export interface ParsedHost {
   freeHost?: string;
 }
 
+/** Where the navigation came from, when a social platform was the referrer. */
+export interface OriginContext {
+  source: "x" | "discord" | "telegram" | "reddit" | "youtube" | "other";
+  /** handle of the account whose post carried the link (without @) */
+  poster?: string;
+  posterVerified?: boolean;
+  /** the post was a reply under someone else's post (classic scam placement) */
+  isReply?: boolean;
+  /** the display text X showed for the link, e.g. "rewards-axisrobotics.xyz" */
+  display?: string;
+  at: number;
+}
+
 export interface ProviderEvent {
   kind: "auto-connect" | "risky-sign" | "risky-tx" | "chain-switch";
   method: string;
