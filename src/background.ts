@@ -1,6 +1,6 @@
 import { parseHost } from "./lib/hostname";
 import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
-import { loadStaticData } from "./lib/lists";
+import { loadStaticData, refreshRemoteData, remoteDataStatus } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, attackedBrandHit, listStatus } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
@@ -17,13 +17,17 @@ const WARNING_PAGE = chrome.runtime.getURL("warning.html");
 chrome.runtime.onInstalled.addListener(() => {
   for (const s of SOURCES) chrome.alarms.create(`refresh:${s.id}`, { periodInMinutes: s.every, delayInMinutes: 0.1 });
   chrome.alarms.create("refresh:metamask-diffs", { periodInMinutes: 5, delayInMinutes: 2 });
+  chrome.alarms.create("refresh:data", { periodInMinutes: 60 * 12, delayInMinutes: 1 });
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   const id = alarm.name.replace("refresh:", "");
   try {
     if (id === "metamask-diffs") await refreshMetaMaskDiffs();
-    else {
+    else if (id === "data") {
+      const r = await refreshRemoteData();
+      if (r.updated) console.info(`[w3pg] remote data: ${r.files} files`);
+    } else {
       const src = SOURCES.find((s) => s.id === id);
       if (src) {
         const n = await refreshSource(src);
@@ -231,7 +235,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:status": {
-        sendResponse({ lists: await listStatus(), userAllow: await getUserAllow() });
+        sendResponse({ lists: await listStatus(), userAllow: await getUserAllow(), data: await remoteDataStatus() });
         return;
       }
       case "w3pg:provider": {
@@ -306,6 +310,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:refreshNow": {
+        try { await refreshRemoteData(true); } catch (e) { console.warn(e); }
         for (const s of SOURCES) {
           try { await refreshSource(s); } catch (e) { console.warn(e); }
         }

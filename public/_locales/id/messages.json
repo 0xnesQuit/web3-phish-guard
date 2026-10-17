@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "belum diunduh"
   },
+  "popup_brand_data": {
+    "message": "data merek"
+  },
+  "popup_bundled": {
+    "message": "salinan bawaan"
+  },
   "popup_trusted": {
     "message": "dipercaya"
   },

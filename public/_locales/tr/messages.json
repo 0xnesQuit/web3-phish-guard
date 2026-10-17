@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "henüz indirilmedi"
   },
+  "popup_brand_data": {
+    "message": "marka verisi"
+  },
+  "popup_bundled": {
+    "message": "gömülü kopya"
+  },
   "popup_trusted": {
     "message": "güvenilir"
   },

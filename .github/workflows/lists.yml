@@ -1,0 +1,46 @@
+name: Refresh brand lists
+
+# Regenerates the brand/data lists and pushes them to the public repo
+# 0xnesQuit/web3-phish-guard-lists, which the extension fetches at runtime.
+on:
+  schedule:
+    - cron: "17 3 * * *" # daily 03:17 UTC
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: DefiLlama protocols
+        run: node scripts/build-brands.mjs
+      - name: CoinMarketCap tokens
+        env:
+          CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
+        run: |
+          if [ -n "$CMC_API_KEY" ]; then node scripts/build-cmc-brands.mjs 5000; else echo "CMC_API_KEY not set, skipping"; fi
+      - name: OpenSea collections
+        env:
+          OPENSEA_API_KEY: ${{ secrets.OPENSEA_API_KEY }}
+        run: |
+          if [ -n "$OPENSEA_API_KEY" ]; then node scripts/build-nft-brands.mjs 300 || echo "OpenSea run failed, keeping previous list"; else echo "OPENSEA_API_KEY not set, skipping"; fi
+      - name: Checkout lists repo
+        uses: actions/checkout@v4
+        with:
+          repository: 0xnesQuit/web3-phish-guard-lists
+          ssh-key: ${{ secrets.LISTS_DEPLOY_KEY }}
+          path: lists-repo
+      - name: Publish
+        run: node scripts/publish-lists.mjs lists-repo
+      - name: Commit and push
+        working-directory: lists-repo
+        run: |
+          git config user.name "lists-bot"
+          git config user.email "lists-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "no changes"; else git commit -m "lists: refresh $(date -u +%Y-%m-%d)" && git push; fi

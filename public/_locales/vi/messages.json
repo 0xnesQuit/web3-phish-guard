@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "chưa tải xuống"
   },
+  "popup_brand_data": {
+    "message": "dữ liệu thương hiệu"
+  },
+  "popup_bundled": {
+    "message": "bản đi kèm"
+  },
   "popup_trusted": {
     "message": "tin cậy"
   },

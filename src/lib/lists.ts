@@ -2,9 +2,19 @@ import type { Brand, SignalLists } from "./types";
 
 let cache: { brands: Brand[]; lists: SignalLists } | null = null;
 
-async function loadJson<T>(path: string): Promise<T | null> {
+/**
+ * Data files ship inside the extension (zero-latency fallback) and are refreshed from REMOTE_BASE,
+ * where a daily GitHub Action publishes regenerated copies. Remote copies live in chrome.storage.local
+ * and win over the bundled ones. Only JSON data is fetched, never code.
+ */
+export const DATA_FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json"] as const;
+export const REMOTE_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main";
+
+interface RemoteManifest { updatedAt: number; files: Record<string, { bytes: number; sha256?: string }> }
+
+async function loadBundled<T>(file: string): Promise<T | null> {
   try {
-    const res = await fetch(chrome.runtime.getURL(path));
+    const res = await fetch(chrome.runtime.getURL("data/" + file));
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -12,18 +22,69 @@ async function loadJson<T>(path: string): Promise<T | null> {
   }
 }
 
+async function loadJson<T>(file: string): Promise<T | null> {
+  try {
+    const remote = (await chrome.storage.local.get("data:" + file))["data:" + file] as T | undefined;
+    if (remote !== undefined) return remote;
+  } catch {
+    /* fall through */
+  }
+  return loadBundled<T>(file);
+}
+
+/** Drop the in-memory cache so the next evaluation re-reads storage (after a remote refresh). */
+export function invalidateStaticData(): void {
+  cache = null;
+}
+
+export async function remoteDataStatus(): Promise<{ updatedAt: number; files: number }> {
+  const got = await chrome.storage.local.get(["data:updatedAt", "data:files"]);
+  return { updatedAt: (got["data:updatedAt"] as number | undefined) ?? 0, files: (got["data:files"] as number | undefined) ?? 0 };
+}
+
+/** Fetch lists/manifest.json; download files only when the manifest is newer than what we hold. */
+export async function refreshRemoteData(force = false): Promise<{ updated: boolean; files: number }> {
+  const res = await fetch(`${REMOTE_BASE}/manifest.json`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`manifest ${res.status}`);
+  const manifest = (await res.json()) as RemoteManifest;
+  const have = ((await chrome.storage.local.get("data:updatedAt"))["data:updatedAt"] as number | undefined) ?? 0;
+  if (!force && manifest.updatedAt <= have) return { updated: false, files: 0 };
+  const updates: Record<string, unknown> = {};
+  let n = 0;
+  for (const file of DATA_FILES) {
+    if (!manifest.files[file]) continue;
+    try {
+      const r = await fetch(`${REMOTE_BASE}/${file}`, { cache: "no-store" });
+      if (!r.ok) continue;
+      const json = await r.json();
+      if (json === null || typeof json !== "object") continue;
+      updates["data:" + file] = json;
+      n++;
+    } catch {
+      /* keep the previous copy of this file */
+    }
+  }
+  if (n) {
+    updates["data:updatedAt"] = manifest.updatedAt;
+    updates["data:files"] = n;
+    await chrome.storage.local.set(updates);
+    invalidateStaticData();
+  }
+  return { updated: n > 0, files: n };
+}
+
 /** Bundled static data (brands + signal word lists). Cached per service-worker lifetime. */
 export async function loadStaticData(): Promise<{ brands: Brand[]; lists: SignalLists }> {
   if (cache) return cache;
   const [seed, generated, nft, cmc, actions, hosts, tlds, trusted] = await Promise.all([
-    loadJson<Brand[]>("data/brands.seed.json"),
-    loadJson<Brand[]>("data/brands.generated.json"),
-    loadJson<Brand[]>("data/brands.nft.json"),
-    loadJson<Brand[]>("data/brands.cmc.json"),
-    loadJson<{ strong: string[]; medium: string[] }>("data/action-words.json"),
-    loadJson<{ strong: string[]; weak: string[] }>("data/free-hosts.json"),
-    loadJson<{ strong: string[]; weak: string[] }>("data/tlds.json"),
-    loadJson<Record<string, string[] | string>>("data/trusted.json"),
+    loadJson<Brand[]>("brands.seed.json"),
+    loadJson<Brand[]>("brands.generated.json"),
+    loadJson<Brand[]>("brands.nft.json"),
+    loadJson<Brand[]>("brands.cmc.json"),
+    loadJson<{ strong: string[]; medium: string[] }>("action-words.json"),
+    loadJson<{ strong: string[]; weak: string[] }>("free-hosts.json"),
+    loadJson<{ strong: string[]; weak: string[] }>("tlds.json"),
+    loadJson<Record<string, string[] | string>>("trusted.json"),
   ]);
   const trustedList = flattenTrusted(trusted);
   const brands = mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? []), ...(cmc ?? [])]);

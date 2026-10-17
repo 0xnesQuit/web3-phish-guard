@@ -24,6 +24,12 @@ Yanlış pozitif frenleri:
 - DefiLlama'dan otomatik gelen ~4.900 marka "düşük güven" katmanındadır: isim ortak kelime olabildiği ve domainler değişebildiği için (`kamino.finance` vs `kamino.com`) tek başına uyarı üretmez.
 - 2 yıldan eski domainler puan kaybeder. Kullanıcının "güveniyorum" dediği domainler her şeyi geçersiz kılar.
 
+## Listelerin güncel tutulması
+
+Marka ve sinyal listeleri uzantının içinde gömülü gelir (ilk kurulumda sıfır gecikme) ve 12 saatte bir `https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/` adresinden tazelenir (`src/lib/lists.ts`, `refreshRemoteData`). Önce `manifest.json` çekilir; yalnızca yeni bir yayın varsa dosyalar indirilip `chrome.storage.local`'a yazılır ve gömülü kopyanın önüne geçer. İndirilen şey yalnızca JSON veridir.
+
+Yayın tarafı `.github/workflows/lists.yml`: her gün DefiLlama, CoinMarketCap (`CMC_API_KEY` secret) ve OpenSea (`OPENSEA_API_KEY` secret) scriptlerini çalıştırır, `scripts/publish-lists.mjs` ile `manifest.json` üretir ve public `web3-phish-guard-lists` reposuna deploy key (`LISTS_DEPLOY_KEY` secret) ile push eder. Elle tetiklemek için GitHub'da Actions → "Refresh brand lists" → Run workflow. Yerelde: `node scripts/publish-lists.mjs <klasör>`.
+
 ## Diller
 
 Tüm metinler `chrome.i18n` ile tarayıcı diline göre gelir. Tek kaynak `scripts/locales.mjs`; build sırasında `public/_locales/<dil>/messages.json` üretilir. Şu an: en (varsayılan), tr, de, es, fr, pt_BR, ru, hi, zh_CN, ja, ko, vi, id. Yeni dil eklemek için `locales.mjs` içindeki her anahtara o dilin satırını ekleyip `LANGS` listesine kodu yazmak yeterli; eksik çeviriler İngilizceye düşer. Puanlama motoru metin üretmez, yalnızca mesaj anahtarı ve parametre döndürür.

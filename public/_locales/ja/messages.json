@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "未ダウンロード"
   },
+  "popup_brand_data": {
+    "message": "ブランドデータ"
+  },
+  "popup_bundled": {
+    "message": "同梱コピー"
+  },
   "popup_trusted": {
     "message": "信頼済み"
   },

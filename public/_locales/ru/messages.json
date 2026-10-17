@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "ещё не загружено"
   },
+  "popup_brand_data": {
+    "message": "данные брендов"
+  },
+  "popup_bundled": {
+    "message": "встроенная копия"
+  },
   "popup_trusted": {
     "message": "доверенные"
   },

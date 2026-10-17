@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "noch nicht geladen"
   },
+  "popup_brand_data": {
+    "message": "Markendaten"
+  },
+  "popup_bundled": {
+    "message": "mitgelieferte Kopie"
+  },
   "popup_trusted": {
     "message": "vertraut"
   },

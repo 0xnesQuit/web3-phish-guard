@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "अभी डाउनलोड नहीं हुआ"
   },
+  "popup_brand_data": {
+    "message": "ब्रांड डेटा"
+  },
+  "popup_bundled": {
+    "message": "अंतर्निहित प्रति"
+  },
   "popup_trusted": {
     "message": "विश्वसनीय"
   },

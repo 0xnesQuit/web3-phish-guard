@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "尚未下载"
   },
+  "popup_brand_data": {
+    "message": "品牌数据"
+  },
+  "popup_bundled": {
+    "message": "内置副本"
+  },
   "popup_trusted": {
     "message": "已信任"
   },

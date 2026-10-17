@@ -30,10 +30,10 @@ async function main() {
   }
 
   $("options").onclick = () => chrome.runtime.openOptionsPage();
-  const st = (await chrome.runtime.sendMessage({ type: "w3pg:status" })) as { lists: Record<string, { count: number; updatedAt: number }>; userAllow: string[] };
+  const st = (await chrome.runtime.sendMessage({ type: "w3pg:status" })) as { lists: Record<string, { count: number; updatedAt: number }>; userAllow: string[]; data: { updatedAt: number; files: number } };
   $("meta").innerHTML = Object.entries(st.lists)
     .map(([k, s]) => `${esc(k)}: ${t("popup_domains", [s.count.toLocaleString()])}${s.updatedAt ? ` · ${new Date(s.updatedAt).toLocaleString()}` : ` · ${t("popup_not_downloaded")}`}`)
-    .join("<br>") + (st.userAllow.length ? `<br>${t("popup_trusted")}: ${st.userAllow.map(esc).join(", ")}` : "");
+    .join("<br>") + `<br>${t("popup_brand_data")}: ${st.data.updatedAt ? new Date(st.data.updatedAt).toLocaleString() : t("popup_bundled")}` + (st.userAllow.length ? `<br>${t("popup_trusted")}: ${st.userAllow.map(esc).join(", ")}` : "");
 }
 
 function esc(s: string) {

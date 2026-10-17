@@ -50,6 +50,12 @@
   "popup_not_downloaded": {
     "message": "아직 다운로드되지 않음"
   },
+  "popup_brand_data": {
+    "message": "브랜드 데이터"
+  },
+  "popup_bundled": {
+    "message": "내장 사본"
+  },
   "popup_trusted": {
     "message": "신뢰됨"
   },
