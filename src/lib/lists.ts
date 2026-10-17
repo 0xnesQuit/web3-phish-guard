@@ -8,7 +8,7 @@ let cache: { brands: Brand[]; lists: SignalLists } | null = null;
  * and win over the bundled ones. Only JSON data is fetched, never code.
  */
 export const DATA_FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json"] as const;
-export const REMOTE_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main";
+export const REMOTE_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data";
 
 interface RemoteManifest { updatedAt: number; files: Record<string, { bytes: number; sha256?: string }> }
 

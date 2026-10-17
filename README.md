@@ -26,9 +26,9 @@ Yanlış pozitif frenleri:
 
 ## Listelerin güncel tutulması
 
-Marka ve sinyal listeleri uzantının içinde gömülü gelir (ilk kurulumda sıfır gecikme) ve 12 saatte bir `https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/` adresinden tazelenir (`src/lib/lists.ts`, `refreshRemoteData`). Önce `manifest.json` çekilir; yalnızca yeni bir yayın varsa dosyalar indirilip `chrome.storage.local`'a yazılır ve gömülü kopyanın önüne geçer. İndirilen şey yalnızca JSON veridir.
+Marka ve sinyal listeleri uzantının içinde gömülü gelir (ilk kurulumda sıfır gecikme) ve 12 saatte bir public `web3-phish-guard-lists` reposundan (`https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/`) tazelenir (`src/lib/lists.ts`, `refreshRemoteData`). Önce `manifest.json` çekilir; yalnızca yeni bir yayın varsa dosyalar indirilip `chrome.storage.local`'a yazılır ve gömülü kopyanın önüne geçer. İndirilen şey yalnızca JSON veridir.
 
-Yayın tarafı `.github/workflows/lists.yml`: her gün DefiLlama, CoinMarketCap (`CMC_API_KEY` secret) ve OpenSea (`OPENSEA_API_KEY` secret) scriptlerini çalıştırır, `scripts/publish-lists.mjs` ile `manifest.json` üretir ve public `web3-phish-guard-lists` reposuna deploy key (`LISTS_DEPLOY_KEY` secret) ile push eder. Elle tetiklemek için GitHub'da Actions → "Refresh brand lists" → Run workflow. Yerelde: `node scripts/publish-lists.mjs <klasör>`.
+Üretim o repoda çalışır: günlük GitHub Action DefiLlama, CoinMarketCap (`CMC_API_KEY` secret) ve OpenSea (`OPENSEA_API_KEY` secret) scriptlerini çalıştırıp `data/` altına commit eder. Public repoda Actions ücretsizdir; kod bu repoda private kalır. Scriptlerin kaynağı bu repodaki `scripts/` klasörüdür, değişince oraya da kopyalanmalıdır. Elle tetikleme: lists reposunda Actions → "Refresh lists" → Run workflow.
 
 ## Diller
 
