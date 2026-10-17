@@ -131,10 +131,11 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   if (p.freeHost) {
     const strong = ctx.lists.freeHostsStrong.includes(p.freeHost);
     signals.push({ id: "free-host", weight: strong ? 20 : 8, key: "sig_free_host", sub: [p.freeHost] });
-  } else if (p.tld) {
+  } else if (p.tld && (hasAction || matchedBrand)) {
+    // A TLD never scores on its own: every extension is used by legitimate projects today.
+    // Heavily abused ones (.top, .bond, .cfd ...) only add weight next to a bait word or brand hit.
     const tldLast = p.tld.split(".").pop() ?? p.tld;
     if (ctx.lists.tldStrong.includes(tldLast)) signals.push({ id: "tld-strong", weight: 15, key: "sig_tld_strong", sub: ["." + tldLast] });
-    else if (ctx.lists.tldWeak.includes(tldLast)) signals.push({ id: "tld-weak", weight: 5, key: "sig_tld_weak", sub: ["." + tldLast] });
   }
 
   // true once a brand-related signal was actually added (origin signals key off this, not the raw match)

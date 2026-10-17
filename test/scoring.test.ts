@@ -64,14 +64,14 @@ describe("scam examples", () => {
   it("rewards-axisrobotics.xyz with the official domain known: impersonation, warn -> block with age", () => {
     const v = run("https://rewards-axisrobotics.xyz/");
     expect(v.band).toBe("warn");
-    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["action-strong", "brand-impersonation", "tld-weak"]));
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["action-strong", "brand-impersonation"]));
     expect(v.needsAgeCheck).toBe(true);
     expect(run("https://rewards-axisrobotics.xyz/", { ageDays: 3 }).band).toBe("block");
   });
   it("rewards-axisrobotics.xyz with the official domain unknown: unverified brand, still warn -> block with age", () => {
     const v = runU("https://rewards-axisrobotics.xyz/");
     expect(v.band).toBe("warn");
-    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["action-strong", "brand-unverified", "tld-weak"]));
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["action-strong", "brand-unverified"]));
     expect(v.needsAgeCheck).toBe(true);
     expect(runU("https://rewards-axisrobotics.xyz/", { ageDays: 3 }).band).toBe("block");
   });
@@ -301,5 +301,21 @@ describe("X resolver signals", () => {
     expect(run("https://rewards-axisrobotics.xyz/").xToken).toBe("axisrobotics");
     expect(run("https://claim-newcoolproj.xyz/").xToken).toBe("newcoolproj");
     expect(run("https://uniswap.org/").xToken).toBeUndefined();
+  });
+});
+
+describe("TLD never scores alone", () => {
+  for (const u of ["https://something.xyz/", "https://project.fun/", "https://brand.top/", "https://coolnft.bond/", "https://x.live/"]) {
+    it(u, () => {
+      const v = run(u);
+      expect(v.score).toBe(0);
+    });
+  }
+  it("abused TLD still adds weight next to a bait word", () => {
+    const v = run("https://claim-portal.top/");
+    expect(v.signals.some((s) => s.id === "tld-strong")).toBe(true);
+  });
+  it("weak TLD list is informational only", () => {
+    expect(run("https://claim-portal.xyz/").signals.some((s) => s.id === "tld-weak")).toBe(false);
   });
 });
