@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "Settings"
   },
+  "popup_deep_scan": {
+    "message": "Deep scan"
+  },
+  "popup_report": {
+    "message": "Report this site"
+  },
+  "popup_report_note": {
+    "message": "Optional: why do you think this is a scam?"
+  },
+  "popup_report_send": {
+    "message": "Send report"
+  },
+  "popup_report_sent": {
+    "message": "Reported, thanks. It will be reviewed."
+  },
+  "popup_report_failed": {
+    "message": "Report failed"
+  },
+  "popup_cancel": {
+    "message": "Cancel"
+  },
+  "popup_scanning": {
+    "message": "Scanning page, scripts and registries…"
+  },
+  "popup_scan_failed": {
+    "message": "Scan failed"
+  },
+  "popup_local_only": {
+    "message": "Local verdict"
+  },
+  "popup_ai_unavailable": {
+    "message": "AI analysis unavailable"
+  },
+  "popup_impersonates": {
+    "message": "impersonates $1"
+  },
+  "popup_facts_libs": {
+    "message": "libs"
+  },
+  "popup_facts_scripts": {
+    "message": "scripts"
+  },
+  "popup_facts_wallet": {
+    "message": "wallet buttons"
+  },
+  "popup_facts_seed": {
+    "message": "seed inputs"
+  },
+  "popup_facts_markers": {
+    "message": "drainer markers"
+  },
+  "verdict_dangerous": {
+    "message": "Dangerous"
+  },
+  "verdict_suspicious": {
+    "message": "Suspicious"
+  },
+  "verdict_likely_safe": {
+    "message": "Likely safe"
+  },
+  "verdict_safe": {
+    "message": "Safe"
+  },
+  "opt_api_heading": {
+    "message": "Deep scan & reports server"
+  },
+  "opt_api_help": {
+    "message": "The deep scan sends a snapshot of the page you are looking at (title, text sample, script names, link domains, wallet-related buttons) together with the extension's findings to this server, which asks an AI model for a verdict. It only happens when you press Deep scan. The AI key lives on the server, never in the extension."
+  },
+  "opt_api_base": {
+    "message": "Server URL"
+  },
   "opt_title": {
     "message": "Web3 Phish Guard settings"
   },

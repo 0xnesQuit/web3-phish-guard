@@ -1,0 +1,19 @@
+{
+  "name": "web3-phish-guard-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "kv:create": "wrangler kv namespace create W3PG_KV"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261016.1",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.151.1"
+  }
+}

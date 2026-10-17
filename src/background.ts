@@ -6,8 +6,10 @@ import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener } from "./lib/origin";
 import { resolveBrand, resolvePoster, getApiKey, setApiKey } from "./lib/xquik";
+import { scanExternalScripts, goPlus, askApi, sendReport, getApiBase, setApiBase } from "./lib/deepscan";
+import { signalText } from "./lib/i18n";
 import type { XIntel } from "./lib/types";
-import type { OriginContext, ProviderEvent, Signal, Verdict } from "./lib/types";
+import type { DeepReport, OriginContext, PageSnapshot, ProviderEvent, Signal, Verdict } from "./lib/types";
 
 const WARNING_PAGE = chrome.runtime.getURL("warning.html");
 
@@ -147,6 +149,45 @@ async function resolveRedirect(url: string): Promise<string | null> {
   }
 }
 
+/** User-triggered deep scan: page snapshot + external script grep + GoPlus + API verdict. */
+async function deepScan(tabId: number, language: string): Promise<DeepReport | { error: string }> {
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  if (!tab?.url || !/^https?:/.test(tab.url)) return { error: "not_http" };
+  let v = await getTabVerdict(tabId);
+  if (!v) v = (await evaluate(tab.url)) ?? undefined;
+  if (!v) return { error: "no_verdict" };
+  const cacheKey = `deep:${tabId}`;
+  const cached = (await chrome.storage.session.get(cacheKey))[cacheKey] as DeepReport | undefined;
+  if (cached && cached.host === v.host && Date.now() - cached.at < 10 * 60_000 && !cached.ai.error) return cached;
+
+  let snapshot: PageSnapshot | null = null;
+  try {
+    snapshot = (await chrome.tabs.sendMessage(tabId, { type: "w3pg:collect" })) as PageSnapshot;
+  } catch { /* content script not present (e.g. page blocked scripts) */ }
+  if (!snapshot || (snapshot as unknown as { error?: string }).error) return { error: "collect_failed" };
+
+  const origin = await getTabOrigin(tabId);
+  const pev = ((await chrome.storage.session.get(`pev:${tabId}`))[`pev:${tabId}`] as string[] | undefined) ?? [];
+  const [markers, gp, ageDays] = await Promise.all([
+    scanExternalScripts(snapshot.scripts),
+    goPlus(v.host),
+    v.ageDays !== undefined ? Promise.resolve(v.ageDays) : domainAgeDays(v.registrable),
+  ]);
+  if (ageDays !== undefined && v.ageDays === undefined) {
+    const v2 = await evaluate(tab.url, { ageDays, origin });
+    if (v2) v = v2;
+  }
+  const x = v.xToken ? await xIntelFor(v, origin) : undefined;
+  if (x) {
+    const v3 = await evaluate(tab.url, { ageDays, origin, x });
+    if (v3) v = v3;
+  }
+  const ai = await askApi(snapshot, { verdict: v, origin, x, providerEvents: pev, language }, { markers, goplus: gp });
+  const report: DeepReport = { host: v.host, at: Date.now(), local: { score: v.score, band: v.band, signals: v.signals }, page: snapshot, markers, goplus: gp, ai };
+  await chrome.storage.session.set({ [cacheKey]: report });
+  return report;
+}
+
 /** Pure hostname scoring for the X timeline badges: no RDAP, no tab state. */
 async function scoreHostOnly(host: string, ctx: Partial<OriginContext>): Promise<{ band: string; score: number; signals: Signal[] } | null> {
   const v = await evaluate(`https://${host}/`, { origin: { source: "x", at: Date.now(), ...ctx } });
@@ -250,6 +291,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const id = `provider-${ev.kind}`;
         if (prev.signals.some((s) => s.id === id)) return;
         const signals = [...prev.signals, { id, weight, ...providerKey(ev) }];
+        try {
+          const k = `pev:${tabId}`;
+          const list = ((await chrome.storage.session.get(k))[k] as string[] | undefined) ?? [];
+          list.push(`${ev.method}${ev.param ? " " + ev.param : ""} ${ev.hadGesture ? "(after click)" : "(no click)"} +${ev.msSinceLoad}ms`);
+          await chrome.storage.session.set({ [k]: list.slice(-20) });
+        } catch { /* ignore */ }
         const total = Math.max(0, Math.min(100, signals.reduce((s, x) => s + x.weight, 0)));
         const v: Verdict = { ...prev, signals, score: total, band: bandOf(total), at: Date.now() };
         await applyVerdict(tabId, v);
@@ -296,12 +343,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:getSettings": {
-        sendResponse({ xquikKey: await getApiKey() });
+        sendResponse({ xquikKey: await getApiKey(), apiBase: await getApiBase() });
         return;
       }
       case "w3pg:setSettings": {
         if (typeof msg.xquikKey === "string") await setApiKey(msg.xquikKey);
+        if (typeof msg.apiBase === "string") await setApiBase(msg.apiBase);
         sendResponse(true);
+        return;
+      }
+      case "w3pg:deepScan": {
+        const tabId = Number(msg.tabId);
+        sendResponse(await deepScan(tabId, String(msg.language || "en")));
+        return;
+      }
+      case "w3pg:getDeepReport": {
+        const tabId = Number(msg.tabId);
+        sendResponse((await chrome.storage.session.get(`deep:${tabId}`))[`deep:${tabId}`] ?? null);
+        return;
+      }
+      case "w3pg:report": {
+        const tabId = Number(msg.tabId);
+        let v = await getTabVerdict(tabId);
+        if (!v) {
+          const tab = await chrome.tabs.get(tabId).catch(() => null);
+          if (tab?.url) v = (await evaluate(tab.url)) ?? undefined;
+        }
+        if (!v) { sendResponse({ ok: false, error: "no_verdict" }); return; }
+        sendResponse(await sendReport(v, String(msg.note ?? "").slice(0, 1000)));
         return;
       }
       case "w3pg:testXquik": {

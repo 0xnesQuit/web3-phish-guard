@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "Ayarlar"
   },
+  "popup_deep_scan": {
+    "message": "Derin tara"
+  },
+  "popup_report": {
+    "message": "Bu siteyi bildir"
+  },
+  "popup_report_note": {
+    "message": "İsteğe bağlı: neden scam olduğunu düşünüyorsunuz?"
+  },
+  "popup_report_send": {
+    "message": "Bildirimi gönder"
+  },
+  "popup_report_sent": {
+    "message": "Bildirildi, teşekkürler. İncelenecek."
+  },
+  "popup_report_failed": {
+    "message": "Bildirim gönderilemedi"
+  },
+  "popup_cancel": {
+    "message": "Vazgeç"
+  },
+  "popup_scanning": {
+    "message": "Sayfa, scriptler ve kayıtlar taranıyor…"
+  },
+  "popup_scan_failed": {
+    "message": "Tarama başarısız"
+  },
+  "popup_local_only": {
+    "message": "Yerel sonuç"
+  },
+  "popup_ai_unavailable": {
+    "message": "AI analizi alınamadı"
+  },
+  "popup_impersonates": {
+    "message": "$1 taklidi"
+  },
+  "popup_facts_libs": {
+    "message": "kütüphaneler"
+  },
+  "popup_facts_scripts": {
+    "message": "script"
+  },
+  "popup_facts_wallet": {
+    "message": "cüzdan butonu"
+  },
+  "popup_facts_seed": {
+    "message": "seed alanı"
+  },
+  "popup_facts_markers": {
+    "message": "drainer izi"
+  },
+  "verdict_dangerous": {
+    "message": "Tehlikeli"
+  },
+  "verdict_suspicious": {
+    "message": "Şüpheli"
+  },
+  "verdict_likely_safe": {
+    "message": "Büyük ihtimalle güvenli"
+  },
+  "verdict_safe": {
+    "message": "Güvenli"
+  },
+  "opt_api_heading": {
+    "message": "Derin tarama ve bildirim sunucusu"
+  },
+  "opt_api_help": {
+    "message": "Derin tarama, baktığınız sayfanın bir özetini (başlık, metin örneği, script adları, link domainleri, cüzdanla ilgili butonlar) uzantının bulgularıyla birlikte bu sunucuya gönderir; sunucu bir AI modelinden karar ister. Yalnızca Derin tara butonuna bastığınızda olur. AI anahtarı sunucuda durur, uzantıda asla bulunmaz."
+  },
+  "opt_api_base": {
+    "message": "Sunucu adresi"
+  },
   "opt_title": {
     "message": "Web3 Phish Guard ayarları"
   },

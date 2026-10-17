@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "Ajustes"
   },
+  "popup_deep_scan": {
+    "message": "Análisis profundo"
+  },
+  "popup_report": {
+    "message": "Denunciar este sitio"
+  },
+  "popup_report_note": {
+    "message": "Opcional: ¿por qué crees que es una estafa?"
+  },
+  "popup_report_send": {
+    "message": "Enviar denuncia"
+  },
+  "popup_report_sent": {
+    "message": "Enviado, gracias. Será revisado."
+  },
+  "popup_report_failed": {
+    "message": "Error al enviar"
+  },
+  "popup_cancel": {
+    "message": "Cancelar"
+  },
+  "popup_scanning": {
+    "message": "Analizando página, scripts y registros…"
+  },
+  "popup_scan_failed": {
+    "message": "Análisis fallido"
+  },
+  "popup_local_only": {
+    "message": "Veredicto local"
+  },
+  "popup_ai_unavailable": {
+    "message": "Análisis de IA no disponible"
+  },
+  "popup_impersonates": {
+    "message": "suplanta a $1"
+  },
+  "popup_facts_libs": {
+    "message": "librerías"
+  },
+  "popup_facts_scripts": {
+    "message": "scripts"
+  },
+  "popup_facts_wallet": {
+    "message": "botones de billetera"
+  },
+  "popup_facts_seed": {
+    "message": "campos de semilla"
+  },
+  "popup_facts_markers": {
+    "message": "marcas de drainer"
+  },
+  "verdict_dangerous": {
+    "message": "Peligroso"
+  },
+  "verdict_suspicious": {
+    "message": "Sospechoso"
+  },
+  "verdict_likely_safe": {
+    "message": "Probablemente seguro"
+  },
+  "verdict_safe": {
+    "message": "Seguro"
+  },
+  "opt_api_heading": {
+    "message": "Servidor de análisis profundo y denuncias"
+  },
+  "opt_api_help": {
+    "message": "El análisis profundo envía una instantánea de la página que estás viendo (título, muestra de texto, nombres de scripts, dominios de enlaces, botones de billetera) junto con los hallazgos de la extensión a este servidor, que pide un veredicto a un modelo de IA. Solo ocurre al pulsar Análisis profundo. La clave de IA vive en el servidor, nunca en la extensión."
+  },
+  "opt_api_base": {
+    "message": "URL del servidor"
+  },
   "opt_title": {
     "message": "Ajustes de Web3 Phish Guard"
   },

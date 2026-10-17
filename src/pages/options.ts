@@ -4,8 +4,14 @@ const $ = (id: string) => document.getElementById(id)!;
 
 async function main() {
   localizePage();
-  const s = (await chrome.runtime.sendMessage({ type: "w3pg:getSettings" })) as { xquikKey: string };
+  const s = (await chrome.runtime.sendMessage({ type: "w3pg:getSettings" })) as { xquikKey: string; apiBase: string };
   ($("key") as HTMLInputElement).value = s.xquikKey ?? "";
+  ($("apibase") as HTMLInputElement).value = s.apiBase ?? "";
+  $("saveapi").onclick = async () => {
+    await chrome.runtime.sendMessage({ type: "w3pg:setSettings", apiBase: ($("apibase") as HTMLInputElement).value });
+    $("apistatus").textContent = t("opt_saved");
+    setTimeout(() => ($("apistatus").textContent = ""), 2000);
+  };
 
   $("save").onclick = async () => {
     await chrome.runtime.sendMessage({ type: "w3pg:setSettings", xquikKey: ($("key") as HTMLInputElement).value });

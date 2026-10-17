@@ -18,6 +18,8 @@ export const SOURCES: ListSource[] = [
   { id: "metamask", url: "https://phishing-detection.api.cx.metamask.io/v1/stalelist", kind: "blocklist", every: 60 * 12 },
   // PhishDestroy DestroyList: crypto-focused, keyless, raw JSON
   { id: "phishdestroy", url: "https://gitlab.com/phishdestroy/destroylist/-/raw/main/dns/active_domains.json", kind: "blocklist", every: 60 * 6 },
+  // Community reports approved by the Web3 Phish Guard moderators (published daily to the lists repo)
+  { id: "community", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6 },
   // ScamSniffer open database (7-day delayed, GPL-3.0 data; fetched at runtime, not bundled)
   { id: "scamsniffer", url: "https://raw.githubusercontent.com/scamsniffer/scam-database/main/blacklist/domains.json", kind: "blocklist", every: 60 * 24 },
 ];

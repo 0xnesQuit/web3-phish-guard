@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "Настройки"
   },
+  "popup_deep_scan": {
+    "message": "Глубокая проверка"
+  },
+  "popup_report": {
+    "message": "Сообщить о сайте"
+  },
+  "popup_report_note": {
+    "message": "Необязательно: почему вы считаете это мошенничеством?"
+  },
+  "popup_report_send": {
+    "message": "Отправить"
+  },
+  "popup_report_sent": {
+    "message": "Отправлено, спасибо. Будет проверено."
+  },
+  "popup_report_failed": {
+    "message": "Не удалось отправить"
+  },
+  "popup_cancel": {
+    "message": "Отмена"
+  },
+  "popup_scanning": {
+    "message": "Проверяем страницу, скрипты и реестры…"
+  },
+  "popup_scan_failed": {
+    "message": "Проверка не удалась"
+  },
+  "popup_local_only": {
+    "message": "Локальный вердикт"
+  },
+  "popup_ai_unavailable": {
+    "message": "ИИ-анализ недоступен"
+  },
+  "popup_impersonates": {
+    "message": "имитирует $1"
+  },
+  "popup_facts_libs": {
+    "message": "библиотеки"
+  },
+  "popup_facts_scripts": {
+    "message": "скрипты"
+  },
+  "popup_facts_wallet": {
+    "message": "кнопки кошелька"
+  },
+  "popup_facts_seed": {
+    "message": "поля seed"
+  },
+  "popup_facts_markers": {
+    "message": "признаки drainer"
+  },
+  "verdict_dangerous": {
+    "message": "Опасно"
+  },
+  "verdict_suspicious": {
+    "message": "Подозрительно"
+  },
+  "verdict_likely_safe": {
+    "message": "Скорее всего безопасно"
+  },
+  "verdict_safe": {
+    "message": "Безопасно"
+  },
+  "opt_api_heading": {
+    "message": "Сервер глубокой проверки и жалоб"
+  },
+  "opt_api_help": {
+    "message": "Глубокая проверка отправляет снимок текущей страницы (заголовок, фрагмент текста, имена скриптов, домены ссылок, кнопки кошелька) вместе с находками расширения на этот сервер, который запрашивает вердикт у ИИ-модели. Это происходит только при нажатии кнопки. Ключ ИИ хранится на сервере, никогда в расширении."
+  },
+  "opt_api_base": {
+    "message": "Адрес сервера"
+  },
   "opt_title": {
     "message": "Настройки Web3 Phish Guard"
   },

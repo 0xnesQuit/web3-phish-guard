@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "Pengaturan"
   },
+  "popup_deep_scan": {
+    "message": "Pindai mendalam"
+  },
+  "popup_report": {
+    "message": "Laporkan situs ini"
+  },
+  "popup_report_note": {
+    "message": "Opsional: mengapa Anda menganggap ini penipuan?"
+  },
+  "popup_report_send": {
+    "message": "Kirim laporan"
+  },
+  "popup_report_sent": {
+    "message": "Dilaporkan, terima kasih. Akan ditinjau."
+  },
+  "popup_report_failed": {
+    "message": "Laporan gagal"
+  },
+  "popup_cancel": {
+    "message": "Batal"
+  },
+  "popup_scanning": {
+    "message": "Memindai halaman, skrip, dan registri…"
+  },
+  "popup_scan_failed": {
+    "message": "Pemindaian gagal"
+  },
+  "popup_local_only": {
+    "message": "Putusan lokal"
+  },
+  "popup_ai_unavailable": {
+    "message": "Analisis AI tidak tersedia"
+  },
+  "popup_impersonates": {
+    "message": "meniru $1"
+  },
+  "popup_facts_libs": {
+    "message": "pustaka"
+  },
+  "popup_facts_scripts": {
+    "message": "skrip"
+  },
+  "popup_facts_wallet": {
+    "message": "tombol dompet"
+  },
+  "popup_facts_seed": {
+    "message": "kolom seed"
+  },
+  "popup_facts_markers": {
+    "message": "jejak drainer"
+  },
+  "verdict_dangerous": {
+    "message": "Berbahaya"
+  },
+  "verdict_suspicious": {
+    "message": "Mencurigakan"
+  },
+  "verdict_likely_safe": {
+    "message": "Kemungkinan aman"
+  },
+  "verdict_safe": {
+    "message": "Aman"
+  },
+  "opt_api_heading": {
+    "message": "Server pindai mendalam & laporan"
+  },
+  "opt_api_help": {
+    "message": "Pindai mendalam mengirim cuplikan halaman yang Anda lihat (judul, sampel teks, nama skrip, domain tautan, tombol dompet) beserta temuan ekstensi ke server ini, yang meminta putusan dari model AI. Hanya terjadi saat Anda menekan Pindai mendalam. Kunci AI ada di server, tidak pernah di ekstensi."
+  },
+  "opt_api_base": {
+    "message": "URL server"
+  },
   "opt_title": {
     "message": "Pengaturan Web3 Phish Guard"
   },

@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "设置"
   },
+  "popup_deep_scan": {
+    "message": "深度扫描"
+  },
+  "popup_report": {
+    "message": "举报此网站"
+  },
+  "popup_report_note": {
+    "message": "可选：您为什么认为这是诈骗？"
+  },
+  "popup_report_send": {
+    "message": "发送举报"
+  },
+  "popup_report_sent": {
+    "message": "已举报，谢谢。将进行审核。"
+  },
+  "popup_report_failed": {
+    "message": "举报失败"
+  },
+  "popup_cancel": {
+    "message": "取消"
+  },
+  "popup_scanning": {
+    "message": "正在扫描页面、脚本和注册信息…"
+  },
+  "popup_scan_failed": {
+    "message": "扫描失败"
+  },
+  "popup_local_only": {
+    "message": "本地判定"
+  },
+  "popup_ai_unavailable": {
+    "message": "AI 分析不可用"
+  },
+  "popup_impersonates": {
+    "message": "冒充 $1"
+  },
+  "popup_facts_libs": {
+    "message": "库"
+  },
+  "popup_facts_scripts": {
+    "message": "脚本"
+  },
+  "popup_facts_wallet": {
+    "message": "钱包按钮"
+  },
+  "popup_facts_seed": {
+    "message": "助记词输入框"
+  },
+  "popup_facts_markers": {
+    "message": "盗取器特征"
+  },
+  "verdict_dangerous": {
+    "message": "危险"
+  },
+  "verdict_suspicious": {
+    "message": "可疑"
+  },
+  "verdict_likely_safe": {
+    "message": "可能安全"
+  },
+  "verdict_safe": {
+    "message": "安全"
+  },
+  "opt_api_heading": {
+    "message": "深度扫描与举报服务器"
+  },
+  "opt_api_help": {
+    "message": "深度扫描会把您当前页面的快照（标题、文本样本、脚本名、链接域名、钱包相关按钮）连同扩展的发现发送到此服务器，由服务器向 AI 模型请求判定。仅在您点击“深度扫描”时发生。AI 密钥保存在服务器上，绝不在扩展中。"
+  },
+  "opt_api_base": {
+    "message": "服务器地址"
+  },
   "opt_title": {
     "message": "Web3 Phish Guard 设置"
   },

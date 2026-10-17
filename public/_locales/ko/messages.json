@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "설정"
   },
+  "popup_deep_scan": {
+    "message": "정밀 검사"
+  },
+  "popup_report": {
+    "message": "이 사이트 신고"
+  },
+  "popup_report_note": {
+    "message": "선택: 사기라고 생각하는 이유"
+  },
+  "popup_report_send": {
+    "message": "신고 보내기"
+  },
+  "popup_report_sent": {
+    "message": "신고됨, 감사합니다. 검토됩니다."
+  },
+  "popup_report_failed": {
+    "message": "신고 실패"
+  },
+  "popup_cancel": {
+    "message": "취소"
+  },
+  "popup_scanning": {
+    "message": "페이지, 스크립트, 등록 정보 검사 중…"
+  },
+  "popup_scan_failed": {
+    "message": "검사 실패"
+  },
+  "popup_local_only": {
+    "message": "로컬 판정"
+  },
+  "popup_ai_unavailable": {
+    "message": "AI 분석 불가"
+  },
+  "popup_impersonates": {
+    "message": "$1 사칭"
+  },
+  "popup_facts_libs": {
+    "message": "라이브러리"
+  },
+  "popup_facts_scripts": {
+    "message": "스크립트"
+  },
+  "popup_facts_wallet": {
+    "message": "지갑 버튼"
+  },
+  "popup_facts_seed": {
+    "message": "시드 입력란"
+  },
+  "popup_facts_markers": {
+    "message": "드레이너 흔적"
+  },
+  "verdict_dangerous": {
+    "message": "위험"
+  },
+  "verdict_suspicious": {
+    "message": "의심스러움"
+  },
+  "verdict_likely_safe": {
+    "message": "안전할 가능성 높음"
+  },
+  "verdict_safe": {
+    "message": "안전"
+  },
+  "opt_api_heading": {
+    "message": "정밀 검사 및 신고 서버"
+  },
+  "opt_api_help": {
+    "message": "정밀 검사는 현재 보고 있는 페이지의 스냅샷(제목, 텍스트 샘플, 스크립트 이름, 링크 도메인, 지갑 관련 버튼)과 확장 프로그램의 발견 내용을 이 서버로 보내고, 서버가 AI 모델에 판정을 요청합니다. 정밀 검사 버튼을 누를 때만 실행됩니다. AI 키는 서버에만 있고 확장 프로그램에는 없습니다."
+  },
+  "opt_api_base": {
+    "message": "서버 URL"
+  },
   "opt_title": {
     "message": "Web3 Phish Guard 설정"
   },

@@ -1,12 +1,12 @@
 /**
  * Copies the data files the extension consumes into lists/ and writes lists/manifest.json.
- * The extension fetches these from raw.githubusercontent.com (see REMOTE_BASE in src/lib/lists.ts).
+ * In this repo the scripts write into data/ and publish-lists.mjs is run with "data" so the manifest sits next to the files.
  * Run after the brand scripts: node scripts/publish-lists.mjs [outDir]   (default: lists/)
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 
-const FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json"];
+const FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "community-blocklist.json"];
 const OUT = process.argv[2] || "lists";
 mkdirSync(OUT, { recursive: true });
 

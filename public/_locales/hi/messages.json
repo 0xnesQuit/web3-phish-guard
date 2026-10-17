@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "सेटिंग्स"
   },
+  "popup_deep_scan": {
+    "message": "गहन स्कैन"
+  },
+  "popup_report": {
+    "message": "इस साइट की रिपोर्ट करें"
+  },
+  "popup_report_note": {
+    "message": "वैकल्पिक: आपको यह धोखाधड़ी क्यों लगती है?"
+  },
+  "popup_report_send": {
+    "message": "रिपोर्ट भेजें"
+  },
+  "popup_report_sent": {
+    "message": "रिपोर्ट भेजी गई, धन्यवाद। समीक्षा होगी।"
+  },
+  "popup_report_failed": {
+    "message": "रिपोर्ट विफल"
+  },
+  "popup_cancel": {
+    "message": "रद्द करें"
+  },
+  "popup_scanning": {
+    "message": "पेज, स्क्रिप्ट और रजिस्ट्री स्कैन हो रही हैं…"
+  },
+  "popup_scan_failed": {
+    "message": "स्कैन विफल"
+  },
+  "popup_local_only": {
+    "message": "स्थानीय निर्णय"
+  },
+  "popup_ai_unavailable": {
+    "message": "AI विश्लेषण उपलब्ध नहीं"
+  },
+  "popup_impersonates": {
+    "message": "$1 की नकल"
+  },
+  "popup_facts_libs": {
+    "message": "लाइब्रेरी"
+  },
+  "popup_facts_scripts": {
+    "message": "स्क्रिप्ट"
+  },
+  "popup_facts_wallet": {
+    "message": "वॉलेट बटन"
+  },
+  "popup_facts_seed": {
+    "message": "सीड फ़ील्ड"
+  },
+  "popup_facts_markers": {
+    "message": "ड्रेनर संकेत"
+  },
+  "verdict_dangerous": {
+    "message": "खतरनाक"
+  },
+  "verdict_suspicious": {
+    "message": "संदिग्ध"
+  },
+  "verdict_likely_safe": {
+    "message": "संभवतः सुरक्षित"
+  },
+  "verdict_safe": {
+    "message": "सुरक्षित"
+  },
+  "opt_api_heading": {
+    "message": "गहन स्कैन और रिपोर्ट सर्वर"
+  },
+  "opt_api_help": {
+    "message": "गहन स्कैन आपके देख रहे पेज का स्नैपशॉट (शीर्षक, पाठ नमूना, स्क्रिप्ट नाम, लिंक डोमेन, वॉलेट बटन) और एक्सटेंशन के निष्कर्ष इस सर्वर को भेजता है, जो AI मॉडल से निर्णय माँगता है। यह केवल गहन स्कैन दबाने पर होता है। AI कुंजी सर्वर पर रहती है, एक्सटेंशन में कभी नहीं।"
+  },
+  "opt_api_base": {
+    "message": "सर्वर URL"
+  },
   "opt_title": {
     "message": "Web3 Phish Guard सेटिंग्स"
   },

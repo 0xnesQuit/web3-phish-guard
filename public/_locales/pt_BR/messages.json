@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "Configurações"
   },
+  "popup_deep_scan": {
+    "message": "Análise profunda"
+  },
+  "popup_report": {
+    "message": "Denunciar este site"
+  },
+  "popup_report_note": {
+    "message": "Opcional: por que acha que é golpe?"
+  },
+  "popup_report_send": {
+    "message": "Enviar denúncia"
+  },
+  "popup_report_sent": {
+    "message": "Enviado, obrigado. Será analisado."
+  },
+  "popup_report_failed": {
+    "message": "Falha ao enviar"
+  },
+  "popup_cancel": {
+    "message": "Cancelar"
+  },
+  "popup_scanning": {
+    "message": "Analisando página, scripts e registros…"
+  },
+  "popup_scan_failed": {
+    "message": "Análise falhou"
+  },
+  "popup_local_only": {
+    "message": "Veredito local"
+  },
+  "popup_ai_unavailable": {
+    "message": "Análise de IA indisponível"
+  },
+  "popup_impersonates": {
+    "message": "imita $1"
+  },
+  "popup_facts_libs": {
+    "message": "bibliotecas"
+  },
+  "popup_facts_scripts": {
+    "message": "scripts"
+  },
+  "popup_facts_wallet": {
+    "message": "botões de carteira"
+  },
+  "popup_facts_seed": {
+    "message": "campos de seed"
+  },
+  "popup_facts_markers": {
+    "message": "marcas de drainer"
+  },
+  "verdict_dangerous": {
+    "message": "Perigoso"
+  },
+  "verdict_suspicious": {
+    "message": "Suspeito"
+  },
+  "verdict_likely_safe": {
+    "message": "Provavelmente seguro"
+  },
+  "verdict_safe": {
+    "message": "Seguro"
+  },
+  "opt_api_heading": {
+    "message": "Servidor de análise profunda e denúncias"
+  },
+  "opt_api_help": {
+    "message": "A análise profunda envia um resumo da página atual (título, amostra de texto, nomes de scripts, domínios dos links, botões de carteira) junto com os achados da extensão para este servidor, que pede um veredito a um modelo de IA. Só acontece quando você clica em Análise profunda. A chave de IA fica no servidor, nunca na extensão."
+  },
+  "opt_api_base": {
+    "message": "URL do servidor"
+  },
   "opt_title": {
     "message": "Configurações do Web3 Phish Guard"
   },

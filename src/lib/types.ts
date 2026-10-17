@@ -86,6 +86,35 @@ export interface XIntel {
   poster?: { handle: string; followers: number; ageDays?: number; domains: string[] };
 }
 
+/** What the page-scan content script collects on demand (structure + bounded text, never form values). */
+export interface PageSnapshot {
+  title: string;
+  description: string;
+  text: string;
+  libs: string[];
+  scripts: string[];
+  inlineScripts: number;
+  inlineBytes: number;
+  obfuscation: { hexVars: number; evalAtob: number; debuggerTraps: number };
+  links: { total: number; externalDomains: string[]; sameDomainRatio: number };
+  walletButtons: string[];
+  seedPhraseInputs: number;
+  countdown: boolean;
+  iframes: number;
+  drainerMarkers: string[];
+  providerEvents: string[];
+}
+
+export interface DeepReport {
+  host: string;
+  at: number;
+  local: { score: number; band: Band; signals: Signal[] };
+  page: PageSnapshot;
+  markers: string[];
+  goplus?: { phishing?: boolean };
+  ai: { verdict?: string; confidence?: number; summary?: string; reasons?: string[]; advice?: string[]; impersonates?: string; model?: string; cached?: boolean; error?: string };
+}
+
 export interface ProviderEvent {
   kind: "auto-connect" | "risky-sign" | "risky-tx" | "chain-switch";
   method: string;

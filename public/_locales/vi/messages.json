@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "Cài đặt"
   },
+  "popup_deep_scan": {
+    "message": "Quét sâu"
+  },
+  "popup_report": {
+    "message": "Báo cáo trang này"
+  },
+  "popup_report_note": {
+    "message": "Tùy chọn: vì sao bạn nghĩ đây là lừa đảo?"
+  },
+  "popup_report_send": {
+    "message": "Gửi báo cáo"
+  },
+  "popup_report_sent": {
+    "message": "Đã báo cáo, cảm ơn. Sẽ được xem xét."
+  },
+  "popup_report_failed": {
+    "message": "Báo cáo thất bại"
+  },
+  "popup_cancel": {
+    "message": "Hủy"
+  },
+  "popup_scanning": {
+    "message": "Đang quét trang, script và đăng ký…"
+  },
+  "popup_scan_failed": {
+    "message": "Quét thất bại"
+  },
+  "popup_local_only": {
+    "message": "Kết luận cục bộ"
+  },
+  "popup_ai_unavailable": {
+    "message": "Không có phân tích AI"
+  },
+  "popup_impersonates": {
+    "message": "giả mạo $1"
+  },
+  "popup_facts_libs": {
+    "message": "thư viện"
+  },
+  "popup_facts_scripts": {
+    "message": "script"
+  },
+  "popup_facts_wallet": {
+    "message": "nút ví"
+  },
+  "popup_facts_seed": {
+    "message": "ô nhập seed"
+  },
+  "popup_facts_markers": {
+    "message": "dấu hiệu drainer"
+  },
+  "verdict_dangerous": {
+    "message": "Nguy hiểm"
+  },
+  "verdict_suspicious": {
+    "message": "Đáng ngờ"
+  },
+  "verdict_likely_safe": {
+    "message": "Có thể an toàn"
+  },
+  "verdict_safe": {
+    "message": "An toàn"
+  },
+  "opt_api_heading": {
+    "message": "Máy chủ quét sâu và báo cáo"
+  },
+  "opt_api_help": {
+    "message": "Quét sâu gửi ảnh chụp trang bạn đang xem (tiêu đề, mẫu văn bản, tên script, tên miền liên kết, nút liên quan ví) cùng phát hiện của tiện ích tới máy chủ này, máy chủ hỏi mô hình AI để đưa ra kết luận. Chỉ xảy ra khi bạn nhấn Quét sâu. Khóa AI nằm trên máy chủ, không bao giờ trong tiện ích."
+  },
+  "opt_api_base": {
+    "message": "URL máy chủ"
+  },
   "opt_title": {
     "message": "Cài đặt Web3 Phish Guard"
   },

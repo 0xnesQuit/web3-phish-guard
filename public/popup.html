@@ -14,6 +14,17 @@
   .host { font-family: ui-monospace, monospace; word-break: break-all; opacity: .9; }
   ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.5; }
   .meta { margin-top: 10px; opacity: .6; font-size: 12px; line-height: 1.5; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+  .row button { flex: 1; margin-top: 0; }
+  .primary { background: #2b4a8a; border-color: #3b64b8; }
+  #deep { margin-top: 12px; padding: 10px; border-radius: 10px; background: #1a1a1a; border: 1px solid #333; display: none; }
+  #deep .v { font-weight: 700; margin-bottom: 6px; }
+  #deep .v.dangerous { color: #ff8a8a; } #deep .v.suspicious { color: #ffd27a; } #deep .v.likely_safe, #deep .v.safe { color: #9be3b0; }
+  #deep ul { margin: 6px 0; }
+  #deep .adv { opacity: .85; }
+  #deep .facts { margin-top: 8px; font-size: 11px; opacity: .55; line-height: 1.5; }
+  textarea { width: 100%; box-sizing: border-box; font: inherit; background: #1b1b1b; color: #eee; border: 1px solid #444; border-radius: 8px; padding: 6px; margin-top: 8px; min-height: 56px; }
+  .spin { opacity: .7; }
   button { font: inherit; margin-top: 10px; padding: 6px 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: #eee; cursor: pointer; }
 </style>
 </head>
@@ -23,6 +34,15 @@
     <div class="host" id="host">…</div>
     <ul id="reasons"></ul>
     <button id="allow" hidden data-i18n="popup_allow">I trust this site (add to allowlist)</button>
+    <div class="row">
+      <button id="deepscan" class="primary" data-i18n="popup_deep_scan">Deep scan</button>
+      <button id="reportbtn" data-i18n="popup_report">Report this site</button>
+    </div>
+    <div id="deep"></div>
+    <div id="reportbox" hidden>
+      <textarea id="note" data-i18n-placeholder="popup_report_note"></textarea>
+      <div class="row"><button id="sendreport" class="primary" data-i18n="popup_report_send">Send report</button><button id="cancelreport" data-i18n="popup_cancel">Cancel</button></div>
+    </div>
     <div class="meta" id="meta"></div>
     <button id="options" data-i18n="popup_options">Settings</button>
   </section>

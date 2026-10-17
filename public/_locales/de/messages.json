@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "Einstellungen"
   },
+  "popup_deep_scan": {
+    "message": "Tiefenscan"
+  },
+  "popup_report": {
+    "message": "Seite melden"
+  },
+  "popup_report_note": {
+    "message": "Optional: Warum halten Sie das für Betrug?"
+  },
+  "popup_report_send": {
+    "message": "Meldung senden"
+  },
+  "popup_report_sent": {
+    "message": "Gemeldet, danke. Wird geprüft."
+  },
+  "popup_report_failed": {
+    "message": "Meldung fehlgeschlagen"
+  },
+  "popup_cancel": {
+    "message": "Abbrechen"
+  },
+  "popup_scanning": {
+    "message": "Seite, Skripte und Register werden geprüft…"
+  },
+  "popup_scan_failed": {
+    "message": "Scan fehlgeschlagen"
+  },
+  "popup_local_only": {
+    "message": "Lokales Ergebnis"
+  },
+  "popup_ai_unavailable": {
+    "message": "KI-Analyse nicht verfügbar"
+  },
+  "popup_impersonates": {
+    "message": "imitiert $1"
+  },
+  "popup_facts_libs": {
+    "message": "Bibliotheken"
+  },
+  "popup_facts_scripts": {
+    "message": "Skripte"
+  },
+  "popup_facts_wallet": {
+    "message": "Wallet-Buttons"
+  },
+  "popup_facts_seed": {
+    "message": "Seed-Felder"
+  },
+  "popup_facts_markers": {
+    "message": "Drainer-Spuren"
+  },
+  "verdict_dangerous": {
+    "message": "Gefährlich"
+  },
+  "verdict_suspicious": {
+    "message": "Verdächtig"
+  },
+  "verdict_likely_safe": {
+    "message": "Wahrscheinlich sicher"
+  },
+  "verdict_safe": {
+    "message": "Sicher"
+  },
+  "opt_api_heading": {
+    "message": "Server für Tiefenscan & Meldungen"
+  },
+  "opt_api_help": {
+    "message": "Der Tiefenscan sendet einen Schnappschuss der aktuellen Seite (Titel, Textprobe, Skriptnamen, Link-Domains, Wallet-Buttons) zusammen mit den Befunden der Erweiterung an diesen Server, der ein KI-Modell um ein Urteil bittet. Das passiert nur, wenn Sie auf Tiefenscan klicken. Der KI-Schlüssel liegt auf dem Server, nie in der Erweiterung."
+  },
+  "opt_api_base": {
+    "message": "Server-URL"
+  },
   "opt_title": {
     "message": "Web3 Phish Guard Einstellungen"
   },

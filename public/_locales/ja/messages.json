@@ -80,6 +80,78 @@
   "popup_options": {
     "message": "設定"
   },
+  "popup_deep_scan": {
+    "message": "詳細スキャン"
+  },
+  "popup_report": {
+    "message": "このサイトを報告"
+  },
+  "popup_report_note": {
+    "message": "任意：詐欺だと思う理由"
+  },
+  "popup_report_send": {
+    "message": "送信"
+  },
+  "popup_report_sent": {
+    "message": "報告しました。確認されます。"
+  },
+  "popup_report_failed": {
+    "message": "報告に失敗"
+  },
+  "popup_cancel": {
+    "message": "キャンセル"
+  },
+  "popup_scanning": {
+    "message": "ページ・スクリプト・登録情報をスキャン中…"
+  },
+  "popup_scan_failed": {
+    "message": "スキャン失敗"
+  },
+  "popup_local_only": {
+    "message": "ローカル判定"
+  },
+  "popup_ai_unavailable": {
+    "message": "AI 分析を利用できません"
+  },
+  "popup_impersonates": {
+    "message": "$1 を偽装"
+  },
+  "popup_facts_libs": {
+    "message": "ライブラリ"
+  },
+  "popup_facts_scripts": {
+    "message": "スクリプト"
+  },
+  "popup_facts_wallet": {
+    "message": "ウォレットボタン"
+  },
+  "popup_facts_seed": {
+    "message": "シード入力欄"
+  },
+  "popup_facts_markers": {
+    "message": "ドレイナー痕跡"
+  },
+  "verdict_dangerous": {
+    "message": "危険"
+  },
+  "verdict_suspicious": {
+    "message": "疑わしい"
+  },
+  "verdict_likely_safe": {
+    "message": "おそらく安全"
+  },
+  "verdict_safe": {
+    "message": "安全"
+  },
+  "opt_api_heading": {
+    "message": "詳細スキャン・報告サーバー"
+  },
+  "opt_api_help": {
+    "message": "詳細スキャンは閲覧中ページのスナップショット（タイトル、本文サンプル、スクリプト名、リンクのドメイン、ウォレット関連ボタン）と拡張機能の所見をこのサーバーへ送り、サーバーが AI モデルに判定を求めます。詳細スキャンを押したときだけ実行されます。AI キーはサーバーにあり、拡張機能には含まれません。"
+  },
+  "opt_api_base": {
+    "message": "サーバー URL"
+  },
   "opt_title": {
     "message": "Web3 Phish Guard の設定"
   },

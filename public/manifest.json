@@ -28,7 +28,7 @@
     },
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["overlay.js"],
+      "js": ["overlay.js", "page-scan.js"],
       "run_at": "document_idle"
     }
   ],

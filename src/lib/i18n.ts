@@ -22,6 +22,9 @@ export function localizePage(root: ParentNode = document): void {
   for (const el of root.querySelectorAll<HTMLElement>("[data-i18n-title]")) {
     el.title = t(el.dataset.i18nTitle!);
   }
+  for (const el of root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[data-i18n-placeholder]")) {
+    el.placeholder = t(el.dataset.i18nPlaceholder!);
+  }
   try {
     document.documentElement.lang = chrome.i18n.getUILanguage();
   } catch {
