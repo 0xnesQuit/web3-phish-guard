@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 # Create with: npx wrangler kv namespace create W3PG_KV   (then paste the id below)
 [[kv_namespaces]]
 binding = "W3PG_KV"
-id = "REPLACE_WITH_KV_ID"
+id = "ec53745c0a244239beb2757d80663075"
 
 [vars]
 # Comma-separated extension origins allowed to call /v1/scan and /v1/report.

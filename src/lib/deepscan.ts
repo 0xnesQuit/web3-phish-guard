@@ -7,7 +7,7 @@
 import type { DeepReport, PageSnapshot, Verdict, OriginContext, XIntel } from "./types";
 import { signalText } from "./i18n";
 
-export const DEFAULT_API_BASE = "https://web3-phish-guard-api.0xnesquit.workers.dev";
+export const DEFAULT_API_BASE = "https://web3-phish-guard-api.w3pg.workers.dev";
 
 export async function getApiBase(): Promise<string> {
   const v = (await chrome.storage.local.get("apiBase")).apiBase as string | undefined;
