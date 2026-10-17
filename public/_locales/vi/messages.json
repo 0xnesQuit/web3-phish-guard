@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "Cảnh báo tức thì về các trang mint NFT và nhận airdrop giả mạo. Mọi kiểm tra chạy cục bộ."
+  },
+  "warning_tab_title": {
+    "message": "Cảnh báo: có thể là trang lừa đảo"
+  },
+  "warning_title": {
+    "message": "Trang này có thể là trang rút sạch ví (drainer)"
+  },
+  "warning_score": {
+    "message": "Điểm rủi ro: $1/100"
+  },
+  "warning_reasons": {
+    "message": "Vì sao đáng ngờ:"
+  },
+  "warning_back": {
+    "message": "Quay lại (khuyến nghị)"
+  },
+  "warning_proceed": {
+    "message": "Tôi hiểu rủi ro, vẫn tiếp tục"
+  },
+  "warning_note": {
+    "message": "Dự án thật đặt airdrop và mint trên tên miền chính thức hoặc địa chỉ được công bố từ tài khoản X/Discord chính thức. Đừng tin các liên kết \"claim\" trong phần trả lời trên X hoặc tin nhắn riêng. Yêu cầu kết nối ví và ký trên trang này có thể rút sạch tài sản của bạn."
+  },
+  "popup_unchecked": {
+    "message": "chưa kiểm tra"
+  },
+  "popup_blocked": {
+    "message": "đã chặn"
+  },
+  "popup_suspicious": {
+    "message": "đáng ngờ"
+  },
+  "popup_clean": {
+    "message": "an toàn"
+  },
+  "popup_allow": {
+    "message": "Tôi tin trang này (thêm vào danh sách cho phép)"
+  },
+  "popup_added": {
+    "message": "Đã thêm. Tải lại trang."
+  },
+  "popup_domains": {
+    "message": "$1 tên miền"
+  },
+  "popup_not_downloaded": {
+    "message": "chưa tải xuống"
+  },
+  "popup_trusted": {
+    "message": "tin cậy"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard: trang này có vẻ đáng ngờ (rủi ro $1/100)"
+  },
+  "overlay_hint": {
+    "message": "Hãy xác minh địa chỉ trên X/Discord chính thức của dự án trước khi kết nối ví hoặc ký bất cứ gì."
+  },
+  "overlay_close": {
+    "message": "Đóng"
+  },
+  "badge_block": {
+    "message": "⛔ lừa đảo?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ đáng ngờ"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · rủi ro $2/100"
+  },
+  "sig_user_allow": {
+    "message": "Bạn đã đánh dấu tên miền này là tin cậy"
+  },
+  "sig_ip_host": {
+    "message": "Địa chỉ IP thay vì tên miền"
+  },
+  "sig_brand_official": {
+    "message": "Tên miền chính thức của $1"
+  },
+  "sig_allowlist": {
+    "message": "Có trong danh sách an toàn đã biết (MetaMask allowlist)"
+  },
+  "sig_blocklist": {
+    "message": "Có trong danh sách lừa đảo đã biết ($1)"
+  },
+  "sig_action_strong": {
+    "message": "Từ mồi nhử trong tên miền: \"$1\""
+  },
+  "sig_action_medium": {
+    "message": "Tên miền chứa \"$1\""
+  },
+  "sig_free_host": {
+    "message": "Hosting miễn phí / dùng chung ($1)"
+  },
+  "sig_tld_strong": {
+    "message": "Đuôi tên miền bị lạm dụng nhiều ($1)"
+  },
+  "sig_tld_weak": {
+    "message": "Đuôi tên miền hay bị lạm dụng ($1)"
+  },
+  "sig_brand_impersonation": {
+    "message": "Mang tên \"$1\" nhưng không phải tên miền chính thức ($2)"
+  },
+  "sig_brand_typo": {
+    "message": "Giả mạo \"$1\" chỉ khác một ký tự"
+  },
+  "sig_brand_unverified": {
+    "message": "Mang tên dự án \"$1\"; tên miền chính thức chưa được xác minh"
+  },
+  "sig_digits": {
+    "message": "Chữ số gắn liền với từ"
+  },
+  "sig_action_hyphen": {
+    "message": "Mẫu từ mồi + tên dự án (vd. claim-project)"
+  },
+  "sig_long_host": {
+    "message": "Tên máy chủ dài bất thường"
+  },
+  "sig_origin_social": {
+    "message": "Bạn đến từ $1"
+  },
+  "sig_poster_mismatch": {
+    "message": "Đăng bởi $1, không phải tài khoản chính thức $2"
+  },
+  "sig_poster_name": {
+    "message": "Tên tài khoản đăng đáng ngờ ($1)"
+  },
+  "sig_poster_reply": {
+    "message": "Chia sẻ dưới dạng trả lời (mẫu liên kết giả dưới thông báo chính thức)"
+  },
+  "sig_display_mismatch": {
+    "message": "Địa chỉ hiển thị trên X ($1) khác với địa chỉ mở"
+  },
+  "sig_age_days": {
+    "message": "Tên miền đăng ký $1 ngày trước"
+  },
+  "sig_age_years": {
+    "message": "Tên miền đã đăng ký hơn $1 năm"
+  },
+  "sig_combo": {
+    "message": "Kết hợp thương hiệu + từ mồi + hosting mới/dùng chung"
+  },
+  "sig_auto_connect": {
+    "message": "Yêu cầu kết nối ví ngay khi tải trang, không cần nhấp"
+  },
+  "sig_chain_switch": {
+    "message": "Yêu cầu đổi mạng mà không nhấp"
+  },
+  "sig_tx_approve": {
+    "message": "Giao dịch nguy hiểm: cấp quyền chi tiêu token (approve)"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "Giao dịch nguy hiểm: setApprovalForAll (truy cập mọi NFT của bạn)"
+  },
+  "sig_tx_permit": {
+    "message": "Giao dịch nguy hiểm: Permit / Permit2 (quyền chuyển token)"
+  },
+  "sig_tx_transfer": {
+    "message": "Giao dịch nguy hiểm: chuyển token/NFT trực tiếp"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "Gọi hợp đồng không rõ có gửi ETH (mẫu claim/mint giả)"
+  },
+  "sig_tx_generic": {
+    "message": "Yêu cầu ví nguy hiểm"
+  },
+  "sig_sign_typed": {
+    "message": "Chữ ký nguy hiểm: dữ liệu kiểu $1 (quyền chuyển token/NFT)"
+  },
+  "sig_sign_eth_sign": {
+    "message": "Chữ ký nguy hiểm: eth_sign (chữ ký thô, có thể ủy quyền mọi thứ)"
+  },
+  "sig_sol_sign": {
+    "message": "Yêu cầu ký giao dịch Solana ($1)"
+  }
+}

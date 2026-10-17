@@ -197,6 +197,34 @@ describe("social origin context", () => {
   });
 });
 
+describe("false positives reported from the field", () => {
+  const gen: Brand[] = [{ name: "YieldFi", tokens: ["yieldfi"], domains: ["yield.fi"], x: "getyieldfi" }];
+  const merged = mergeBrands(brands, gen);
+  const runG = (url: string, extra: Partial<Parameters<typeof score>[2]> = {}) => score(url, parseHost(url, freeHosts)!, { brands: merged, lists, ...extra });
+  it("yieldfields.fun posted by @YieldFields_RH is not YieldFi", () => {
+    const v = runG("https://yieldfields.fun/whitelist", { origin: { source: "x", at: 0, poster: "YieldFields_RH", posterVerified: true } });
+    expect(v.signals.some((s) => s.id === "poster-mismatch")).toBe(false);
+    expect(v.signals.some((s) => s.id.startsWith("brand-"))).toBe(false);
+    expect(v.band).toBe("none");
+  });
+  it("substring of a generated brand token never matches", () => {
+    expect(runG("https://yieldfields-claim.xyz/").signals.some((s) => s.id.startsWith("brand-"))).toBe(false);
+  });
+  it("whole-token match of a generated brand still works with an action word", () => {
+    const v = runG("https://yieldfi-claim.xyz/", { origin: { source: "x", at: 0, poster: "yieldfi_rewards" } });
+    expect(v.signals.some((s) => s.id === "brand-impersonation-weak")).toBe(true);
+    expect(v.signals.some((s) => s.id === "poster-mismatch")).toBe(true);
+    expect(v.band).toBe("block");
+  });
+  it("poster mismatch needs a flagged brand, not just a token hit", () => {
+    const v = run("https://uniswap-blog.com/", { origin: { source: "x", at: 0, poster: "someone" } });
+    // seed brand impersonation (+40) is flagged, so mismatch applies
+    expect(v.signals.some((s) => s.id === "poster-mismatch")).toBe(true);
+    const w = run("https://kamino.finance/", { brands: mergeBrands(brands, [{ name: "Kamino Lend", tokens: ["kamino"], domains: ["kamino.com"], x: "Kamino" }]), origin: { source: "x", at: 0, poster: "someone" } });
+    expect(w.signals.some((s) => s.id === "poster-mismatch")).toBe(false);
+  });
+});
+
 describe("blocklist helpers", () => {
   it("extractDomains handles plain arrays and nested configs", () => {
     expect(extractDomains(["a.com", "https://b.com/x"], ["blocklist"])).toEqual(["a.com", "b.com"]);

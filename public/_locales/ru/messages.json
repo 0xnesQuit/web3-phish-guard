@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "Мгновенные предупреждения о фальшивых страницах минта NFT и получения аирдропов. Все проверки выполняются локально."
+  },
+  "warning_tab_title": {
+    "message": "Внимание: возможный фишинговый сайт"
+  },
+  "warning_title": {
+    "message": "Этот сайт, вероятно, опустошает кошельки (drainer)"
+  },
+  "warning_score": {
+    "message": "Оценка риска: $1/100"
+  },
+  "warning_reasons": {
+    "message": "Почему это подозрительно:"
+  },
+  "warning_back": {
+    "message": "Назад (рекомендуется)"
+  },
+  "warning_proceed": {
+    "message": "Я понимаю риск, всё равно продолжить"
+  },
+  "warning_note": {
+    "message": "Настоящие проекты размещают аирдропы и минты на официальном домене или по адресу, объявленному в официальных аккаунтах X/Discord. Не доверяйте ссылкам «claim» из ответов в X или личных сообщений. Запросы на подключение кошелька и подпись на этой странице могут опустошить ваши средства."
+  },
+  "popup_unchecked": {
+    "message": "не проверено"
+  },
+  "popup_blocked": {
+    "message": "заблокировано"
+  },
+  "popup_suspicious": {
+    "message": "подозрительно"
+  },
+  "popup_clean": {
+    "message": "чисто"
+  },
+  "popup_allow": {
+    "message": "Я доверяю этому сайту (добавить в список разрешённых)"
+  },
+  "popup_added": {
+    "message": "Добавлено. Обновите страницу."
+  },
+  "popup_domains": {
+    "message": "$1 доменов"
+  },
+  "popup_not_downloaded": {
+    "message": "ещё не загружено"
+  },
+  "popup_trusted": {
+    "message": "доверенные"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard: сайт выглядит подозрительно (риск $1/100)"
+  },
+  "overlay_hint": {
+    "message": "Проверьте адрес в официальном X/Discord проекта, прежде чем подключать кошелёк или что-либо подписывать."
+  },
+  "overlay_close": {
+    "message": "Закрыть"
+  },
+  "badge_block": {
+    "message": "⛔ скам?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ подозрительно"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · риск $2/100"
+  },
+  "sig_user_allow": {
+    "message": "Вы отметили этот домен как доверенный"
+  },
+  "sig_ip_host": {
+    "message": "IP-адрес вместо доменного имени"
+  },
+  "sig_brand_official": {
+    "message": "Официальный домен $1"
+  },
+  "sig_allowlist": {
+    "message": "В известном списке безопасных сайтов (allowlist MetaMask)"
+  },
+  "sig_blocklist": {
+    "message": "В известном списке фишинговых сайтов ($1)"
+  },
+  "sig_action_strong": {
+    "message": "Слова-приманки в домене: «$1»"
+  },
+  "sig_action_medium": {
+    "message": "Домен содержит «$1»"
+  },
+  "sig_free_host": {
+    "message": "Бесплатный / общий хостинг ($1)"
+  },
+  "sig_tld_strong": {
+    "message": "Часто используемая мошенниками зона ($1)"
+  },
+  "sig_tld_weak": {
+    "message": "Нередко используемая мошенниками зона ($1)"
+  },
+  "sig_brand_impersonation": {
+    "message": "Содержит имя «$1», но это не его официальный домен ($2)"
+  },
+  "sig_brand_typo": {
+    "message": "Имитация «$1» с одной изменённой буквой"
+  },
+  "sig_brand_unverified": {
+    "message": "Содержит имя проекта «$1»; официальный домен ещё не подтверждён"
+  },
+  "sig_digits": {
+    "message": "Цифры, приклеенные к словам"
+  },
+  "sig_action_hyphen": {
+    "message": "Шаблон «слово-приманка + имя проекта» (напр. claim-project)"
+  },
+  "sig_long_host": {
+    "message": "Необычно длинное имя хоста"
+  },
+  "sig_origin_social": {
+    "message": "Переход через $1"
+  },
+  "sig_poster_mismatch": {
+    "message": "Опубликовано $1, а не официальным аккаунтом $2"
+  },
+  "sig_poster_name": {
+    "message": "Подозрительное имя аккаунта ($1)"
+  },
+  "sig_poster_reply": {
+    "message": "Опубликовано как ответ (схема «фальшивая ссылка под официальным объявлением»)"
+  },
+  "sig_display_mismatch": {
+    "message": "Адрес, показанный в X ($1), отличается от открытого"
+  },
+  "sig_age_days": {
+    "message": "Домен зарегистрирован $1 дн. назад"
+  },
+  "sig_age_years": {
+    "message": "Домен зарегистрирован более $1 лет"
+  },
+  "sig_combo": {
+    "message": "Сочетание: бренд + слово-приманка + новый/общий хостинг"
+  },
+  "sig_auto_connect": {
+    "message": "Запрос подключения кошелька при загрузке без клика"
+  },
+  "sig_chain_switch": {
+    "message": "Запрос смены сети без клика"
+  },
+  "sig_tx_approve": {
+    "message": "Опасная транзакция: разрешение на трату токенов (approve)"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "Опасная транзакция: setApprovalForAll (доступ ко всем вашим NFT)"
+  },
+  "sig_tx_permit": {
+    "message": "Опасная транзакция: Permit / Permit2 (право перевода токенов)"
+  },
+  "sig_tx_transfer": {
+    "message": "Опасная транзакция: прямой перевод токенов/NFT"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "Вызов неизвестного контракта с отправкой ETH (схема фальшивого claim/mint)"
+  },
+  "sig_tx_generic": {
+    "message": "Опасный запрос к кошельку"
+  },
+  "sig_sign_typed": {
+    "message": "Опасная подпись: типизированные данные $1 (право перевода токенов/NFT)"
+  },
+  "sig_sign_eth_sign": {
+    "message": "Опасная подпись: eth_sign (сырая подпись, может разрешить что угодно)"
+  },
+  "sig_sol_sign": {
+    "message": "Запрошена подпись транзакции Solana ($1)"
+  }
+}

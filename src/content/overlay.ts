@@ -1,5 +1,6 @@
 /** In-page warning banner for the "warn" band. Does not block the page. */
 import type { Verdict } from "../lib/types";
+import { t, signalText } from "../lib/i18n";
 
 const ID = "w3pg-banner";
 
@@ -9,7 +10,7 @@ function render(v: Verdict) {
   host.id = ID;
   host.style.cssText = "all:initial;position:fixed;top:0;left:0;right:0;z-index:2147483647;";
   const root = host.attachShadow({ mode: "closed" });
-  const reasons = v.signals.filter((s) => s.weight > 0).map((s) => `<li>${esc(s.label)}</li>`).join("");
+  const reasons = v.signals.filter((s) => s.weight > 0).map((s) => `<li>${esc(signalText(s))}</li>`).join("");
   root.innerHTML = `
     <style>
       .b{font:14px/1.4 system-ui,sans-serif;background:#3a2a00;color:#ffe6a8;border-bottom:3px solid #f5a524;padding:12px 16px;display:flex;gap:14px;align-items:flex-start;box-shadow:0 4px 16px rgba(0,0,0,.4)}
@@ -22,11 +23,11 @@ function render(v: Verdict) {
     <div class="b">
       <div class="i">⚠️</div>
       <div>
-        <div class="t">Web3 Phish Guard: bu site şüpheli görünüyor (risk ${v.score}/100)</div>
+        <div class="t">${esc(t("overlay_title", [String(v.score)]))}</div>
         <ul>${reasons}</ul>
-        <div class="s">Cüzdanınızı bağlamadan ve hiçbir şey imzalamadan önce adresi projenin resmi X/Discord hesabından doğrulayın.</div>
+        <div class="s">${esc(t("overlay_hint"))}</div>
       </div>
-      <button class="x" id="close">Kapat</button>
+      <button class="x" id="close">${esc(t("overlay_close"))}</button>
     </div>`;
   root.getElementById("close")?.addEventListener("click", () => host.remove());
   (document.documentElement || document.body).appendChild(host);

@@ -22,7 +22,10 @@ export interface SignalLists {
 export interface Signal {
   id: string;
   weight: number;
-  label: string;
+  /** chrome.i18n message key; rendered at display time in the user's language */
+  key: string;
+  /** substitutions for $1, $2 ... in the message */
+  sub?: string[];
 }
 
 export type Band = "none" | "warn" | "block";
@@ -70,7 +73,10 @@ export interface OriginContext {
 export interface ProviderEvent {
   kind: "auto-connect" | "risky-sign" | "risky-tx" | "chain-switch";
   method: string;
+  /** machine-readable detail code, mapped to an i18n key in the background */
   detail: string;
+  /** optional literal to substitute (e.g. a typed-data primaryType) */
+  param?: string;
   msSinceLoad: number;
   hadGesture: boolean;
 }

@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "即时警告假冒的 NFT 铸造和空投领取页面。所有检查均在本地运行。"
+  },
+  "warning_tab_title": {
+    "message": "警告：疑似钓鱼网站"
+  },
+  "warning_title": {
+    "message": "此网站很可能是钱包盗取（drainer）页面"
+  },
+  "warning_score": {
+    "message": "风险评分：$1/100"
+  },
+  "warning_reasons": {
+    "message": "可疑原因："
+  },
+  "warning_back": {
+    "message": "返回（推荐）"
+  },
+  "warning_proceed": {
+    "message": "我了解风险，仍要继续"
+  },
+  "warning_note": {
+    "message": "真实项目会在其官方域名或官方 X/Discord 账号公布的地址上进行空投和铸造。不要相信 X 回复或私信中的“领取”链接。此页面上的钱包连接和签名请求可能会盗空您的资产。"
+  },
+  "popup_unchecked": {
+    "message": "未检查"
+  },
+  "popup_blocked": {
+    "message": "已拦截"
+  },
+  "popup_suspicious": {
+    "message": "可疑"
+  },
+  "popup_clean": {
+    "message": "安全"
+  },
+  "popup_allow": {
+    "message": "我信任此网站（加入白名单）"
+  },
+  "popup_added": {
+    "message": "已添加。请刷新页面。"
+  },
+  "popup_domains": {
+    "message": "$1 个域名"
+  },
+  "popup_not_downloaded": {
+    "message": "尚未下载"
+  },
+  "popup_trusted": {
+    "message": "已信任"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard：此网站看起来可疑（风险 $1/100）"
+  },
+  "overlay_hint": {
+    "message": "在连接钱包或签名之前，请在项目官方 X/Discord 上核实该地址。"
+  },
+  "overlay_close": {
+    "message": "关闭"
+  },
+  "badge_block": {
+    "message": "⛔ 诈骗?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ 可疑"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · 风险 $2/100"
+  },
+  "sig_user_allow": {
+    "message": "您已将此域名标记为可信"
+  },
+  "sig_ip_host": {
+    "message": "使用 IP 地址而非域名"
+  },
+  "sig_brand_official": {
+    "message": "$1 的官方域名"
+  },
+  "sig_allowlist": {
+    "message": "位于已知安全列表（MetaMask 白名单）"
+  },
+  "sig_blocklist": {
+    "message": "位于已知钓鱼列表（$1）"
+  },
+  "sig_action_strong": {
+    "message": "域名中包含诱饵词：“$1”"
+  },
+  "sig_action_medium": {
+    "message": "域名包含“$1”"
+  },
+  "sig_free_host": {
+    "message": "免费/共享托管（$1）"
+  },
+  "sig_tld_strong": {
+    "message": "被大量滥用的域名后缀（$1）"
+  },
+  "sig_tld_weak": {
+    "message": "常被滥用的域名后缀（$1）"
+  },
+  "sig_brand_impersonation": {
+    "message": "包含“$1”名称但并非其官方域名（$2）"
+  },
+  "sig_brand_typo": {
+    "message": "与“$1”仅一字之差的仿冒"
+  },
+  "sig_brand_unverified": {
+    "message": "包含项目“$1”名称；其官方域名尚未核实"
+  },
+  "sig_digits": {
+    "message": "单词后拼接数字"
+  },
+  "sig_action_hyphen": {
+    "message": "诱饵词 + 项目名模式（如 claim-project）"
+  },
+  "sig_long_host": {
+    "message": "主机名异常长"
+  },
+  "sig_origin_social": {
+    "message": "来自 $1 的链接"
+  },
+  "sig_poster_mismatch": {
+    "message": "由 $1 发布，而非官方账号 $2"
+  },
+  "sig_poster_name": {
+    "message": "发布者账号名可疑（$1）"
+  },
+  "sig_poster_reply": {
+    "message": "以回复形式发布（官方公告下的假领取链接模式）"
+  },
+  "sig_display_mismatch": {
+    "message": "X 上显示的地址（$1）与实际打开的不同"
+  },
+  "sig_age_days": {
+    "message": "域名注册于 $1 天前"
+  },
+  "sig_age_years": {
+    "message": "域名已注册 $1 年以上"
+  },
+  "sig_combo": {
+    "message": "品牌 + 诱饵词 + 新注册/共享托管 组合"
+  },
+  "sig_auto_connect": {
+    "message": "页面加载时未经点击即请求连接钱包"
+  },
+  "sig_chain_switch": {
+    "message": "未经点击即请求切换网络"
+  },
+  "sig_tx_approve": {
+    "message": "危险交易：代币支出授权（approve）"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "危险交易：setApprovalForAll（可操作您所有 NFT）"
+  },
+  "sig_tx_permit": {
+    "message": "危险交易：Permit / Permit2（代币转移授权）"
+  },
+  "sig_tx_transfer": {
+    "message": "危险交易：直接转移代币/NFT"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "向未知合约发送 ETH 的调用（假领取/铸造模式）"
+  },
+  "sig_tx_generic": {
+    "message": "危险的钱包请求"
+  },
+  "sig_sign_typed": {
+    "message": "危险签名：$1 类型数据（代币/NFT 转移授权）"
+  },
+  "sig_sign_eth_sign": {
+    "message": "危险签名：eth_sign（原始签名，可授权任何操作）"
+  },
+  "sig_sol_sign": {
+    "message": "请求签署 Solana 交易（$1）"
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "Sahte NFT mint ve airdrop claim sayfalarına karşı anlık uyarı. Tüm kontroller yerel çalışır."
+  },
+  "warning_tab_title": {
+    "message": "Dikkat: olası phishing sitesi"
+  },
+  "warning_title": {
+    "message": "Bu site muhtemelen bir cüzdan boşaltma (drainer) sayfası"
+  },
+  "warning_score": {
+    "message": "Risk puanı: $1/100"
+  },
+  "warning_reasons": {
+    "message": "Neden şüpheli bulundu:"
+  },
+  "warning_back": {
+    "message": "Geri dön (önerilen)"
+  },
+  "warning_proceed": {
+    "message": "Riski anlıyorum, yine de devam et"
+  },
+  "warning_note": {
+    "message": "Gerçek projeler airdrop ve mint akışlarını resmi alan adlarında ya da resmi X/Discord hesaplarından duyurdukları adreste barındırır. X yanıtlarından veya DM'den gelen \"claim\" linklerine güvenmeyin. Bu sayfadaki cüzdan bağlantı ve imza istekleri paranızı kaybettirebilir."
+  },
+  "popup_unchecked": {
+    "message": "kontrol dışı"
+  },
+  "popup_blocked": {
+    "message": "engellendi"
+  },
+  "popup_suspicious": {
+    "message": "şüpheli"
+  },
+  "popup_clean": {
+    "message": "temiz"
+  },
+  "popup_allow": {
+    "message": "Bu siteye güveniyorum (güvenilir listeye ekle)"
+  },
+  "popup_added": {
+    "message": "Eklendi. Sayfayı yenileyin."
+  },
+  "popup_domains": {
+    "message": "$1 domain"
+  },
+  "popup_not_downloaded": {
+    "message": "henüz indirilmedi"
+  },
+  "popup_trusted": {
+    "message": "güvenilir"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard: bu site şüpheli görünüyor (risk $1/100)"
+  },
+  "overlay_hint": {
+    "message": "Cüzdanınızı bağlamadan ve hiçbir şey imzalamadan önce adresi projenin resmi X/Discord hesabından doğrulayın."
+  },
+  "overlay_close": {
+    "message": "Kapat"
+  },
+  "badge_block": {
+    "message": "⛔ scam?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ şüpheli"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · risk $2/100"
+  },
+  "sig_user_allow": {
+    "message": "Bu domaini güvenilir olarak işaretlediniz"
+  },
+  "sig_ip_host": {
+    "message": "Alan adı yerine IP adresi"
+  },
+  "sig_brand_official": {
+    "message": "$1 resmi alan adı"
+  },
+  "sig_allowlist": {
+    "message": "Bilinen güvenli listede (MetaMask allowlist)"
+  },
+  "sig_blocklist": {
+    "message": "Bilinen phishing listesinde ($1)"
+  },
+  "sig_action_strong": {
+    "message": "Alan adında tuzak kelimeler: \"$1\""
+  },
+  "sig_action_medium": {
+    "message": "Alan adında \"$1\" kelimesi"
+  },
+  "sig_free_host": {
+    "message": "Ücretsiz / paylaşımlı barındırma ($1)"
+  },
+  "sig_tld_strong": {
+    "message": "Yoğun kötüye kullanılan uzantı ($1)"
+  },
+  "sig_tld_weak": {
+    "message": "Sık kötüye kullanılan uzantı ($1)"
+  },
+  "sig_brand_impersonation": {
+    "message": "\"$1\" adını taşıyor ama resmi alan adı değil ($2)"
+  },
+  "sig_brand_typo": {
+    "message": "\"$1\" adının bir harf farklı taklidi"
+  },
+  "sig_brand_unverified": {
+    "message": "\"$1\" proje adını taşıyor; resmi alan adı henüz doğrulanmadı"
+  },
+  "sig_digits": {
+    "message": "Kelimelere yapıştırılmış rakamlar"
+  },
+  "sig_action_hyphen": {
+    "message": "Tuzak kelime + proje adı kalıbı (ör. claim-proje)"
+  },
+  "sig_long_host": {
+    "message": "Olağandışı uzun alan adı"
+  },
+  "sig_origin_social": {
+    "message": "Linke $1 üzerinden gelindi"
+  },
+  "sig_poster_mismatch": {
+    "message": "Paylaşan hesap $1, projenin resmi hesabı $2 değil"
+  },
+  "sig_poster_name": {
+    "message": "Paylaşan hesap adı şüpheli ($1)"
+  },
+  "sig_poster_reply": {
+    "message": "Yanıt olarak paylaşılmış (resmi duyurunun altına sahte claim linki kalıbı)"
+  },
+  "sig_display_mismatch": {
+    "message": "X'te gösterilen adres ($1) ile açılan adres farklı"
+  },
+  "sig_age_days": {
+    "message": "Alan adı $1 gün önce kaydedilmiş"
+  },
+  "sig_age_years": {
+    "message": "Alan adı $1 yıldır kayıtlı"
+  },
+  "sig_combo": {
+    "message": "Marka + tuzak kelime + yeni/paylaşımlı barındırma kombinasyonu"
+  },
+  "sig_auto_connect": {
+    "message": "Sayfa açılır açılmaz, tıklama olmadan cüzdan bağlantısı istedi"
+  },
+  "sig_chain_switch": {
+    "message": "Tıklama olmadan ağ değiştirme isteği"
+  },
+  "sig_tx_approve": {
+    "message": "Tehlikeli işlem: token harcama izni (approve)"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "Tehlikeli işlem: setApprovalForAll (tüm NFT'lerinize erişim)"
+  },
+  "sig_tx_permit": {
+    "message": "Tehlikeli işlem: Permit / Permit2 (token transfer yetkisi)"
+  },
+  "sig_tx_transfer": {
+    "message": "Tehlikeli işlem: doğrudan token/NFT transferi"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "ETH gönderen bilinmeyen kontrat çağrısı (sahte claim/mint kalıbı)"
+  },
+  "sig_tx_generic": {
+    "message": "Tehlikeli cüzdan isteği"
+  },
+  "sig_sign_typed": {
+    "message": "Tehlikeli imza: $1 tipli veri (token/NFT transfer yetkisi)"
+  },
+  "sig_sign_eth_sign": {
+    "message": "Tehlikeli imza: eth_sign (ham imza, her şeyi imzalatabilir)"
+  },
+  "sig_sol_sign": {
+    "message": "Solana işlem imzası istendi ($1)"
+  }
+}

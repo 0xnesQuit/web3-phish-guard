@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "Peringatan instan untuk halaman mint NFT dan klaim airdrop palsu. Semua pemeriksaan berjalan lokal."
+  },
+  "warning_tab_title": {
+    "message": "Peringatan: kemungkinan situs phishing"
+  },
+  "warning_title": {
+    "message": "Situs ini kemungkinan besar adalah penguras dompet (drainer)"
+  },
+  "warning_score": {
+    "message": "Skor risiko: $1/100"
+  },
+  "warning_reasons": {
+    "message": "Mengapa terlihat mencurigakan:"
+  },
+  "warning_back": {
+    "message": "Kembali (disarankan)"
+  },
+  "warning_proceed": {
+    "message": "Saya paham risikonya, tetap lanjutkan"
+  },
+  "warning_note": {
+    "message": "Proyek asli menempatkan airdrop dan mint di domain resminya atau di alamat yang diumumkan dari akun X/Discord resmi. Jangan percaya tautan \"claim\" dari balasan X atau DM. Permintaan koneksi dompet dan tanda tangan di halaman ini dapat menguras dana Anda."
+  },
+  "popup_unchecked": {
+    "message": "tidak diperiksa"
+  },
+  "popup_blocked": {
+    "message": "diblokir"
+  },
+  "popup_suspicious": {
+    "message": "mencurigakan"
+  },
+  "popup_clean": {
+    "message": "aman"
+  },
+  "popup_allow": {
+    "message": "Saya percaya situs ini (tambahkan ke daftar izin)"
+  },
+  "popup_added": {
+    "message": "Ditambahkan. Muat ulang halaman."
+  },
+  "popup_domains": {
+    "message": "$1 domain"
+  },
+  "popup_not_downloaded": {
+    "message": "belum diunduh"
+  },
+  "popup_trusted": {
+    "message": "dipercaya"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard: situs ini terlihat mencurigakan (risiko $1/100)"
+  },
+  "overlay_hint": {
+    "message": "Verifikasi alamat di X/Discord resmi proyek sebelum menghubungkan dompet atau menandatangani apa pun."
+  },
+  "overlay_close": {
+    "message": "Tutup"
+  },
+  "badge_block": {
+    "message": "⛔ penipuan?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ mencurigakan"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · risiko $2/100"
+  },
+  "sig_user_allow": {
+    "message": "Anda menandai domain ini sebagai dipercaya"
+  },
+  "sig_ip_host": {
+    "message": "Alamat IP, bukan nama domain"
+  },
+  "sig_brand_official": {
+    "message": "Domain resmi $1"
+  },
+  "sig_allowlist": {
+    "message": "Ada di daftar aman yang dikenal (allowlist MetaMask)"
+  },
+  "sig_blocklist": {
+    "message": "Ada di daftar phishing yang dikenal ($1)"
+  },
+  "sig_action_strong": {
+    "message": "Kata umpan di domain: \"$1\""
+  },
+  "sig_action_medium": {
+    "message": "Domain mengandung \"$1\""
+  },
+  "sig_free_host": {
+    "message": "Hosting gratis / bersama ($1)"
+  },
+  "sig_tld_strong": {
+    "message": "Ekstensi yang sering disalahgunakan ($1)"
+  },
+  "sig_tld_weak": {
+    "message": "Ekstensi yang sering disalahgunakan ($1)"
+  },
+  "sig_brand_impersonation": {
+    "message": "Memakai nama \"$1\" tetapi bukan domain resminya ($2)"
+  },
+  "sig_brand_typo": {
+    "message": "Tiruan \"$1\" dengan satu huruf berbeda"
+  },
+  "sig_brand_unverified": {
+    "message": "Memakai nama proyek \"$1\"; domain resminya belum diverifikasi"
+  },
+  "sig_digits": {
+    "message": "Angka ditempel pada kata"
+  },
+  "sig_action_hyphen": {
+    "message": "Pola kata umpan + nama proyek (mis. claim-proyek)"
+  },
+  "sig_long_host": {
+    "message": "Nama host sangat panjang"
+  },
+  "sig_origin_social": {
+    "message": "Anda datang melalui $1"
+  },
+  "sig_poster_mismatch": {
+    "message": "Diposting oleh $1, bukan akun resmi $2"
+  },
+  "sig_poster_name": {
+    "message": "Nama akun pengunggah mencurigakan ($1)"
+  },
+  "sig_poster_reply": {
+    "message": "Dibagikan sebagai balasan (pola tautan palsu di bawah pengumuman resmi)"
+  },
+  "sig_display_mismatch": {
+    "message": "Alamat yang ditampilkan di X ($1) berbeda dari yang dibuka"
+  },
+  "sig_age_days": {
+    "message": "Domain didaftarkan $1 hari lalu"
+  },
+  "sig_age_years": {
+    "message": "Domain terdaftar lebih dari $1 tahun"
+  },
+  "sig_combo": {
+    "message": "Kombinasi merek + kata umpan + hosting baru/bersama"
+  },
+  "sig_auto_connect": {
+    "message": "Meminta koneksi dompet saat halaman dimuat tanpa klik"
+  },
+  "sig_chain_switch": {
+    "message": "Permintaan ganti jaringan tanpa klik"
+  },
+  "sig_tx_approve": {
+    "message": "Transaksi berbahaya: izin pengeluaran token (approve)"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "Transaksi berbahaya: setApprovalForAll (akses ke semua NFT Anda)"
+  },
+  "sig_tx_permit": {
+    "message": "Transaksi berbahaya: Permit / Permit2 (wewenang transfer token)"
+  },
+  "sig_tx_transfer": {
+    "message": "Transaksi berbahaya: transfer token/NFT langsung"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "Pemanggilan kontrak tak dikenal yang mengirim ETH (pola claim/mint palsu)"
+  },
+  "sig_tx_generic": {
+    "message": "Permintaan dompet berbahaya"
+  },
+  "sig_sign_typed": {
+    "message": "Tanda tangan berbahaya: data bertipe $1 (wewenang transfer token/NFT)"
+  },
+  "sig_sign_eth_sign": {
+    "message": "Tanda tangan berbahaya: eth_sign (tanda tangan mentah, bisa mengotorisasi apa saja)"
+  },
+  "sig_sol_sign": {
+    "message": "Permintaan tanda tangan transaksi Solana ($1)"
+  }
+}

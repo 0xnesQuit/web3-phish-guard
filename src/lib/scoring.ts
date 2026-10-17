@@ -20,7 +20,7 @@ export interface ScoreContext {
 }
 
 const SOURCE_LABEL: Record<OriginContext["source"], string> = {
-  x: "X (Twitter)", discord: "Discord", telegram: "Telegram", reddit: "Reddit", youtube: "YouTube", other: "sosyal medya",
+  x: "X (Twitter)", discord: "Discord", telegram: "Telegram", reddit: "Reddit", youtube: "YouTube", other: "social media",
 };
 
 /** Hostname tokens that are too generic to count as a brand on their own */
@@ -48,11 +48,11 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   // ---- hard allow gates -------------------------------------------------
   if (ctx.userAllowed) {
-    signals.push({ id: "user-allow", weight: 0, label: "Kullanıcı bu domaini güvenilir işaretledi" });
+    signals.push({ id: "user-allow", weight: 0, key: "sig_user_allow" });
     return done();
   }
   if (p.isIp) {
-    signals.push({ id: "ip-host", weight: 10, label: "Alan adı yerine IP adresi" });
+    signals.push({ id: "ip-host", weight: 10, key: "sig_ip_host" });
   }
 
   const allLabels = [...p.subLabels, p.domainLabel];
@@ -77,8 +77,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       for (const t of b.tokens) {
         const tok = t.toLowerCase();
         const generic = GENERIC.has(tok) || tok.length < 5;
-        // substring match in the whole hostname (catches pancakeswapclaim6754)
-        if (!generic && joined.includes(tok)) {
+        // Curated brands: substring match in the whole hostname (catches pancakeswapclaim6754).
+        // Auto-imported brands: whole-token match only ("yieldfi" must not match "yieldfields").
+        const substringOk = b.tier !== "generated" ? joined.includes(tok) : tokens.includes(tok);
+        if (!generic && substringOk) {
           matchedBrand = b;
           brandSignalKind = b.domains.length ? "impersonation" : "unverified";
           break outer;
@@ -100,17 +102,17 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   }
 
   if (brandOfficial && matchedBrand) {
-    signals.push({ id: "brand-official", weight: 0, label: `${matchedBrand.name} resmi alan adı` });
+    signals.push({ id: "brand-official", weight: 0, key: "sig_brand_official", sub: [matchedBrand.name] });
     return done({ brand: matchedBrand.name });
   }
   if (ctx.allowlistHit) {
-    signals.push({ id: "allowlist", weight: 0, label: "Bilinen güvenli liste (MetaMask allowlist)" });
+    signals.push({ id: "allowlist", weight: 0, key: "sig_allowlist" });
     return done();
   }
 
   // ---- hard block gate ----------------------------------------------------
   if (ctx.blocklistHit) {
-    signals.push({ id: "blocklist", weight: 100, label: `Bilinen phishing listesinde (${ctx.blocklistHit})` });
+    signals.push({ id: "blocklist", weight: 100, key: "sig_blocklist", sub: [ctx.blocklistHit] });
   }
 
   // ---- hostname heuristics ---------------------------------------------------
@@ -119,77 +121,87 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   const hasAction = strongActions.length > 0 || mediumActions.length > 0;
 
   if (strongActions.length) {
-    signals.push({ id: "action-strong", weight: Math.min(30, 20 + (strongActions.length - 1) * 5), label: `Alan adında "${[...new Set(strongActions)].join(", ")}" gibi tuzak kelimeler` });
+    signals.push({ id: "action-strong", weight: Math.min(30, 20 + (strongActions.length - 1) * 5), key: "sig_action_strong", sub: [[...new Set(strongActions)].join(", ")] });
   } else if (mediumActions.length) {
-    signals.push({ id: "action-medium", weight: 10, label: `Alan adında "${[...new Set(mediumActions)].join(", ")}" kelimesi` });
+    signals.push({ id: "action-medium", weight: 10, key: "sig_action_medium", sub: [[...new Set(mediumActions)].join(", ")] });
   }
 
   if (p.freeHost) {
     const strong = ctx.lists.freeHostsStrong.includes(p.freeHost);
-    signals.push({ id: "free-host", weight: strong ? 20 : 8, label: `Ücretsiz/paylaşımlı barındırma (${p.freeHost})` });
+    signals.push({ id: "free-host", weight: strong ? 20 : 8, key: "sig_free_host", sub: [p.freeHost] });
   } else if (p.tld) {
     const tldLast = p.tld.split(".").pop() ?? p.tld;
-    if (ctx.lists.tldStrong.includes(tldLast)) signals.push({ id: "tld-strong", weight: 15, label: `Yoğun kötüye kullanılan uzantı (.${tldLast})` });
-    else if (ctx.lists.tldWeak.includes(tldLast)) signals.push({ id: "tld-weak", weight: 5, label: `Sık kötüye kullanılan uzantı (.${tldLast})` });
+    if (ctx.lists.tldStrong.includes(tldLast)) signals.push({ id: "tld-strong", weight: 15, key: "sig_tld_strong", sub: ["." + tldLast] });
+    else if (ctx.lists.tldWeak.includes(tldLast)) signals.push({ id: "tld-weak", weight: 5, key: "sig_tld_weak", sub: ["." + tldLast] });
   }
 
+  // true once a brand-related signal was actually added (origin signals key off this, not the raw match)
+  let brandFlagged = false;
   if (matchedBrand && brandSignalKind && brandSignalKind !== "official") {
+    brandFlagged = true;
     if (brandSignalKind === "impersonation" && matchedBrand.tier !== "generated") {
-      signals.push({ id: "brand-impersonation", weight: 40, label: `"${matchedBrand.name}" adını taşıyor ama resmi alan adı değil (${matchedBrand.domains.slice(0, 2).join(", ")})` });
+      signals.push({ id: "brand-impersonation", weight: 40, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
     } else if (brandSignalKind === "impersonation") {
       // auto-imported brand: names are often common words and domains drift (kamino.finance vs kamino.com),
       // so it only counts alongside an action word or free hosting
-      if (hasAction || p.freeHost) signals.push({ id: "brand-impersonation-weak", weight: 30, label: `"${matchedBrand.name}" adını taşıyor ama bilinen alan adı değil (${matchedBrand.domains.slice(0, 2).join(", ")})` });
+      if (hasAction || p.freeHost) signals.push({ id: "brand-impersonation-weak", weight: 30, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
+      else brandFlagged = false;
     } else if (brandSignalKind === "typo") {
-      signals.push({ id: "brand-typo", weight: 35, label: `"${matchedBrand.name}" adının bir harf farklı taklidi` });
+      signals.push({ id: "brand-typo", weight: 35, key: "sig_brand_typo", sub: [matchedBrand.name] });
     } else if (hasAction || p.freeHost) {
       // brand with unverified official domain only counts together with another signal
-      signals.push({ id: "brand-unverified", weight: 25, label: `"${matchedBrand.name}" proje adını taşıyor; resmi alan adı henüz doğrulanmadı` });
+      signals.push({ id: "brand-unverified", weight: 25, key: "sig_brand_unverified", sub: [matchedBrand.name] });
+    } else {
+      brandFlagged = false;
     }
   }
 
   // digits glued to words: pancakeswapclaim6754, claim-arb2
   if (/[a-z]\d{2,}/.test(p.domainLabel.replace(/-/g, "")) && (hasAction || matchedBrand)) {
-    signals.push({ id: "digits", weight: 10, label: "Kelimelere yapıştırılmış rakamlar" });
+    signals.push({ id: "digits", weight: 10, key: "sig_digits" });
   }
 
   // "rewards-<something>" style even when the brand is unknown to us
   if (!matchedBrand && hasAction && /-/.test(p.domainLabel) && tokens.length >= 2) {
-    signals.push({ id: "action-hyphen", weight: 10, label: "Tuzak kelime + proje adı kalıbı (ör. claim-proje)" });
+    signals.push({ id: "action-hyphen", weight: 10, key: "sig_action_hyphen" });
   }
 
   if (p.subLabels.length >= 3 || p.host.length > 40) {
-    signals.push({ id: "long-host", weight: 5, label: "Olağandışı uzun alan adı" });
+    signals.push({ id: "long-host", weight: 5, key: "sig_long_host" });
   }
 
   // ---- social origin ----------------------------------------------------------
   // Only ever raises the score: hijacked official accounts post scam links too.
   const o = ctx.origin;
   if (o) {
-    signals.push({ id: "origin-social", weight: 10, label: `Linke ${SOURCE_LABEL[o.source]} üzerinden gelindi` });
+    signals.push({ id: "origin-social", weight: 10, key: "sig_origin_social", sub: [SOURCE_LABEL[o.source]] });
     const poster = o.poster?.toLowerCase().replace(/^@/, "");
-    if (matchedBrand && poster) {
+    if (matchedBrand && brandFlagged && poster) {
       const official = matchedBrand.x?.toLowerCase().replace(/^@/, "");
-      if (official && poster !== official) {
-        signals.push({ id: "poster-mismatch", weight: 30, label: `Paylaşan hesap @${poster}, projenin resmi hesabı @${official} değil` });
+      // a poster whose handle carries the brand's own token is not "someone else" (yieldfields_rh vs yieldfields.fun)
+      // whole domain label, not just the brand token: "uniswap_claims" must not get a pass for uniswap-rewards.com
+      const label = p.domainLabel.replace(/[^a-z0-9]/g, "");
+      const posterCarriesHost = label.length >= 6 && poster.replace(/[^a-z0-9]/g, "").includes(label);
+      if (official && poster !== official && !posterCarriesHost) {
+        signals.push({ id: "poster-mismatch", weight: matchedBrand.tier === "generated" ? 15 : 30, key: "sig_poster_mismatch", sub: ["@" + poster, "@" + official] });
       } else if (!official && /(claim|airdrop|drop|reward|official|support|mint|giveaway|bonus)/i.test(poster)) {
-        signals.push({ id: "poster-name", weight: 15, label: `Paylaşan hesap adı şüpheli (@${poster})` });
+        signals.push({ id: "poster-name", weight: 15, key: "sig_poster_name", sub: ["@" + poster] });
       }
     }
     if (o.isReply && (hasAction || matchedBrand)) {
-      signals.push({ id: "poster-reply", weight: 10, label: "Link bir yanıt olarak paylaşılmış (resmi duyurunun altına sahte claim linki kalıbı)" });
+      signals.push({ id: "poster-reply", weight: 10, key: "sig_poster_reply" });
     }
     if (o.display && o.display.toLowerCase() !== p.host && !p.host.endsWith(o.display.toLowerCase())) {
-      signals.push({ id: "display-mismatch", weight: 10, label: `X'te gösterilen adres (${o.display}) ile açılan adres farklı` });
+      signals.push({ id: "display-mismatch", weight: 10, key: "sig_display_mismatch", sub: [o.display] });
     }
   }
 
   // ---- domain age -----------------------------------------------------------
   if (ctx.ageDays !== undefined) {
-    if (ctx.ageDays < 7) signals.push({ id: "age-7", weight: 25, label: `Alan adı ${Math.max(0, Math.floor(ctx.ageDays))} gün önce kaydedilmiş` });
-    else if (ctx.ageDays < 30) signals.push({ id: "age-30", weight: 15, label: `Alan adı ${Math.floor(ctx.ageDays)} gün önce kaydedilmiş` });
-    else if (ctx.ageDays < 90) signals.push({ id: "age-90", weight: 5, label: `Alan adı ${Math.floor(ctx.ageDays)} gün önce kaydedilmiş` });
-    else if (ctx.ageDays > 365 * 2) signals.push({ id: "age-old", weight: -10, label: `Alan adı ${Math.floor(ctx.ageDays / 365)} yıldır kayıtlı` });
+    if (ctx.ageDays < 7) signals.push({ id: "age-7", weight: 25, key: "sig_age_days", sub: [String(Math.max(0, Math.floor(ctx.ageDays)))] });
+    else if (ctx.ageDays < 30) signals.push({ id: "age-30", weight: 15, key: "sig_age_days", sub: [String(Math.floor(ctx.ageDays))] });
+    else if (ctx.ageDays < 90) signals.push({ id: "age-90", weight: 5, key: "sig_age_days", sub: [String(Math.floor(ctx.ageDays))] });
+    else if (ctx.ageDays > 365 * 2) signals.push({ id: "age-old", weight: -10, key: "sig_age_years", sub: [String(Math.floor(ctx.ageDays / 365))] });
   }
 
   const v = done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
@@ -197,7 +209,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // Combination rule from the research: brand + action word + (free host | fresh domain) is near-certain.
   if (matchedBrand && hasAction && (p.freeHost || (ctx.ageDays !== undefined && ctx.ageDays < 30))) {
     if (v.score < BLOCK_THRESHOLD) {
-      signals.push({ id: "combo", weight: BLOCK_THRESHOLD - v.score, label: "Marka + tuzak kelime + yeni/paylaşımlı barındırma kombinasyonu" });
+      signals.push({ id: "combo", weight: BLOCK_THRESHOLD - v.score, key: "sig_combo" });
       return done({ brand: matchedBrand.name, ageDays: ctx.ageDays });
     }
   }

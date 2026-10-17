@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "가짜 NFT 민팅 및 에어드롭 클레임 페이지를 즉시 경고합니다. 모든 검사는 로컬에서 실행됩니다."
+  },
+  "warning_tab_title": {
+    "message": "경고: 피싱 사이트일 수 있음"
+  },
+  "warning_title": {
+    "message": "이 사이트는 지갑 드레이너일 가능성이 높습니다"
+  },
+  "warning_score": {
+    "message": "위험 점수: $1/100"
+  },
+  "warning_reasons": {
+    "message": "의심되는 이유:"
+  },
+  "warning_back": {
+    "message": "뒤로 가기 (권장)"
+  },
+  "warning_proceed": {
+    "message": "위험을 이해합니다, 계속 진행"
+  },
+  "warning_note": {
+    "message": "실제 프로젝트는 에어드롭과 민팅을 공식 도메인 또는 공식 X/Discord 계정에서 공지한 주소에서 진행합니다. X 답글이나 DM의 \"claim\" 링크를 믿지 마세요. 이 페이지의 지갑 연결 및 서명 요청은 자산을 탈취할 수 있습니다."
+  },
+  "popup_unchecked": {
+    "message": "검사 안 함"
+  },
+  "popup_blocked": {
+    "message": "차단됨"
+  },
+  "popup_suspicious": {
+    "message": "의심스러움"
+  },
+  "popup_clean": {
+    "message": "안전"
+  },
+  "popup_allow": {
+    "message": "이 사이트를 신뢰합니다 (허용 목록에 추가)"
+  },
+  "popup_added": {
+    "message": "추가됨. 페이지를 새로고침하세요."
+  },
+  "popup_domains": {
+    "message": "도메인 $1개"
+  },
+  "popup_not_downloaded": {
+    "message": "아직 다운로드되지 않음"
+  },
+  "popup_trusted": {
+    "message": "신뢰됨"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard: 이 사이트는 의심스럽습니다 (위험 $1/100)"
+  },
+  "overlay_hint": {
+    "message": "지갑을 연결하거나 서명하기 전에 프로젝트 공식 X/Discord에서 주소를 확인하세요."
+  },
+  "overlay_close": {
+    "message": "닫기"
+  },
+  "badge_block": {
+    "message": "⛔ 사기?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ 의심"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · 위험 $2/100"
+  },
+  "sig_user_allow": {
+    "message": "이 도메인을 신뢰로 표시했습니다"
+  },
+  "sig_ip_host": {
+    "message": "도메인 대신 IP 주소"
+  },
+  "sig_brand_official": {
+    "message": "$1의 공식 도메인"
+  },
+  "sig_allowlist": {
+    "message": "알려진 안전 목록에 있음 (MetaMask 허용 목록)"
+  },
+  "sig_blocklist": {
+    "message": "알려진 피싱 목록에 있음 ($1)"
+  },
+  "sig_action_strong": {
+    "message": "도메인에 미끼 단어: \"$1\""
+  },
+  "sig_action_medium": {
+    "message": "도메인에 \"$1\" 포함"
+  },
+  "sig_free_host": {
+    "message": "무료/공유 호스팅 ($1)"
+  },
+  "sig_tld_strong": {
+    "message": "악용이 많은 확장자 ($1)"
+  },
+  "sig_tld_weak": {
+    "message": "자주 악용되는 확장자 ($1)"
+  },
+  "sig_brand_impersonation": {
+    "message": "\"$1\" 이름을 사용하지만 공식 도메인이 아님 ($2)"
+  },
+  "sig_brand_typo": {
+    "message": "\"$1\"의 한 글자 변형 모방"
+  },
+  "sig_brand_unverified": {
+    "message": "\"$1\" 프로젝트 이름 사용; 공식 도메인 미확인"
+  },
+  "sig_digits": {
+    "message": "단어에 숫자가 붙어 있음"
+  },
+  "sig_action_hyphen": {
+    "message": "미끼 단어 + 프로젝트명 패턴 (예: claim-project)"
+  },
+  "sig_long_host": {
+    "message": "비정상적으로 긴 호스트 이름"
+  },
+  "sig_origin_social": {
+    "message": "$1을 통해 접속함"
+  },
+  "sig_poster_mismatch": {
+    "message": "$1이(가) 게시함, 공식 계정 $2 아님"
+  },
+  "sig_poster_name": {
+    "message": "게시자 계정명이 의심스러움 ($1)"
+  },
+  "sig_poster_reply": {
+    "message": "답글로 공유됨 (공식 공지 아래 가짜 링크 패턴)"
+  },
+  "sig_display_mismatch": {
+    "message": "X에 표시된 주소($1)와 열린 주소가 다름"
+  },
+  "sig_age_days": {
+    "message": "도메인이 $1일 전에 등록됨"
+  },
+  "sig_age_years": {
+    "message": "도메인이 $1년 이상 등록됨"
+  },
+  "sig_combo": {
+    "message": "브랜드 + 미끼 단어 + 신규/공유 호스팅 조합"
+  },
+  "sig_auto_connect": {
+    "message": "클릭 없이 페이지 로드 시 지갑 연결 요청"
+  },
+  "sig_chain_switch": {
+    "message": "클릭 없이 네트워크 전환 요청"
+  },
+  "sig_tx_approve": {
+    "message": "위험한 트랜잭션: 토큰 지출 승인 (approve)"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "위험한 트랜잭션: setApprovalForAll (모든 NFT 접근)"
+  },
+  "sig_tx_permit": {
+    "message": "위험한 트랜잭션: Permit / Permit2 (토큰 전송 권한)"
+  },
+  "sig_tx_transfer": {
+    "message": "위험한 트랜잭션: 토큰/NFT 직접 전송"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "ETH를 보내는 알 수 없는 컨트랙트 호출 (가짜 claim/mint 패턴)"
+  },
+  "sig_tx_generic": {
+    "message": "위험한 지갑 요청"
+  },
+  "sig_sign_typed": {
+    "message": "위험한 서명: $1 유형 데이터 (토큰/NFT 전송 권한)"
+  },
+  "sig_sign_eth_sign": {
+    "message": "위험한 서명: eth_sign (원시 서명, 무엇이든 승인 가능)"
+  },
+  "sig_sol_sign": {
+    "message": "Solana 트랜잭션 서명 요청 ($1)"
+  }
+}

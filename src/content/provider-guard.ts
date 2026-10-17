@@ -18,14 +18,14 @@
   for (const ev of ["pointerdown", "keydown", "touchstart"]) window.addEventListener(ev, gesture, { capture: true, passive: true });
 
   const SELECTORS: Record<string, string> = {
-    "0x095ea7b3": "approve (ERC-20 harcama izni)",
+    "0x095ea7b3": "approve",
     "0x39509351": "increaseAllowance",
-    "0xa22cb465": "setApprovalForAll (tüm NFT'ler için izin)",
-    "0xd505accf": "permit (ERC-2612)",
-    "0x2b67b570": "Permit2 permit",
-    "0x30f28b7a": "Permit2 permitTransferFrom",
-    "0x23b872dd": "transferFrom",
-    "0x42842e0e": "safeTransferFrom",
+    "0xa22cb465": "setApprovalForAll",
+    "0xd505accf": "permit",
+    "0x2b67b570": "permit2",
+    "0x30f28b7a": "permit2",
+    "0x23b872dd": "transfer",
+    "0x42842e0e": "transfer",
   };
   const TYPED_RISK = /"primaryType"\s*:\s*"(Permit|PermitSingle|PermitBatch|PermitTransferFrom|PermitBatchTransferFrom|OrderComponents|Order|BulkOrder|SeaportOrder|Listing)"/i;
 
@@ -48,11 +48,11 @@
     if (method === "eth_signTypedData_v4" || method === "eth_signTypedData_v3" || method === "eth_signTypedData") {
       const raw = Array.isArray(params) ? params.map((p) => (typeof p === "string" ? p : JSON.stringify(p))).join(" ") : "";
       const m = raw.match(TYPED_RISK);
-      if (m) post({ kind: "risky-sign", method, detail: `${m[1]} tipli imza (token/NFT transfer yetkisi)`, msSinceLoad, hadGesture: g });
+      if (m) post({ kind: "risky-sign", method, detail: "typed", param: m[1], msSinceLoad, hadGesture: g });
       return;
     }
     if (method === "eth_sign") {
-      post({ kind: "risky-sign", method, detail: "eth_sign (ham imza, her şeyi imzalatabilir)", msSinceLoad, hadGesture: g });
+      post({ kind: "risky-sign", method, detail: "eth_sign", msSinceLoad, hadGesture: g });
       return;
     }
     if (method === "eth_sendTransaction") {
@@ -62,7 +62,7 @@
       if (SELECTORS[sel]) {
         post({ kind: "risky-tx", method, detail: SELECTORS[sel], msSinceLoad, hadGesture: g });
       } else if (tx?.value && /^0x0*[1-9a-f]/i.test(tx.value) && data.length > 10) {
-        post({ kind: "risky-tx", method, detail: "ETH gönderen bilinmeyen kontrat çağrısı (sahte claim/mint kalıbı)", msSinceLoad, hadGesture: g });
+        post({ kind: "risky-tx", method, detail: "payable_unknown", msSinceLoad, hadGesture: g });
       }
     }
   }
@@ -113,7 +113,7 @@
       if (typeof f !== "function") continue;
       try {
         s[m] = function () {
-          post({ kind: "risky-tx", method: m, detail: `Solana ${m}`, msSinceLoad: Date.now() - loadedAt, hadGesture: hadGesture() });
+          post({ kind: "risky-tx", method: m, detail: "solana", param: m, msSinceLoad: Date.now() - loadedAt, hadGesture: hadGesture() });
           return f.apply(this, arguments as any);
         };
       } catch { /* ignore */ }

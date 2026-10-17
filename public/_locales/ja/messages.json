@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "偽の NFT ミントやエアドロップ請求ページを即座に警告。すべてのチェックはローカルで実行されます。"
+  },
+  "warning_tab_title": {
+    "message": "警告：フィッシングサイトの可能性"
+  },
+  "warning_title": {
+    "message": "このサイトはウォレットドレイナーの可能性が高いです"
+  },
+  "warning_score": {
+    "message": "リスクスコア：$1/100"
+  },
+  "warning_reasons": {
+    "message": "疑わしい理由："
+  },
+  "warning_back": {
+    "message": "戻る（推奨）"
+  },
+  "warning_proceed": {
+    "message": "リスクを理解した上で続行する"
+  },
+  "warning_note": {
+    "message": "本物のプロジェクトは、エアドロップやミントを公式ドメインまたは公式 X/Discord アカウントで告知したアドレスで行います。X の返信や DM にある「claim」リンクを信用しないでください。このページのウォレット接続や署名要求は資産を失わせる可能性があります。"
+  },
+  "popup_unchecked": {
+    "message": "未チェック"
+  },
+  "popup_blocked": {
+    "message": "ブロック"
+  },
+  "popup_suspicious": {
+    "message": "疑わしい"
+  },
+  "popup_clean": {
+    "message": "問題なし"
+  },
+  "popup_allow": {
+    "message": "このサイトを信頼する（許可リストに追加）"
+  },
+  "popup_added": {
+    "message": "追加しました。ページを再読み込みしてください。"
+  },
+  "popup_domains": {
+    "message": "$1 ドメイン"
+  },
+  "popup_not_downloaded": {
+    "message": "未ダウンロード"
+  },
+  "popup_trusted": {
+    "message": "信頼済み"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard：このサイトは疑わしいです（リスク $1/100）"
+  },
+  "overlay_hint": {
+    "message": "ウォレットを接続したり署名したりする前に、プロジェクト公式の X/Discord でアドレスを確認してください。"
+  },
+  "overlay_close": {
+    "message": "閉じる"
+  },
+  "badge_block": {
+    "message": "⛔ 詐欺?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ 疑わしい"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · リスク $2/100"
+  },
+  "sig_user_allow": {
+    "message": "このドメインを信頼済みにしました"
+  },
+  "sig_ip_host": {
+    "message": "ドメイン名ではなく IP アドレス"
+  },
+  "sig_brand_official": {
+    "message": "$1 の公式ドメイン"
+  },
+  "sig_allowlist": {
+    "message": "既知の安全リストに含まれる（MetaMask 許可リスト）"
+  },
+  "sig_blocklist": {
+    "message": "既知のフィッシングリストに含まれる（$1）"
+  },
+  "sig_action_strong": {
+    "message": "ドメインに誘導ワード：「$1」"
+  },
+  "sig_action_medium": {
+    "message": "ドメインに「$1」を含む"
+  },
+  "sig_free_host": {
+    "message": "無料／共有ホスティング（$1）"
+  },
+  "sig_tld_strong": {
+    "message": "悪用の多いドメイン拡張子（$1）"
+  },
+  "sig_tld_weak": {
+    "message": "悪用されることがある拡張子（$1）"
+  },
+  "sig_brand_impersonation": {
+    "message": "「$1」の名前を含むが公式ドメインではない（$2）"
+  },
+  "sig_brand_typo": {
+    "message": "「$1」の一文字違いの偽装"
+  },
+  "sig_brand_unverified": {
+    "message": "プロジェクト「$1」の名前を含むが公式ドメインは未確認"
+  },
+  "sig_digits": {
+    "message": "単語に数字が付加されている"
+  },
+  "sig_action_hyphen": {
+    "message": "誘導ワード＋プロジェクト名のパターン（例：claim-project）"
+  },
+  "sig_long_host": {
+    "message": "異常に長いホスト名"
+  },
+  "sig_origin_social": {
+    "message": "$1 経由でアクセス"
+  },
+  "sig_poster_mismatch": {
+    "message": "$1 が投稿（公式アカウント $2 ではない）"
+  },
+  "sig_poster_name": {
+    "message": "投稿者のアカウント名が疑わしい（$1）"
+  },
+  "sig_poster_reply": {
+    "message": "返信として共有（公式告知の下に偽リンクを置く手口）"
+  },
+  "sig_display_mismatch": {
+    "message": "X に表示されたアドレス（$1）と開いたものが異なる"
+  },
+  "sig_age_days": {
+    "message": "ドメインは $1 日前に登録"
+  },
+  "sig_age_years": {
+    "message": "ドメインは $1 年以上前から登録"
+  },
+  "sig_combo": {
+    "message": "ブランド＋誘導ワード＋新規／共有ホスティングの組み合わせ"
+  },
+  "sig_auto_connect": {
+    "message": "クリックなしでページ読み込み時にウォレット接続を要求"
+  },
+  "sig_chain_switch": {
+    "message": "クリックなしでネットワーク切替を要求"
+  },
+  "sig_tx_approve": {
+    "message": "危険なトランザクション：トークン使用許可（approve）"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "危険なトランザクション：setApprovalForAll（全 NFT へのアクセス）"
+  },
+  "sig_tx_permit": {
+    "message": "危険なトランザクション：Permit / Permit2（トークン転送権限）"
+  },
+  "sig_tx_transfer": {
+    "message": "危険なトランザクション：トークン／NFT の直接転送"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "ETH を送信する不明なコントラクト呼び出し（偽 claim/mint の手口）"
+  },
+  "sig_tx_generic": {
+    "message": "危険なウォレット要求"
+  },
+  "sig_sign_typed": {
+    "message": "危険な署名：$1 型データ（トークン／NFT 転送権限）"
+  },
+  "sig_sign_eth_sign": {
+    "message": "危険な署名：eth_sign（生署名、何でも承認できる）"
+  },
+  "sig_sol_sign": {
+    "message": "Solana トランザクション署名を要求（$1）"
+  }
+}

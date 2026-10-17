@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dikkat: olası phishing sitesi</title>
+<title data-i18n="warning_tab_title">Warning: possible phishing site</title>
 <style>
   :root { color-scheme: dark; }
   body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #1a0b0b; color: #f5e9e9; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
@@ -22,16 +22,16 @@
 </head>
 <body>
   <main class="card">
-    <h1>Bu site muhtemelen bir cüzdan boşaltma (drainer) sayfası</h1>
+    <h1 data-i18n="warning_title">This site is probably a wallet drainer</h1>
     <div class="score" id="score"></div>
     <div class="host" id="host"></div>
-    <p>Neden şüpheli bulundu:</p>
+    <p data-i18n="warning_reasons">Why it looks suspicious:</p>
     <ul id="reasons"></ul>
     <div class="actions">
-      <button class="back" id="back">Geri dön (önerilen)</button>
-      <button class="proceed" id="proceed">Riski anlıyorum, yine de devam et</button>
+      <button class="back" id="back" data-i18n="warning_back">Go back (recommended)</button>
+      <button class="proceed" id="proceed" data-i18n="warning_proceed">I understand the risk, continue anyway</button>
     </div>
-    <p class="note">Gerçek projeler airdrop ve mint akışlarını neredeyse her zaman resmi sitelerinin alt alan adında ya da resmi X/Discord hesaplarından duyurdukları adreste barındırır. X yorumlarından veya DM'den gelen "claim" linklerine güvenmeyin. Bu sayfadaki cüzdan bağlantı ve imza istekleri paranızı kaybettirebilir.</p>
+    <p class="note" data-i18n="warning_note">Real projects host airdrop and mint flows on their official domain or on an address announced from their official X/Discord accounts. Do not trust "claim" links from X replies or DMs. Wallet connection and signature requests on this page can drain your funds.</p>
   </main>
   <script src="warning.js"></script>
 </body>

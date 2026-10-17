@@ -7,10 +7,13 @@
  *     hostname heuristics, no network) and marks suspicious ones with a badge.
  */
 
+import type { Signal } from "../lib/types";
+import { t, signalText } from "../lib/i18n";
+
 interface Ctx { poster?: string; posterVerified?: boolean; isReply?: boolean; display?: string }
 
 const BADGE_ATTR = "data-w3pg";
-type HostVerdict = { host: string; band: string; score: number; reasons: string[] };
+type HostVerdict = { host: string; band: string; score: number; signals: Signal[] };
 const hostCache = new Map<string, HostVerdict>();
 
 /** X wraps every external link in t.co; profile/hashtag/status links are same-origin paths. */
@@ -76,8 +79,8 @@ function badge(a: HTMLAnchorElement, v: HostVerdict) {
   a.setAttribute(BADGE_ATTR, v.band);
   if (v.band === "none") return;
   const s = document.createElement("span");
-  s.textContent = v.band === "block" ? " ⛔ scam?" : " ⚠️ şüpheli";
-  s.title = `Web3 Phish Guard · ${v.host} · risk ${v.score}/100\n${v.reasons.join("\n")}`;
+  s.textContent = " " + t(v.band === "block" ? "badge_block" : "badge_suspicious");
+  s.title = `${t("badge_tooltip", [v.host, String(v.score)])}\n${v.signals.map(signalText).join("\n")}`;
   s.style.cssText = `display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;font:600 11px/18px system-ui,sans-serif;color:#fff;background:${v.band === "block" ? "#e5484d" : "#d08700"};vertical-align:middle;`;
   a.insertAdjacentElement("afterend", s);
 }
@@ -113,7 +116,7 @@ async function flush() {
       } catch { r = null; }
       if (!r) continue;
       v = { ...r, host };
-      if (v.band !== "none") console.debug("[w3pg]", host, v.score, v.reasons);
+      if (v.band !== "none") console.debug("[w3pg]", host, v.score, v.signals.map(signalText));
       hostCache.set(host, v);
     }
     for (const a of anchors) badge(a, v);

@@ -5,7 +5,7 @@ import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blockl
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick } from "./lib/origin";
-import type { OriginContext, ProviderEvent, Verdict } from "./lib/types";
+import type { OriginContext, ProviderEvent, Signal, Verdict } from "./lib/types";
 
 const WARNING_PAGE = chrome.runtime.getURL("warning.html");
 
@@ -61,10 +61,10 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
 }
 
 /** Pure hostname scoring for the X timeline badges: no RDAP, no tab state. */
-async function scoreHostOnly(host: string, ctx: Partial<OriginContext>): Promise<{ band: string; score: number; reasons: string[] } | null> {
+async function scoreHostOnly(host: string, ctx: Partial<OriginContext>): Promise<{ band: string; score: number; signals: Signal[] } | null> {
   const v = await evaluate(`https://${host}/`, { origin: { source: "x", at: Date.now(), ...ctx } });
   if (!v) return null;
-  return { band: v.band, score: v.score, reasons: v.signals.filter((s) => s.weight > 0).map((s) => s.label) };
+  return { band: v.band, score: v.score, signals: v.signals.filter((s) => s.weight > 0) };
 }
 
 async function applyVerdict(tabId: number, v: Verdict) {
@@ -74,7 +74,7 @@ async function applyVerdict(tabId: number, v: Verdict) {
   await chrome.action.setBadgeText({ tabId, text: v.band === "none" ? "" : String(v.score) }).catch(() => undefined);
 
   if (v.band === "block" && !(await isBypassed(v.host))) {
-    const target = `${WARNING_PAGE}#${encodeURIComponent(JSON.stringify({ url: v.url, host: v.host, score: v.score, signals: v.signals.map((s) => s.label) }))}`;
+    const target = `${WARNING_PAGE}#${encodeURIComponent(JSON.stringify({ url: v.url, host: v.host, score: v.score, signals: v.signals }))}`;
     await chrome.tabs.update(tabId, { url: target }).catch(() => undefined);
     return;
   }
@@ -163,7 +163,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!weight) return;
         const id = `provider-${ev.kind}`;
         if (prev.signals.some((s) => s.id === id)) return;
-        const signals = [...prev.signals, { id, weight, label: providerLabel(ev) }];
+        const signals = [...prev.signals, { id, weight, ...providerKey(ev) }];
         const total = Math.max(0, Math.min(100, signals.reduce((s, x) => s + x.weight, 0)));
         const v: Verdict = { ...prev, signals, score: total, band: bandOf(total), at: Date.now() };
         await applyVerdict(tabId, v);
@@ -229,16 +229,27 @@ function providerWeight(ev: ProviderEvent): number {
   }
 }
 
-function providerLabel(ev: ProviderEvent): string {
+const DETAIL_KEYS: Record<string, string> = {
+  approve: "sig_tx_approve",
+  increaseAllowance: "sig_tx_approve",
+  setApprovalForAll: "sig_tx_set_approval_for_all",
+  permit: "sig_tx_permit",
+  permit2: "sig_tx_permit",
+  transfer: "sig_tx_transfer",
+  payable_unknown: "sig_tx_payable_unknown",
+  typed: "sig_sign_typed",
+  eth_sign: "sig_sign_eth_sign",
+  solana: "sig_sol_sign",
+};
+
+function providerKey(ev: ProviderEvent): { key: string; sub?: string[] } {
   switch (ev.kind) {
     case "auto-connect":
-      return "Sayfa açılır açılmaz, tıklama olmadan cüzdan bağlantısı istedi";
-    case "risky-sign":
-      return `Tehlikeli imza isteği: ${ev.detail}`;
-    case "risky-tx":
-      return `Tehlikeli işlem isteği: ${ev.detail}`;
+      return { key: "sig_auto_connect" };
     case "chain-switch":
-      return "Tıklama olmadan ağ değiştirme isteği";
+      return { key: "sig_chain_switch" };
+    default:
+      return { key: DETAIL_KEYS[ev.detail] ?? "sig_tx_generic", sub: ev.param ? [ev.param] : undefined };
   }
 }
 

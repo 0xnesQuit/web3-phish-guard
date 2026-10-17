@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "Alertes instantanées sur les fausses pages de mint NFT et de réclamation d'airdrop. Toutes les vérifications sont locales."
+  },
+  "warning_tab_title": {
+    "message": "Attention : site de phishing possible"
+  },
+  "warning_title": {
+    "message": "Ce site est probablement un drainer de portefeuille"
+  },
+  "warning_score": {
+    "message": "Score de risque : $1/100"
+  },
+  "warning_reasons": {
+    "message": "Pourquoi c'est suspect :"
+  },
+  "warning_back": {
+    "message": "Retour (recommandé)"
+  },
+  "warning_proceed": {
+    "message": "Je comprends le risque, continuer quand même"
+  },
+  "warning_note": {
+    "message": "Les vrais projets hébergent leurs airdrops et mints sur leur domaine officiel ou à une adresse annoncée depuis leurs comptes X/Discord officiels. Ne faites pas confiance aux liens « claim » venant de réponses X ou de DM. Les demandes de connexion et de signature de portefeuille sur cette page peuvent vider vos fonds."
+  },
+  "popup_unchecked": {
+    "message": "non vérifié"
+  },
+  "popup_blocked": {
+    "message": "bloqué"
+  },
+  "popup_suspicious": {
+    "message": "suspect"
+  },
+  "popup_clean": {
+    "message": "sain"
+  },
+  "popup_allow": {
+    "message": "Je fais confiance à ce site (ajouter à la liste autorisée)"
+  },
+  "popup_added": {
+    "message": "Ajouté. Rechargez la page."
+  },
+  "popup_domains": {
+    "message": "$1 domaines"
+  },
+  "popup_not_downloaded": {
+    "message": "pas encore téléchargé"
+  },
+  "popup_trusted": {
+    "message": "de confiance"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard : ce site semble suspect (risque $1/100)"
+  },
+  "overlay_hint": {
+    "message": "Vérifiez l'adresse sur le X/Discord officiel du projet avant de connecter votre portefeuille ou de signer quoi que ce soit."
+  },
+  "overlay_close": {
+    "message": "Fermer"
+  },
+  "badge_block": {
+    "message": "⛔ arnaque ?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ suspect"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · risque $2/100"
+  },
+  "sig_user_allow": {
+    "message": "Vous avez marqué ce domaine comme fiable"
+  },
+  "sig_ip_host": {
+    "message": "Adresse IP au lieu d'un nom de domaine"
+  },
+  "sig_brand_official": {
+    "message": "Domaine officiel de $1"
+  },
+  "sig_allowlist": {
+    "message": "Dans une liste sûre connue (allowlist MetaMask)"
+  },
+  "sig_blocklist": {
+    "message": "Dans une liste de phishing connue ($1)"
+  },
+  "sig_action_strong": {
+    "message": "Mots d'appât dans le domaine : « $1 »"
+  },
+  "sig_action_medium": {
+    "message": "Le domaine contient « $1 »"
+  },
+  "sig_free_host": {
+    "message": "Hébergement gratuit / partagé ($1)"
+  },
+  "sig_tld_strong": {
+    "message": "Extension très utilisée pour l'abus ($1)"
+  },
+  "sig_tld_weak": {
+    "message": "Extension souvent utilisée pour l'abus ($1)"
+  },
+  "sig_brand_impersonation": {
+    "message": "Porte le nom « $1 » mais n'est pas son domaine officiel ($2)"
+  },
+  "sig_brand_typo": {
+    "message": "Imitation de « $1 » à une lettre près"
+  },
+  "sig_brand_unverified": {
+    "message": "Porte le nom du projet « $1 » ; domaine officiel non encore vérifié"
+  },
+  "sig_digits": {
+    "message": "Chiffres collés aux mots"
+  },
+  "sig_action_hyphen": {
+    "message": "Motif mot d'appât + nom de projet (ex. claim-projet)"
+  },
+  "sig_long_host": {
+    "message": "Nom d'hôte anormalement long"
+  },
+  "sig_origin_social": {
+    "message": "Vous êtes arrivé via $1"
+  },
+  "sig_poster_mismatch": {
+    "message": "Publié par $1, et non par le compte officiel $2"
+  },
+  "sig_poster_name": {
+    "message": "Nom de compte suspect ($1)"
+  },
+  "sig_poster_reply": {
+    "message": "Partagé en réponse (schéma du faux lien sous une annonce officielle)"
+  },
+  "sig_display_mismatch": {
+    "message": "L'adresse affichée sur X ($1) diffère de celle ouverte"
+  },
+  "sig_age_days": {
+    "message": "Domaine enregistré il y a $1 jours"
+  },
+  "sig_age_years": {
+    "message": "Domaine enregistré depuis plus de $1 ans"
+  },
+  "sig_combo": {
+    "message": "Combinaison marque + mot d'appât + hébergement récent/partagé"
+  },
+  "sig_auto_connect": {
+    "message": "Connexion du portefeuille demandée au chargement sans aucun clic"
+  },
+  "sig_chain_switch": {
+    "message": "Changement de réseau demandé sans clic"
+  },
+  "sig_tx_approve": {
+    "message": "Transaction dangereuse : autorisation de dépense de jetons"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "Transaction dangereuse : setApprovalForAll (accès à tous vos NFT)"
+  },
+  "sig_tx_permit": {
+    "message": "Transaction dangereuse : Permit / Permit2 (autorité de transfert de jetons)"
+  },
+  "sig_tx_transfer": {
+    "message": "Transaction dangereuse : transfert direct de jetons/NFT"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "Appel de contrat inconnu envoyant de l'ETH (schéma de faux claim/mint)"
+  },
+  "sig_tx_generic": {
+    "message": "Demande de portefeuille dangereuse"
+  },
+  "sig_sign_typed": {
+    "message": "Signature dangereuse : données typées $1 (autorité de transfert de jetons/NFT)"
+  },
+  "sig_sign_eth_sign": {
+    "message": "Signature dangereuse : eth_sign (signature brute, peut tout autoriser)"
+  },
+  "sig_sol_sign": {
+    "message": "Signature de transaction Solana demandée ($1)"
+  }
+}

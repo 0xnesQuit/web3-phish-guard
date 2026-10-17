@@ -1,0 +1,179 @@
+{
+  "ext_name": {
+    "message": "Web3 Phish Guard"
+  },
+  "ext_description": {
+    "message": "नकली NFT मिंट और एयरड्रॉप क्लेम पेजों पर तुरंत चेतावनी। सभी जाँच आपके ब्राउज़र में ही होती हैं।"
+  },
+  "warning_tab_title": {
+    "message": "चेतावनी: संभावित फ़िशिंग साइट"
+  },
+  "warning_title": {
+    "message": "यह साइट संभवतः एक वॉलेट ड्रेनर है"
+  },
+  "warning_score": {
+    "message": "जोखिम स्कोर: $1/100"
+  },
+  "warning_reasons": {
+    "message": "यह संदिग्ध क्यों लगता है:"
+  },
+  "warning_back": {
+    "message": "वापस जाएँ (अनुशंसित)"
+  },
+  "warning_proceed": {
+    "message": "मैं जोखिम समझता हूँ, फिर भी आगे बढ़ें"
+  },
+  "warning_note": {
+    "message": "असली प्रोजेक्ट अपने एयरड्रॉप और मिंट अपने आधिकारिक डोमेन पर या आधिकारिक X/Discord खातों से घोषित पते पर रखते हैं। X की रिप्लाई या DM से आए \"claim\" लिंक पर भरोसा न करें। इस पेज पर वॉलेट कनेक्शन और सिग्नेचर अनुरोध आपके फंड खाली कर सकते हैं।"
+  },
+  "popup_unchecked": {
+    "message": "जाँच नहीं हुई"
+  },
+  "popup_blocked": {
+    "message": "अवरुद्ध"
+  },
+  "popup_suspicious": {
+    "message": "संदिग्ध"
+  },
+  "popup_clean": {
+    "message": "सुरक्षित"
+  },
+  "popup_allow": {
+    "message": "मुझे इस साइट पर भरोसा है (अनुमति सूची में जोड़ें)"
+  },
+  "popup_added": {
+    "message": "जोड़ा गया। पेज रीलोड करें।"
+  },
+  "popup_domains": {
+    "message": "$1 डोमेन"
+  },
+  "popup_not_downloaded": {
+    "message": "अभी डाउनलोड नहीं हुआ"
+  },
+  "popup_trusted": {
+    "message": "विश्वसनीय"
+  },
+  "overlay_title": {
+    "message": "Web3 Phish Guard: यह साइट संदिग्ध लगती है (जोखिम $1/100)"
+  },
+  "overlay_hint": {
+    "message": "वॉलेट जोड़ने या कुछ भी साइन करने से पहले प्रोजेक्ट के आधिकारिक X/Discord पर पता सत्यापित करें।"
+  },
+  "overlay_close": {
+    "message": "बंद करें"
+  },
+  "badge_block": {
+    "message": "⛔ धोखा?"
+  },
+  "badge_suspicious": {
+    "message": "⚠️ संदिग्ध"
+  },
+  "badge_tooltip": {
+    "message": "Web3 Phish Guard · $1 · जोखिम $2/100"
+  },
+  "sig_user_allow": {
+    "message": "आपने इस डोमेन को विश्वसनीय चिह्नित किया"
+  },
+  "sig_ip_host": {
+    "message": "डोमेन नाम की जगह IP पता"
+  },
+  "sig_brand_official": {
+    "message": "$1 का आधिकारिक डोमेन"
+  },
+  "sig_allowlist": {
+    "message": "ज्ञात सुरक्षित सूची में (MetaMask allowlist)"
+  },
+  "sig_blocklist": {
+    "message": "ज्ञात फ़िशिंग सूची में ($1)"
+  },
+  "sig_action_strong": {
+    "message": "डोमेन में लालच वाले शब्द: \"$1\""
+  },
+  "sig_action_medium": {
+    "message": "डोमेन में \"$1\" है"
+  },
+  "sig_free_host": {
+    "message": "मुफ़्त / साझा होस्टिंग ($1)"
+  },
+  "sig_tld_strong": {
+    "message": "धोखाधड़ी में बहुत इस्तेमाल होने वाला एक्सटेंशन ($1)"
+  },
+  "sig_tld_weak": {
+    "message": "अक्सर दुरुपयोग होने वाला एक्सटेंशन ($1)"
+  },
+  "sig_brand_impersonation": {
+    "message": "\"$1\" नाम है लेकिन यह उसका आधिकारिक डोमेन नहीं ($2)"
+  },
+  "sig_brand_typo": {
+    "message": "\"$1\" की एक अक्षर बदली नकल"
+  },
+  "sig_brand_unverified": {
+    "message": "\"$1\" प्रोजेक्ट का नाम है; आधिकारिक डोमेन अभी सत्यापित नहीं"
+  },
+  "sig_digits": {
+    "message": "शब्दों से जुड़े अंक"
+  },
+  "sig_action_hyphen": {
+    "message": "लालच शब्द + प्रोजेक्ट नाम पैटर्न (जैसे claim-project)"
+  },
+  "sig_long_host": {
+    "message": "असामान्य रूप से लंबा होस्ट नाम"
+  },
+  "sig_origin_social": {
+    "message": "आप $1 से यहाँ आए"
+  },
+  "sig_poster_mismatch": {
+    "message": "$1 ने पोस्ट किया, आधिकारिक खाते $2 ने नहीं"
+  },
+  "sig_poster_name": {
+    "message": "संदिग्ध पोस्टर हैंडल ($1)"
+  },
+  "sig_poster_reply": {
+    "message": "रिप्लाई के रूप में साझा (आधिकारिक घोषणा के नीचे नकली लिंक पैटर्न)"
+  },
+  "sig_display_mismatch": {
+    "message": "X पर दिखाया पता ($1) खुले पते से अलग है"
+  },
+  "sig_age_days": {
+    "message": "डोमेन $1 दिन पहले पंजीकृत"
+  },
+  "sig_age_years": {
+    "message": "डोमेन $1+ वर्षों से पंजीकृत"
+  },
+  "sig_combo": {
+    "message": "ब्रांड + लालच शब्द + नई/साझा होस्टिंग का संयोजन"
+  },
+  "sig_auto_connect": {
+    "message": "बिना किसी क्लिक के पेज लोड होते ही वॉलेट कनेक्शन माँगा"
+  },
+  "sig_chain_switch": {
+    "message": "बिना क्लिक के नेटवर्क बदलने का अनुरोध"
+  },
+  "sig_tx_approve": {
+    "message": "खतरनाक लेनदेन: टोकन खर्च की अनुमति (approve)"
+  },
+  "sig_tx_set_approval_for_all": {
+    "message": "खतरनाक लेनदेन: setApprovalForAll (आपके सभी NFT तक पहुँच)"
+  },
+  "sig_tx_permit": {
+    "message": "खतरनाक लेनदेन: Permit / Permit2 (टोकन ट्रांसफर अधिकार)"
+  },
+  "sig_tx_transfer": {
+    "message": "खतरनाक लेनदेन: सीधा टोकन/NFT ट्रांसफर"
+  },
+  "sig_tx_payable_unknown": {
+    "message": "ETH भेजने वाला अज्ञात कॉन्ट्रैक्ट कॉल (नकली claim/mint पैटर्न)"
+  },
+  "sig_tx_generic": {
+    "message": "खतरनाक वॉलेट अनुरोध"
+  },
+  "sig_sign_typed": {
+    "message": "खतरनाक हस्ताक्षर: $1 टाइप्ड डेटा (टोकन/NFT ट्रांसफर अधिकार)"
+  },
+  "sig_sign_eth_sign": {
+    "message": "खतरनाक हस्ताक्षर: eth_sign (कच्चा हस्ताक्षर, कुछ भी अधिकृत कर सकता है)"
+  },
+  "sig_sol_sign": {
+    "message": "Solana लेनदेन हस्ताक्षर का अनुरोध ($1)"
+  }
+}
