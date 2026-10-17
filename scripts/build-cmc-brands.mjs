@@ -37,7 +37,7 @@ function tokensFromName(name) {
   const glued = base.replace(/[^a-z0-9]/g, "");
   if (glued.length >= 5 && !GENERIC.has(glued)) out.add(glued);
   const first = base.split(/[^a-z0-9]+/).filter(Boolean)[0];
-  if (first && first.length >= 5 && !GENERIC.has(first) && !/^\d+$/.test(first)) out.add(first);
+  if (first && first.length >= 4 && !GENERIC.has(first) && !/^\d+$/.test(first)) out.add(first);
   return [...out];
 }
 

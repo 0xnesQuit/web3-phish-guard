@@ -16,7 +16,7 @@ function tokensFromName(name) {
   // Only the first word is the brand ("Dexalot Portfolio" -> dexalot, "Kamino Lend" -> kamino); later words are
   // product descriptors and ordinary English, which caused "my-portfolio.netlify.app" to look like an impersonation.
   const first = base.split(/[^a-z0-9]+/).filter(Boolean)[0];
-  if (first && first.length >= 5 && !GENERIC.has(first) && !/^\d+$/.test(first)) out.add(first);
+  if (first && first.length >= 4 && !GENERIC.has(first) && !/^\d+$/.test(first)) out.add(first);
   return [...out];
 }
 
