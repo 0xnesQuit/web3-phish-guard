@@ -29,6 +29,7 @@ async function main() {
     }
   }
 
+  $("options").onclick = () => chrome.runtime.openOptionsPage();
   const st = (await chrome.runtime.sendMessage({ type: "w3pg:status" })) as { lists: Record<string, { count: number; updatedAt: number }>; userAllow: string[] };
   $("meta").innerHTML = Object.entries(st.lists)
     .map(([k, s]) => `${esc(k)}: ${t("popup_domains", [s.count.toLocaleString()])}${s.updatedAt ? ` · ${new Date(s.updatedAt).toLocaleString()}` : ` · ${t("popup_not_downloaded")}`}`)

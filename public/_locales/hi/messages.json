@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · जोखिम $2/100"
   },
+  "popup_options": {
+    "message": "सेटिंग्स"
+  },
+  "opt_title": {
+    "message": "Web3 Phish Guard सेटिंग्स"
+  },
+  "opt_x_heading": {
+    "message": "Xquik द्वारा X (Twitter) सत्यापन"
+  },
+  "opt_x_help": {
+    "message": "वैकल्पिक। Xquik API कुंजी (xquik.com) से एक्सटेंशन संदिग्ध डोमेन के लिए प्रोजेक्ट का आधिकारिक X खाता और लिंक साझा करने वाला खाता खोजता है। केवल प्रोजेक्ट नाम या हैंडल भेजा जाता है, आपका पेज कभी नहीं। प्रति नए नाम ~20 क्रेडिट, 7 दिन कैश।"
+  },
+  "opt_x_key": {
+    "message": "Xquik API कुंजी"
+  },
+  "opt_save": {
+    "message": "सहेजें"
+  },
+  "opt_saved": {
+    "message": "सहेजा गया।"
+  },
+  "opt_test": {
+    "message": "\"uniswap\" से परखें"
+  },
+  "opt_test_fail": {
+    "message": "कोई परिणाम नहीं। कुंजी और क्रेडिट जाँचें।"
+  },
+  "opt_trusted_heading": {
+    "message": "विश्वसनीय चिह्नित डोमेन"
+  },
+  "opt_remove": {
+    "message": "हटाएँ"
+  },
   "sig_user_allow": {
     "message": "आपने इस डोमेन को विश्वसनीय चिह्नित किया"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "खतरनाक हस्ताक्षर: eth_sign (कच्चा हस्ताक्षर, कुछ भी अधिकृत कर सकता है)"
+  },
+  "sig_x_domain_match": {
+    "message": "प्रोजेक्ट का X खाता $1 इस डोमेन से लिंक करता है"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "प्रोजेक्ट का X खाता $1 इस डोमेन नहीं, $2 से लिंक करता है"
+  },
+  "sig_x_poster_weak": {
+    "message": "साझा करने वाला खाता $1 कमज़ोर: $2 फ़ॉलोअर, $3 दिन पुराना"
   },
   "sig_sol_sign": {
     "message": "Solana लेनदेन हस्ताक्षर का अनुरोध ($1)"

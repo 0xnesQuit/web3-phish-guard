@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · リスク $2/100"
   },
+  "popup_options": {
+    "message": "設定"
+  },
+  "opt_title": {
+    "message": "Web3 Phish Guard の設定"
+  },
+  "opt_x_heading": {
+    "message": "Xquik による X（Twitter）検証"
+  },
+  "opt_x_help": {
+    "message": "任意。Xquik API キー（xquik.com）を設定すると、疑わしいドメインについてプロジェクトの公式 X アカウントとリンクを共有したアカウントを照会します。送信されるのはプロジェクト名またはハンドルのみで、閲覧ページは送信されません。新しい名前ごとに約 20 クレジット、7 日間キャッシュ。"
+  },
+  "opt_x_key": {
+    "message": "Xquik API キー"
+  },
+  "opt_save": {
+    "message": "保存"
+  },
+  "opt_saved": {
+    "message": "保存しました。"
+  },
+  "opt_test": {
+    "message": "「uniswap」でテスト"
+  },
+  "opt_test_fail": {
+    "message": "結果なし。キーとクレジットを確認してください。"
+  },
+  "opt_trusted_heading": {
+    "message": "信頼済みにしたドメイン"
+  },
+  "opt_remove": {
+    "message": "削除"
+  },
   "sig_user_allow": {
     "message": "このドメインを信頼済みにしました"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "危険な署名：eth_sign（生署名、何でも承認できる）"
+  },
+  "sig_x_domain_match": {
+    "message": "プロジェクトの X アカウント $1 がこのドメインにリンク"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "プロジェクトの X アカウント $1 は $2 にリンクしており、このドメインではない"
+  },
+  "sig_x_poster_weak": {
+    "message": "共有アカウント $1 は弱い：フォロワー $2、作成 $3 日"
   },
   "sig_sol_sign": {
     "message": "Solana トランザクション署名を要求（$1）"

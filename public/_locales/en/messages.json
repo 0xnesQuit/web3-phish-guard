@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · risk $2/100"
   },
+  "popup_options": {
+    "message": "Settings"
+  },
+  "opt_title": {
+    "message": "Web3 Phish Guard settings"
+  },
+  "opt_x_heading": {
+    "message": "X (Twitter) verification via Xquik"
+  },
+  "opt_x_help": {
+    "message": "Optional. With an Xquik API key (xquik.com) the extension looks up the project's official X account for a suspicious domain and the account that shared the link. Only the project name or handle is sent, never the page you visit. Roughly 20 credits per new project name, cached for 7 days."
+  },
+  "opt_x_key": {
+    "message": "Xquik API key"
+  },
+  "opt_save": {
+    "message": "Save"
+  },
+  "opt_saved": {
+    "message": "Saved."
+  },
+  "opt_test": {
+    "message": "Test with \"uniswap\""
+  },
+  "opt_test_fail": {
+    "message": "No result. Check the key and your credits."
+  },
+  "opt_trusted_heading": {
+    "message": "Domains you marked as trusted"
+  },
+  "opt_remove": {
+    "message": "remove"
+  },
   "sig_user_allow": {
     "message": "You marked this domain as trusted"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "Dangerous signature: eth_sign (raw signature, can authorize anything)"
+  },
+  "sig_x_domain_match": {
+    "message": "The project's X account $1 links to this domain"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "The project's X account $1 links to $2, not to this domain"
+  },
+  "sig_x_poster_weak": {
+    "message": "Sharing account $1 is weak: $2 followers, $3 days old"
   },
   "sig_sol_sign": {
     "message": "Solana transaction signing requested ($1)"

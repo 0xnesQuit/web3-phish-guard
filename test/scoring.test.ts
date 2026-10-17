@@ -258,3 +258,31 @@ describe("rdap bootstrap", () => {
     expect(serverForTld(null, "com")).toBeNull();
   });
 });
+
+describe("X resolver signals", () => {
+  const official = { handle: "yieldfields_rh", domains: ["yieldfields.fun"], followers: 27768 };
+  it("project's own X account linking the domain clears a suspicious host", () => {
+    const v = run("https://yieldfields.fun/whitelist", { origin: { source: "x", at: 0, poster: "YieldFields_RH" }, x: { token: "yieldfields", confidence: 0.6, official } });
+    expect(v.signals.some((s) => s.id === "x-domain-match")).toBe(true);
+    expect(v.band).toBe("none");
+  });
+  it("official account links elsewhere -> mismatch on a bait domain", () => {
+    const v = run("https://yieldfields-claim.xyz/", { origin: { source: "x", at: 0, poster: "yf_claims" }, x: { token: "yieldfields", confidence: 0.6, official } });
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["x-domain-mismatch", "poster-mismatch"]));
+    expect(v.band).toBe("block");
+  });
+  it("weak poster account adds a signal only on bait hosts", () => {
+    const x = { token: "foo", confidence: 0, poster: { handle: "foo_claims", followers: 12, ageDays: 3, domains: [] } };
+    expect(run("https://foo-claim.xyz/", { origin: { source: "x", at: 0, poster: "foo_claims" }, x }).signals.some((s) => s.id === "x-poster-weak")).toBe(true);
+    expect(run("https://github.com/", { origin: { source: "x", at: 0, poster: "foo_claims" }, x }).signals.some((s) => s.id === "x-poster-weak")).toBe(false);
+  });
+  it("low-confidence resolution is ignored", () => {
+    const v = run("https://yieldfields.fun/", { x: { token: "yieldfields", confidence: 0.2, official } });
+    expect(v.signals.some((s) => s.id.startsWith("x-"))).toBe(false);
+  });
+  it("xToken is set for suspicious hosts and names the brand-like token", () => {
+    expect(run("https://rewards-axisrobotics.xyz/").xToken).toBe("axisrobotics");
+    expect(run("https://claim-newcoolproj.xyz/").xToken).toBe("newcoolproj");
+    expect(run("https://uniswap.org/").xToken).toBeUndefined();
+  });
+});

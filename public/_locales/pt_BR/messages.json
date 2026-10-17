@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · risco $2/100"
   },
+  "popup_options": {
+    "message": "Configurações"
+  },
+  "opt_title": {
+    "message": "Configurações do Web3 Phish Guard"
+  },
+  "opt_x_heading": {
+    "message": "Verificação no X (Twitter) via Xquik"
+  },
+  "opt_x_help": {
+    "message": "Opcional. Com uma chave de API da Xquik (xquik.com), a extensão consulta a conta oficial do projeto no X para um domínio suspeito e a conta que compartilhou o link. Apenas o nome do projeto ou o handle é enviado, nunca a página visitada. Cerca de 20 créditos por nome novo, cache de 7 dias."
+  },
+  "opt_x_key": {
+    "message": "Chave de API da Xquik"
+  },
+  "opt_save": {
+    "message": "Salvar"
+  },
+  "opt_saved": {
+    "message": "Salvo."
+  },
+  "opt_test": {
+    "message": "Testar com \"uniswap\""
+  },
+  "opt_test_fail": {
+    "message": "Sem resultado. Verifique a chave e seus créditos."
+  },
+  "opt_trusted_heading": {
+    "message": "Domínios marcados como confiáveis"
+  },
+  "opt_remove": {
+    "message": "remover"
+  },
   "sig_user_allow": {
     "message": "Você marcou este domínio como confiável"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "Assinatura perigosa: eth_sign (assinatura bruta, pode autorizar qualquer coisa)"
+  },
+  "sig_x_domain_match": {
+    "message": "A conta do projeto no X $1 aponta para este domínio"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "A conta do projeto no X $1 aponta para $2, não para este domínio"
+  },
+  "sig_x_poster_weak": {
+    "message": "A conta que compartilhou $1 é fraca: $2 seguidores, $3 dias"
   },
   "sig_sol_sign": {
     "message": "Assinatura de transação Solana solicitada ($1)"

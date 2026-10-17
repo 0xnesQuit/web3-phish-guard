@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · risiko $2/100"
   },
+  "popup_options": {
+    "message": "Pengaturan"
+  },
+  "opt_title": {
+    "message": "Pengaturan Web3 Phish Guard"
+  },
+  "opt_x_heading": {
+    "message": "Verifikasi X (Twitter) melalui Xquik"
+  },
+  "opt_x_help": {
+    "message": "Opsional. Dengan kunci API Xquik (xquik.com), ekstensi mencari akun X resmi proyek untuk domain mencurigakan dan akun yang membagikan tautan. Hanya nama proyek atau handle yang dikirim, bukan halaman yang Anda kunjungi. Sekitar 20 kredit per nama baru, cache 7 hari."
+  },
+  "opt_x_key": {
+    "message": "Kunci API Xquik"
+  },
+  "opt_save": {
+    "message": "Simpan"
+  },
+  "opt_saved": {
+    "message": "Tersimpan."
+  },
+  "opt_test": {
+    "message": "Uji dengan \"uniswap\""
+  },
+  "opt_test_fail": {
+    "message": "Tidak ada hasil. Periksa kunci dan kredit Anda."
+  },
+  "opt_trusted_heading": {
+    "message": "Domain yang Anda tandai dipercaya"
+  },
+  "opt_remove": {
+    "message": "hapus"
+  },
   "sig_user_allow": {
     "message": "Anda menandai domain ini sebagai dipercaya"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "Tanda tangan berbahaya: eth_sign (tanda tangan mentah, bisa mengotorisasi apa saja)"
+  },
+  "sig_x_domain_match": {
+    "message": "Akun X proyek $1 menautkan ke domain ini"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "Akun X proyek $1 menautkan ke $2, bukan domain ini"
+  },
+  "sig_x_poster_weak": {
+    "message": "Akun pembagi $1 lemah: $2 pengikut, berusia $3 hari"
   },
   "sig_sol_sign": {
     "message": "Permintaan tanda tangan transaksi Solana ($1)"

@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · риск $2/100"
   },
+  "popup_options": {
+    "message": "Настройки"
+  },
+  "opt_title": {
+    "message": "Настройки Web3 Phish Guard"
+  },
+  "opt_x_heading": {
+    "message": "Проверка через X (Twitter) с помощью Xquik"
+  },
+  "opt_x_help": {
+    "message": "Необязательно. С API-ключом Xquik (xquik.com) расширение ищет официальный аккаунт проекта в X для подозрительного домена и аккаунт, поделившийся ссылкой. Отправляется только имя проекта или хэндл, никогда не посещённая страница. Около 20 кредитов за новое имя, кэш 7 дней."
+  },
+  "opt_x_key": {
+    "message": "API-ключ Xquik"
+  },
+  "opt_save": {
+    "message": "Сохранить"
+  },
+  "opt_saved": {
+    "message": "Сохранено."
+  },
+  "opt_test": {
+    "message": "Проверить на «uniswap»"
+  },
+  "opt_test_fail": {
+    "message": "Нет результата. Проверьте ключ и кредиты."
+  },
+  "opt_trusted_heading": {
+    "message": "Домены, отмеченные как доверенные"
+  },
+  "opt_remove": {
+    "message": "удалить"
+  },
   "sig_user_allow": {
     "message": "Вы отметили этот домен как доверенный"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "Опасная подпись: eth_sign (сырая подпись, может разрешить что угодно)"
+  },
+  "sig_x_domain_match": {
+    "message": "Аккаунт проекта в X $1 ссылается на этот домен"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "Аккаунт проекта в X $1 ссылается на $2, а не на этот домен"
+  },
+  "sig_x_poster_weak": {
+    "message": "Аккаунт $1 слабый: $2 подписчиков, возраст $3 дн."
   },
   "sig_sol_sign": {
     "message": "Запрошена подпись транзакции Solana ($1)"

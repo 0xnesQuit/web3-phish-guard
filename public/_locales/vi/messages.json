@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · rủi ro $2/100"
   },
+  "popup_options": {
+    "message": "Cài đặt"
+  },
+  "opt_title": {
+    "message": "Cài đặt Web3 Phish Guard"
+  },
+  "opt_x_heading": {
+    "message": "Xác minh X (Twitter) qua Xquik"
+  },
+  "opt_x_help": {
+    "message": "Tùy chọn. Với khóa API Xquik (xquik.com), tiện ích sẽ tra tài khoản X chính thức của dự án cho tên miền đáng ngờ và tài khoản đã chia sẻ liên kết. Chỉ gửi tên dự án hoặc handle, không bao giờ gửi trang bạn truy cập. Khoảng 20 tín dụng cho mỗi tên mới, lưu cache 7 ngày."
+  },
+  "opt_x_key": {
+    "message": "Khóa API Xquik"
+  },
+  "opt_save": {
+    "message": "Lưu"
+  },
+  "opt_saved": {
+    "message": "Đã lưu."
+  },
+  "opt_test": {
+    "message": "Thử với \"uniswap\""
+  },
+  "opt_test_fail": {
+    "message": "Không có kết quả. Kiểm tra khóa và tín dụng."
+  },
+  "opt_trusted_heading": {
+    "message": "Tên miền bạn đánh dấu tin cậy"
+  },
+  "opt_remove": {
+    "message": "xóa"
+  },
   "sig_user_allow": {
     "message": "Bạn đã đánh dấu tên miền này là tin cậy"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "Chữ ký nguy hiểm: eth_sign (chữ ký thô, có thể ủy quyền mọi thứ)"
+  },
+  "sig_x_domain_match": {
+    "message": "Tài khoản X của dự án $1 liên kết tới tên miền này"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "Tài khoản X của dự án $1 liên kết tới $2, không phải tên miền này"
+  },
+  "sig_x_poster_weak": {
+    "message": "Tài khoản chia sẻ $1 yếu: $2 người theo dõi, $3 ngày tuổi"
   },
   "sig_sol_sign": {
     "message": "Yêu cầu ký giao dịch Solana ($1)"

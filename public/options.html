@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="opt_title">Web3 Phish Guard settings</title>
+<style>
+  body { margin: 0; padding: 32px; font-family: system-ui, sans-serif; background: #111; color: #eee; max-width: 720px; }
+  h1 { font-size: 22px; margin: 0 0 24px; }
+  h2 { font-size: 16px; margin: 28px 0 8px; }
+  p { line-height: 1.5; opacity: .85; font-size: 14px; }
+  label { display: block; font-size: 13px; opacity: .8; margin: 12px 0 4px; }
+  input { width: 100%; box-sizing: border-box; font: 14px ui-monospace, monospace; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #1b1b1b; color: #eee; }
+  button { font: inherit; margin-top: 10px; margin-right: 8px; padding: 8px 14px; border-radius: 8px; border: 1px solid #444; background: #222; color: #eee; cursor: pointer; }
+  .ok { color: #9be3b0; font-size: 13px; margin-left: 6px; }
+  pre { background: #1b1b1b; padding: 10px; border-radius: 8px; font-size: 12px; white-space: pre-wrap; }
+  ul { padding-left: 18px; line-height: 1.8; font-size: 14px; }
+  a.rm { color: #ff8a8a; margin-left: 8px; cursor: pointer; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1 data-i18n="opt_title">Web3 Phish Guard settings</h1>
+
+  <h2 data-i18n="opt_x_heading">X (Twitter) verification via Xquik</h2>
+  <p data-i18n="opt_x_help"></p>
+  <label for="key" data-i18n="opt_x_key">Xquik API key</label>
+  <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="xq_...">
+  <button id="save" data-i18n="opt_save">Save</button>
+  <button id="test" data-i18n="opt_test">Test</button>
+  <span id="status" class="ok"></span>
+  <pre id="result" hidden></pre>
+
+  <h2 data-i18n="opt_trusted_heading">Domains you marked as trusted</h2>
+  <ul id="trusted"></ul>
+
+  <script src="options.js"></script>
+</body>
+</html>

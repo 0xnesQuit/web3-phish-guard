@@ -40,6 +40,8 @@ export interface Verdict {
   brand?: string;
   /** true when RDAP age lookup would change the outcome */
   needsAgeCheck: boolean;
+  /** brand token worth resolving on X (set when the X layer could change the outcome) */
+  xToken?: string;
   ageDays?: number;
   at: number;
 }
@@ -68,6 +70,14 @@ export interface OriginContext {
   /** the display text X showed for the link, e.g. "rewards-axisrobotics.xyz" */
   display?: string;
   at: number;
+}
+
+/** What the optional X resolver learned (brand token -> official account, poster profile). */
+export interface XIntel {
+  token: string;
+  official?: { handle: string; domains: string[]; followers: number; verifiedType?: string };
+  confidence: number;
+  poster?: { handle: string; followers: number; ageDays?: number; domains: string[] };
 }
 
 export interface ProviderEvent {

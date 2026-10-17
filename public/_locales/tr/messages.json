@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · risk $2/100"
   },
+  "popup_options": {
+    "message": "Ayarlar"
+  },
+  "opt_title": {
+    "message": "Web3 Phish Guard ayarları"
+  },
+  "opt_x_heading": {
+    "message": "Xquik ile X (Twitter) doğrulaması"
+  },
+  "opt_x_help": {
+    "message": "İsteğe bağlı. Bir Xquik API anahtarı (xquik.com) girilirse uzantı, şüpheli domain için projenin resmi X hesabını ve linki paylaşan hesabı sorgular. Sadece proje adı veya hesap adı gönderilir, ziyaret ettiğiniz sayfa asla gönderilmez. Yeni proje adı başına ~20 kredi, 7 gün önbellek."
+  },
+  "opt_x_key": {
+    "message": "Xquik API anahtarı"
+  },
+  "opt_save": {
+    "message": "Kaydet"
+  },
+  "opt_saved": {
+    "message": "Kaydedildi."
+  },
+  "opt_test": {
+    "message": "\"uniswap\" ile dene"
+  },
+  "opt_test_fail": {
+    "message": "Sonuç yok. Anahtarı ve kredinizi kontrol edin."
+  },
+  "opt_trusted_heading": {
+    "message": "Güvenilir işaretlediğiniz domainler"
+  },
+  "opt_remove": {
+    "message": "kaldır"
+  },
   "sig_user_allow": {
     "message": "Bu domaini güvenilir olarak işaretlediniz"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "Tehlikeli imza: eth_sign (ham imza, her şeyi imzalatabilir)"
+  },
+  "sig_x_domain_match": {
+    "message": "Projenin X hesabı $1 bu domaine link veriyor"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "Projenin X hesabı $1 bu domaine değil $2 adresine link veriyor"
+  },
+  "sig_x_poster_weak": {
+    "message": "Paylaşan hesap $1 zayıf: $2 takipçi, $3 günlük"
   },
   "sig_sol_sign": {
     "message": "Solana işlem imzası istendi ($1)"

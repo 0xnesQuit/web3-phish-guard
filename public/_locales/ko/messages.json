@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · 위험 $2/100"
   },
+  "popup_options": {
+    "message": "설정"
+  },
+  "opt_title": {
+    "message": "Web3 Phish Guard 설정"
+  },
+  "opt_x_heading": {
+    "message": "Xquik을 통한 X(Twitter) 검증"
+  },
+  "opt_x_help": {
+    "message": "선택 사항. Xquik API 키(xquik.com)를 입력하면 의심스러운 도메인에 대해 프로젝트의 공식 X 계정과 링크를 공유한 계정을 조회합니다. 프로젝트 이름 또는 핸들만 전송되며 방문한 페이지는 절대 전송되지 않습니다. 새 이름당 약 20 크레딧, 7일 캐시."
+  },
+  "opt_x_key": {
+    "message": "Xquik API 키"
+  },
+  "opt_save": {
+    "message": "저장"
+  },
+  "opt_saved": {
+    "message": "저장됨."
+  },
+  "opt_test": {
+    "message": "\"uniswap\"으로 테스트"
+  },
+  "opt_test_fail": {
+    "message": "결과 없음. 키와 크레딧을 확인하세요."
+  },
+  "opt_trusted_heading": {
+    "message": "신뢰로 표시한 도메인"
+  },
+  "opt_remove": {
+    "message": "제거"
+  },
   "sig_user_allow": {
     "message": "이 도메인을 신뢰로 표시했습니다"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "위험한 서명: eth_sign (원시 서명, 무엇이든 승인 가능)"
+  },
+  "sig_x_domain_match": {
+    "message": "프로젝트의 X 계정 $1이(가) 이 도메인에 연결됨"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "프로젝트의 X 계정 $1은(는) 이 도메인이 아닌 $2에 연결됨"
+  },
+  "sig_x_poster_weak": {
+    "message": "공유 계정 $1 신뢰도 낮음: 팔로워 $2명, $3일 경과"
   },
   "sig_sol_sign": {
     "message": "Solana 트랜잭션 서명 요청 ($1)"

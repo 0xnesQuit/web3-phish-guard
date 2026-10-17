@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · Risiko $2/100"
   },
+  "popup_options": {
+    "message": "Einstellungen"
+  },
+  "opt_title": {
+    "message": "Web3 Phish Guard Einstellungen"
+  },
+  "opt_x_heading": {
+    "message": "X-(Twitter-)Prüfung über Xquik"
+  },
+  "opt_x_help": {
+    "message": "Optional. Mit einem Xquik-API-Schlüssel (xquik.com) sucht die Erweiterung bei einer verdächtigen Domain das offizielle X-Konto des Projekts und das Konto, das den Link geteilt hat. Es wird nur der Projektname oder Handle gesendet, nie die besuchte Seite. Etwa 20 Credits pro neuem Projektnamen, 7 Tage gecacht."
+  },
+  "opt_x_key": {
+    "message": "Xquik-API-Schlüssel"
+  },
+  "opt_save": {
+    "message": "Speichern"
+  },
+  "opt_saved": {
+    "message": "Gespeichert."
+  },
+  "opt_test": {
+    "message": "Mit \"uniswap\" testen"
+  },
+  "opt_test_fail": {
+    "message": "Kein Ergebnis. Schlüssel und Guthaben prüfen."
+  },
+  "opt_trusted_heading": {
+    "message": "Als vertrauenswürdig markierte Domains"
+  },
+  "opt_remove": {
+    "message": "entfernen"
+  },
   "sig_user_allow": {
     "message": "Sie haben diese Domain als vertrauenswürdig markiert"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "Gefährliche Signatur: eth_sign (Rohsignatur, kann alles autorisieren)"
+  },
+  "sig_x_domain_match": {
+    "message": "Das X-Konto des Projekts $1 verlinkt auf diese Domain"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "Das X-Konto des Projekts $1 verlinkt auf $2, nicht auf diese Domain"
+  },
+  "sig_x_poster_weak": {
+    "message": "Teilendes Konto $1 ist schwach: $2 Follower, $3 Tage alt"
   },
   "sig_sol_sign": {
     "message": "Solana-Transaktionssignatur angefordert ($1)"

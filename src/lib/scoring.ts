@@ -1,4 +1,4 @@
-import type { Band, Brand, OriginContext, ParsedHost, Signal, SignalLists, Verdict } from "./types";
+import type { Band, Brand, OriginContext, ParsedHost, Signal, SignalLists, Verdict, XIntel } from "./types";
 import { isUnderDomain, levenshtein, tokenize } from "./hostname";
 
 export const BLOCK_THRESHOLD = 70;
@@ -17,6 +17,8 @@ export interface ScoreContext {
   ageDays?: number;
   /** social-platform origin of this navigation (X, Discord, ...) */
   origin?: OriginContext;
+  /** optional X resolver result for the brand token in this hostname */
+  x?: XIntel;
 }
 
 const SOURCE_LABEL: Record<OriginContext["source"], string> = {
@@ -196,6 +198,35 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     }
   }
 
+  // ---- X resolver (optional, only when an API key is configured) ----------------
+  const xi = ctx.x;
+  let xCleared = false;
+  if (xi?.official && xi.confidence >= 0.5) {
+    const off = xi.official;
+    const strong = off.followers >= 5000 || /business|government/i.test(off.verifiedType ?? "");
+    const hostMatches = off.domains.some((d) => isUnderDomain(p.host, d));
+    if (hostMatches && strong) {
+      // the project's own X account links to exactly this domain: treat like an official domain
+      signals.push({ id: "x-domain-match", weight: -100, key: "sig_x_domain_match", sub: ["@" + off.handle] });
+      xCleared = true;
+    } else if (!hostMatches && off.domains.length && (brandFlagged || hasAction)) {
+      signals.push({ id: "x-domain-mismatch", weight: 25, key: "sig_x_domain_mismatch", sub: ["@" + off.handle, off.domains[0]] });
+    }
+    const poster = o?.poster?.toLowerCase().replace(/^@/, "");
+    if (poster && poster !== off.handle.toLowerCase() && !hostMatches && (brandFlagged || hasAction)) {
+      if (!signals.some((s) => s.id === "poster-mismatch")) {
+        signals.push({ id: "poster-mismatch", weight: 30, key: "sig_poster_mismatch", sub: ["@" + poster, "@" + off.handle] });
+      }
+    }
+  }
+  if (xi?.poster && o?.poster && !xCleared && (hasAction || brandFlagged)) {
+    const pp = xi.poster;
+    const young = pp.ageDays !== undefined && pp.ageDays < 30;
+    if (young || pp.followers < 100) {
+      signals.push({ id: "x-poster-weak", weight: 15, key: "sig_x_poster_weak", sub: ["@" + pp.handle, String(pp.followers), String(pp.ageDays === undefined ? "?" : Math.floor(pp.ageDays))] });
+    }
+  }
+
   // ---- domain age -----------------------------------------------------------
   if (ctx.ageDays !== undefined) {
     if (ctx.ageDays < 7) signals.push({ id: "age-7", weight: 25, key: "sig_age_days", sub: [String(Math.max(0, Math.floor(ctx.ageDays)))] });
@@ -217,5 +248,13 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // Age lookup is worth doing only when it could move the band.
   const floor = ctx.origin ? 10 : 20;
   v.needsAgeCheck = ctx.ageDays === undefined && !ctx.blocklistHit && !p.freeHost && v.score >= floor && v.score < BLOCK_THRESHOLD;
+  // Which name should the X layer look up? The matched brand token, else the most brand-like hostname token.
+  if (!ctx.x && !ctx.blocklistHit && v.score >= floor) {
+    const actionSet = new Set([...ctx.lists.actionStrong, ...ctx.lists.actionMedium]);
+    const candidate = matchedBrand
+      ? matchedBrand.tokens.find((t) => joined.includes(t.toLowerCase())) ?? matchedBrand.tokens[0]
+      : tokens.filter((t) => t.length >= 5 && !actionSet.has(t) && !GENERIC.has(t)).sort((a, b) => b.length - a.length)[0];
+    if (candidate) v.xToken = candidate;
+  }
   return v;
 }

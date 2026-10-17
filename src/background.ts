@@ -5,6 +5,8 @@ import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blockl
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick } from "./lib/origin";
+import { resolveBrand, resolvePoster, getApiKey, setApiKey } from "./lib/xquik";
+import type { XIntel } from "./lib/types";
 import type { OriginContext, ProviderEvent, Signal, Verdict } from "./lib/types";
 
 const WARNING_PAGE = chrome.runtime.getURL("warning.html");
@@ -41,7 +43,7 @@ async function ensureReady() {
 // ---------------------------------------------------------------------------
 // evaluation
 // ---------------------------------------------------------------------------
-async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext } = {}): Promise<Verdict | null> {
+async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext; x?: XIntel } = {}): Promise<Verdict | null> {
   if (!/^https?:/.test(url)) return null;
   const { brands, lists } = await ensureReady();
   const p = parseHost(url, [...lists.freeHostsStrong, ...lists.freeHostsWeak]);
@@ -57,7 +59,55 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
     userAllowed: userAllow.some((d) => p.host === d || p.host.endsWith("." + d)),
     ageDays: extra.ageDays,
     origin: extra.origin,
+    x: extra.x,
   });
+}
+
+/** Ask X (via Xquik) about the brand token and the poster; null when no key / nothing to ask. */
+async function xIntelFor(v: Verdict, origin?: OriginContext): Promise<XIntel | undefined> {
+  if (!v.xToken) return undefined;
+  if (!(await getApiKey())) return undefined;
+  const brand = await resolveBrand(v.xToken);
+  const posterHandle = origin?.poster;
+  const poster = posterHandle ? await resolvePoster(posterHandle) : null;
+  if (!brand && !poster) return undefined;
+  return {
+    token: v.xToken,
+    confidence: brand?.confidence ?? 0,
+    official: brand?.official ? { handle: brand.official.handle, domains: brand.official.domains, followers: brand.official.followers, verifiedType: brand.official.verifiedType } : undefined,
+    poster: poster ? { handle: poster.handle, followers: poster.followers, ageDays: poster.ageDays, domains: poster.domains } : undefined,
+  };
+}
+
+/** Full pipeline for one navigation: local score -> RDAP age -> X resolver, re-applying when the band changes. */
+async function evaluateAndApply(tabId: number, url: string, origin?: OriginContext): Promise<void> {
+  let v = await evaluate(url, { origin });
+  if (!v) {
+    await clearTab(tabId);
+    await chrome.action.setBadgeText({ tabId, text: "" }).catch(() => undefined);
+    return;
+  }
+  await applyVerdict(tabId, v);
+  let ageDays: number | undefined;
+  if (v.needsAgeCheck) {
+    ageDays = await domainAgeDays(v.registrable);
+    if (ageDays !== undefined) {
+      const v2 = await evaluate(url, { ageDays, origin });
+      if (v2) {
+        if (v2.band !== v.band) await applyVerdict(tabId, v2); else await setTabVerdict(tabId, v2);
+        v = v2;
+      }
+    }
+  }
+  if (v.xToken && v.band !== "block") {
+    const x = await xIntelFor(v, origin);
+    if (x) {
+      const v3 = await evaluate(url, { ageDays, origin, x });
+      if (v3) {
+        if (v3.band !== v.band) await applyVerdict(tabId, v3); else await setTabVerdict(tabId, v3);
+      }
+    }
+  }
 }
 
 /** Pure hostname scoring for the X timeline badges: no RDAP, no tab state. */
@@ -98,23 +148,7 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
     if (src) return; // the social site itself is never evaluated
 
     const origin = await getTabOrigin(d.tabId);
-    const v = await evaluate(d.url, { origin });
-    if (!v) {
-      await clearTab(d.tabId);
-      await chrome.action.setBadgeText({ tabId: d.tabId, text: "" }).catch(() => undefined);
-      return;
-    }
-    await applyVerdict(d.tabId, v);
-
-    // Second pass: only for suspicious-but-undecided hosts, fetch domain age (registrable domain only).
-    if (v.needsAgeCheck) {
-      const ageDays = await domainAgeDays(v.registrable);
-      if (ageDays !== undefined) {
-        const v2 = await evaluate(d.url, { ageDays, origin });
-        if (v2 && v2.band !== v.band) await applyVerdict(d.tabId, v2);
-        else if (v2) await setTabVerdict(d.tabId, v2);
-      }
-    }
+    await evaluateAndApply(d.tabId, d.url, origin);
   } catch (e) {
     console.warn("[w3pg] evaluate failed", e);
   }
@@ -181,17 +215,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (await getTabOrigin(tabId)) return;
         const origin: OriginContext = { source: src, at: Date.now() };
         await setTabOrigin(tabId, origin);
-        const v = await evaluate(sender.url, { origin });
-        if (v) {
-          await applyVerdict(tabId, v);
-          if (v.needsAgeCheck) {
-            const ageDays = await domainAgeDays(v.registrable);
-            if (ageDays !== undefined) {
-              const v2 = await evaluate(sender.url, { ageDays, origin });
-              if (v2) await applyVerdict(tabId, v2);
-            }
-          }
-        }
+        await evaluateAndApply(tabId, sender.url, origin);
         return;
       }
       case "w3pg:xclick": {
@@ -202,6 +226,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "w3pg:scoreHost": {
         sendResponse(await scoreHostOnly(String(msg.host), (msg.ctx ?? {}) as Partial<OriginContext>));
+        return;
+      }
+      case "w3pg:getSettings": {
+        sendResponse({ xquikKey: await getApiKey() });
+        return;
+      }
+      case "w3pg:setSettings": {
+        if (typeof msg.xquikKey === "string") await setApiKey(msg.xquikKey);
+        sendResponse(true);
+        return;
+      }
+      case "w3pg:testXquik": {
+        const r = await resolveBrand(String(msg.token || "uniswap"));
+        sendResponse(r);
         return;
       }
       case "w3pg:refreshNow": {

@@ -71,6 +71,39 @@
   "badge_tooltip": {
     "message": "Web3 Phish Guard · $1 · 风险 $2/100"
   },
+  "popup_options": {
+    "message": "设置"
+  },
+  "opt_title": {
+    "message": "Web3 Phish Guard 设置"
+  },
+  "opt_x_heading": {
+    "message": "通过 Xquik 进行 X（Twitter）验证"
+  },
+  "opt_x_help": {
+    "message": "可选。配置 Xquik API 密钥（xquik.com）后，扩展会为可疑域名查找项目的官方 X 账号以及分享该链接的账号。只发送项目名或账号名，绝不发送您访问的页面。每个新项目名约 20 积分，缓存 7 天。"
+  },
+  "opt_x_key": {
+    "message": "Xquik API 密钥"
+  },
+  "opt_save": {
+    "message": "保存"
+  },
+  "opt_saved": {
+    "message": "已保存。"
+  },
+  "opt_test": {
+    "message": "用“uniswap”测试"
+  },
+  "opt_test_fail": {
+    "message": "无结果。请检查密钥和积分。"
+  },
+  "opt_trusted_heading": {
+    "message": "您标记为可信的域名"
+  },
+  "opt_remove": {
+    "message": "移除"
+  },
   "sig_user_allow": {
     "message": "您已将此域名标记为可信"
   },
@@ -172,6 +205,15 @@
   },
   "sig_sign_eth_sign": {
     "message": "危险签名：eth_sign（原始签名，可授权任何操作）"
+  },
+  "sig_x_domain_match": {
+    "message": "项目的 X 账号 $1 链接到此域名"
+  },
+  "sig_x_domain_mismatch": {
+    "message": "项目的 X 账号 $1 链接到 $2，而非此域名"
+  },
+  "sig_x_poster_weak": {
+    "message": "分享账号 $1 可信度低：$2 个关注者，注册 $3 天"
   },
   "sig_sol_sign": {
     "message": "请求签署 Solana 交易（$1）"
