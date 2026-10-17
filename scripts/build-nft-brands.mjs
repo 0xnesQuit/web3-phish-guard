@@ -35,22 +35,36 @@ function tokensFromName(name) {
   const base = name.toLowerCase().replace(/\(.*?\)/g, "").trim();
   const out = new Set();
   const glued = base.replace(/[^a-z0-9]/g, "");
+  // NFT names are full of ordinary words ("Credits", "Abstract Chickens", "The Ape Society"), so only the
+  // glued full name is a token; single words count only when the whole name is that one word.
   if (glued.length >= 5 && !GENERIC.has(glued)) out.add(glued);
-  for (const w of base.split(/[^a-z0-9]+/)) if (w.length >= 6 && !GENERIC.has(w) && !/^\d+$/.test(w)) out.add(w);
   return [...out];
 }
 
 const out = new Map();
-let next = "";
 let fetched = 0;
-while (fetched < MAX) {
-  const url = `https://api.opensea.io/api/v2/collections?order_by=seven_day_volume&limit=100${next ? `&next=${encodeURIComponent(next)}` : ""}`;
-  const res = await fetch(url, { headers: { "x-api-key": key, accept: "application/json" } });
-  if (res.status === 429) { await new Promise((r) => setTimeout(r, 2000)); continue; }
-  if (!res.ok) throw new Error(`OpenSea ${res.status}: ${await res.text()}`);
+// The free tier stops paginating after ~300 results per query, so sweep the main chains separately.
+const CHAINS = ["", "ethereum", "base", "solana", "polygon", "abstract", "arbitrum", "optimism", "zora", "bsc", "avalanche", "ape_chain", "blast", "sei", "bera_chain", "ronin", "b3", "shape", "soneium", "unichain"];
+for (const chain of CHAINS) {
+let next = "";
+let perChain = 0;
+while (perChain < MAX) {
+  const url = `https://api.opensea.io/api/v2/collections?order_by=seven_day_volume&limit=100${chain ? `&chain=${chain}` : ""}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  let res = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    res = await fetch(url, { headers: { "x-api-key": key, accept: "application/json" } });
+    // OpenSea answers throttled requests with 429 *or* a spurious 401 "Invalid API key"; back off and retry both.
+    if (res.status !== 429 && res.status !== 401) break;
+    await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+  }
+  if (!res.ok) {
+    console.error(`  ${chain || "all"}: OpenSea ${res.status} after ${perChain} results, moving on (${out.size} brands so far)`);
+    break;
+  }
   const json = await res.json();
   const cols = json.collections ?? [];
   fetched += cols.length;
+  perChain += cols.length;
   for (const c of cols) {
     const status = String(c.safelist_status ?? "").toLowerCase();
     if (!["verified", "approved"].includes(status)) continue;
@@ -65,7 +79,10 @@ while (fetched < MAX) {
   }
   next = json.next ?? "";
   if (!next || !cols.length) break;
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise((r) => setTimeout(r, 1200));
+}
+console.log(`  ${chain || "all"}: ${perChain} collections, ${out.size} brands total`);
+await new Promise((r) => setTimeout(r, 2000));
 }
 
 writeFileSync("data/brands.nft.json", JSON.stringify([...out.values()]));
