@@ -41,5 +41,5 @@
   { "name": "Trezor", "tokens": ["trezor"], "domains": ["trezor.io"], "x": "Trezor" },
   { "name": "Coinbase", "tokens": ["coinbase"], "domains": ["coinbase.com", "cb.id"], "x": "coinbase" },
   { "name": "Binance", "tokens": ["binance"], "domains": ["binance.com", "binance.us"], "x": "binance" },
-  { "name": "Axis Robotics", "tokens": ["axisrobotics"], "domains": [], "x": "", "note": "Resmi domain dogrulanmadi. DefiLlama kaydi (axis.to / AxisFDN) ayni proje mi kontrol edilmeli." }
+  { "name": "Axis Robotics", "tokens": ["axisrobotics"], "domains": ["axisrobotics.ai"], "x": "axisrobotics", "note": "2026-10-17: @axisrobotics (64k, Business) Linktree -> axisrobotics.ai" }
 ]

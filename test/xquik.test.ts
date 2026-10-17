@@ -47,9 +47,13 @@ describe("pickOfficial", () => {
 });
 
 describe("link page parsing", () => {
-  it("extracts project domains from Linktree-ish HTML and drops platforms/assets", () => {
-    const html = `<script id="__NEXT_DATA__">{"links":[{"url":"https://axisrobotics.com/"},{"url":"https://x.com/axisrobotics"},{"url":"https://discord.gg/abc"},{"url":"https://app.axisrobotics.com/claim"}]}</script><img src="https://lnkimg.com/x.png"><link href="https://fonts.googleapis.com/css">`;
-    expect(domainsFromLinkPage(html)).toEqual(["axisrobotics.com"]);
+  it("reads the owner's links from __NEXT_DATA__ and ignores Linktree's promoted links", () => {
+    const html = `<a href="https://hellofresh.com/promo">ad</a><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"links":[{"url":"https://axisrobotics.ai/"},{"url":"https://x.com/axisrobotics"},{"url":"https://discord.gg/abc"},{"url":"https://app.axisrobotics.ai/claim"}]}}}</script><img src="https://lnkimg.com/x.png">`;
+    expect(domainsFromLinkPage(html, "axisrobotics")).toEqual(["axisrobotics.ai"]);
+  });
+  it("regex fallback without JSON keeps only domains carrying the token", () => {
+    const html = `<a href="https://hellofresh.com/promo">ad</a><a href="https://axisrobotics.ai/">site</a>`;
+    expect(domainsFromLinkPage(html, "axisrobotics")).toEqual(["axisrobotics.ai"]);
   });
   it("registrableOf keeps private suffix hosts whole", () => {
     expect(registrableOf("https://foo.vercel.app/x")).toBe("foo.vercel.app");

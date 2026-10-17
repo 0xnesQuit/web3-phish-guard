@@ -14,6 +14,8 @@ Araştırma raporu: [reports/Web3 phishing tespit uzantısı analizi.md](reports
 
 4. **Sosyal kaynak bağlamı** (`src/lib/origin.ts`, `src/content/x-watch.ts`, `src/content/referrer.ts`): `t.co` yönlendirmesi veya referrer üzerinden linkin X / Discord / Telegram / Reddit'ten geldiği anlaşılır (+10, RDAP sorgusu zorunlu olur). x.com'da tıklanan linkin tweet bağlamı okunur: paylaşan hesap projenin bilinen X hesabı değilse +30, link bir yanıt olarak paylaşılmışsa +10, hesap adında "claim/airdrop/official" geçiyorsa +15. Akıştaki dış linkler tıklanmadan puanlanır ve şüpheli olanların yanına ⚠️ / ⛔ rozeti konur. Bağlam yalnızca puanı yükseltir; resmi hesap paylaştı diye hiçbir domain güvenilir sayılmaz (hesaplar hackleniyor).
 
+5. **X hesabı çözümleme (isteğe bağlı, Xquik)** (`src/lib/xquik.ts`): Ayarlar sayfasına bir Xquik API anahtarı girilirse, şüpheli bir hostname'deki proje adı için X'te hesap aranır (`/x/users/search`, ~20 kredi, 7 gün önbellek), takipçi/Business tik/hesap yaşı ile en olası resmi hesap seçilir ve bio linkindeki domain alınır (Linktree gibi sayfalar takip edilir). Resmi hesap tam bu domaine link veriyorsa puan sıfırlanır; başka bir domaine veriyorsa +25. Linki paylaşan hesap da sorgulanır: resmi hesap değilse +30, 30 günden genç veya 100 takipçiden azsa +15. Yalnızca proje adı ve hesap adı gönderilir, ziyaret edilen URL asla gönderilmez. Anahtar repoya değil `chrome.storage.local`'a yazılır; herkese dağıtımda araya bir backend konmalıdır.
+
 Puan bantları: `>= 70` tam sayfa uyarı (engelleme, "yine de devam et" ile oturumluk bypass), `35..69` sayfa üstünde sarı şerit, altı sessiz.
 
 Yanlış pozitif frenleri:

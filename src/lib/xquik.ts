@@ -85,7 +85,7 @@ export function registrableOf(url: string | undefined): string | null {
 /** Link-in-bio aggregators: we fetch these pages and take the outbound links instead. */
 const LINK_PAGES = new Set(["linktr.ee", "bio.link", "beacons.ai", "link3.to", "lnk.bio", "bento.me", "linkin.bio", "taplink.cc", "solo.to"]);
 /** Platforms that never count as a project's own domain. */
-const PLATFORMS = new Set(["t.co", "x.com", "twitter.com", "discord.gg", "discord.com", "t.me", "telegram.org", "medium.com", "youtube.com", "youtu.be", "github.com", "instagram.com", "facebook.com", "tiktok.com", "reddit.com", "opensea.io", "magiceden.io", "blur.io", "coingecko.com", "coinmarketcap.com", "dexscreener.com", "dextools.io", "etherscan.io", "solscan.io", "basescan.org", "apps.apple.com", "play.google.com", "chrome.google.com", "mirror.xyz", "paragraph.xyz", "substack.com", "notion.site", "gitbook.io", "docs.google.com", "warpcast.com", "farcaster.xyz", "zealy.io", "galxe.com", "layer3.xyz", "linktr.ee"]);
+const PLATFORMS = new Set(["t.co", "x.com", "twitter.com", "discord.gg", "discord.com", "t.me", "telegram.org", "medium.com", "youtube.com", "youtu.be", "github.com", "instagram.com", "facebook.com", "tiktok.com", "reddit.com", "opensea.io", "magiceden.io", "blur.io", "coingecko.com", "coinmarketcap.com", "dexscreener.com", "dextools.io", "etherscan.io", "solscan.io", "basescan.org", "apps.apple.com", "play.google.com", "chrome.google.com", "mirror.xyz", "paragraph.xyz", "substack.com", "notion.site", "gitbook.io", "docs.google.com", "warpcast.com", "farcaster.xyz", "zealy.io", "galxe.com", "layer3.xyz", "linktr.ee", "linkedin.com", "xhslink.com", "xiaohongshu.com", "weibo.com", "bilibili.com", "vk.com", "threads.net", "bsky.app", "twitch.tv", "kick.com", "spotify.com", "wikipedia.org"]);
 
 export function toAccount(u: RawUser): XAccount {
   const domains = new Set<string>();
@@ -152,21 +152,47 @@ export function linkPagesOf(u: RawUser): string[] {
   return [...out];
 }
 
-/** Extract outbound registrable domains from a link-in-bio page's HTML (Linktree embeds them as JSON). */
-export function domainsFromLinkPage(html: string): string[] {
+/**
+ * Extract the page owner's outbound registrable domains from a link-in-bio page.
+ * Linktree ships the owner's links in the __NEXT_DATA__ JSON (`links[].url`); the rest of
+ * the HTML is full of Linktree's own promoted/affiliate links, so the JSON is preferred and
+ * the regex fallback only keeps domains that carry the brand token.
+ */
+export function domainsFromLinkPage(html: string, token?: string): string[] {
   const out = new Set<string>();
+  const keep = (url: string) => {
+    const d = registrableOf(url);
+    if (d && !PLATFORMS.has(d) && !LINK_PAGES.has(d)) out.add(d);
+  };
+  const m = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);
+  if (m) {
+    try {
+      const json = JSON.parse(m[1]) as unknown;
+      const walk = (node: unknown, underLinks: boolean, depth: number) => {
+        if (depth > 12 || !node || typeof node !== "object") return;
+        if (Array.isArray(node)) { for (const x of node) walk(x, underLinks, depth + 1); return; }
+        const o = node as Record<string, unknown>;
+        if (underLinks && typeof o.url === "string" && /^https?:\/\//i.test(o.url)) keep(o.url);
+        for (const [k, v] of Object.entries(o)) walk(v, underLinks || k === "links" || k === "socialLinks", depth + 1);
+      };
+      walk(json, false, 0);
+      if (out.size) return [...out];
+    } catch {
+      /* fall through to regex */
+    }
+  }
+  const t = token ? norm(token) : "";
   const re = /https?:\/\/[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s"'<>\\]*)?/gi;
-  for (const m of html.match(re) ?? []) {
-    const d = registrableOf(m);
+  for (const u of html.match(re) ?? []) {
+    const d = registrableOf(u);
     if (!d || PLATFORMS.has(d) || LINK_PAGES.has(d)) continue;
-    // skip the aggregator's own asset / tracking hosts
-    if (/(^|\.)(linktr\.ee|ltclick\.co|lnkimg\.com|googleapis\.com|gstatic\.com|cloudfront\.net|sentry\.io|segment\.com|cookielaw\.org|onetrust\.com|w3\.org|schema\.org|jsdelivr\.net|unpkg\.com|cloudflare\.com|cdnjs\.com|google\.com|googletagmanager\.com|doubleclick\.net|facebook\.net|apple\.com|microsoft\.com|amazonaws\.com|typekit\.net|hotjar\.com|intercom\.io|stripe\.com|paypal\.com|cash\.app|venmo\.com|shopify\.com|spotify\.com|soundcloud\.com|twitch\.tv|snapchat\.com|pinterest\.com|linkedin\.com|whatsapp\.com|threads\.net|bsky\.app|vercel\.com|netlify\.com|webflow\.com)$/.test(d)) continue;
+    if (t && !norm(d).includes(t)) continue;
     out.add(d);
   }
   return [...out];
 }
 
-async function expandLinkPages(acc: XAccount, pages: string[]): Promise<XAccount> {
+async function expandLinkPages(acc: XAccount, pages: string[], token: string): Promise<XAccount> {
   if (!pages.length) return acc;
   const domains = new Set(acc.domains);
   for (const page of pages.slice(0, 2)) {
@@ -176,7 +202,7 @@ async function expandLinkPages(acc: XAccount, pages: string[]): Promise<XAccount
       const res = await fetch(page, { signal: ctrl.signal, credentials: "omit" });
       clearTimeout(t);
       if (!res.ok) continue;
-      for (const d of domainsFromLinkPage(await res.text())) domains.add(d);
+      for (const d of domainsFromLinkPage(await res.text(), token)) domains.add(d);
     } catch {
       /* ignore */
     }
@@ -201,7 +227,7 @@ export async function resolveBrand(token: string): Promise<XBrand | null> {
   if (picked.official && !picked.official.domains.length) {
     // official account only links to a Linktree-style page: follow it for the real domains
     const raw = users.find((u) => (u.username ?? "").toLowerCase() === picked.official!.handle);
-    if (raw) picked.official = await expandLinkPages(picked.official, linkPagesOf(raw));
+    if (raw) picked.official = await expandLinkPages(picked.official, linkPagesOf(raw), token);
   }
   await chrome.storage.local.set({ [ck]: { ...picked, at: Date.now() } });
   return picked;
