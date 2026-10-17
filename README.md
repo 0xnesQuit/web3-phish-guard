@@ -37,6 +37,7 @@ Uzantı her ana çerçeve gezintisinin URL'sini yerel olarak değerlendirir; bu,
 ```bash
 npm install
 npm run brands   # DefiLlama'dan data/brands.generated.json üretir (isteğe bağlı ama önerilir)
+CMC_API_KEY=... npm run brands:cmc         # CoinMarketCap'teki token projelerinden data/brands.cmc.json (ücretsiz Basic anahtar, ~60 kredi)
 OPENSEA_API_KEY=... npm run brands:nft   # OpenSea verified/approved koleksiyonlardan data/brands.nft.json (isteğe bağlı; anahtar yalnızca burada kullanılır)
 npm run build    # dist/ klasörünü üretir
 ```

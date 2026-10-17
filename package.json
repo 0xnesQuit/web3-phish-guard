@@ -10,6 +10,7 @@
     "test": "vitest run",
     "brands": "node scripts/build-brands.mjs",
     "brands:nft": "node scripts/build-nft-brands.mjs",
+    "brands:cmc": "node scripts/build-cmc-brands.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

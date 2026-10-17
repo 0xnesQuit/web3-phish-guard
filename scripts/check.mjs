@@ -10,7 +10,7 @@ for (const f of out.outputFiles) {
   Object.assign(mod, await import(url));
 }
 const seed = JSON.parse(readFileSync("data/brands.seed.json", "utf8"));
-const gen = [...(existsSync("data/brands.generated.json") ? JSON.parse(readFileSync("data/brands.generated.json", "utf8")) : []), ...(existsSync("data/brands.nft.json") ? JSON.parse(readFileSync("data/brands.nft.json", "utf8")) : [])];
+const gen = [...(existsSync("data/brands.generated.json") ? JSON.parse(readFileSync("data/brands.generated.json", "utf8")) : []), ...(existsSync("data/brands.nft.json") ? JSON.parse(readFileSync("data/brands.nft.json", "utf8")) : []), ...(existsSync("data/brands.cmc.json") ? JSON.parse(readFileSync("data/brands.cmc.json", "utf8")) : [])];
 const brands = mod.mergeBrands([...seed, ...mod.brandsFromTrusted(mod.flattenTrusted(JSON.parse(readFileSync("data/trusted.json", "utf8"))))], gen);
 const a = JSON.parse(readFileSync("data/action-words.json", "utf8"));
 const h = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
