@@ -348,3 +348,12 @@ describe("TLD never scores alone", () => {
     expect(run("https://claim-portal.xyz/").signals.some((s) => s.id === "tld-weak")).toBe(false);
   });
 });
+
+describe("trusted list must not cover shared hosting", () => {
+  it("foo.notion.site / foo.gitbook.io are still scored as free hosts", () => {
+    for (const u of ["https://claim-axis.notion.site/", "https://axisrobotics-claim.gitbook.io/", "https://airdrop.mirror.xyz/"]) {
+      const v = run(u);
+      expect(v.signals.some((s) => s.id === "trusted"), u).toBe(false);
+    }
+  });
+});
