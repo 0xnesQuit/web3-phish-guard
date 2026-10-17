@@ -6,7 +6,7 @@
 import { writeFileSync, readFileSync } from "node:fs";
 import { parse } from "tldts";
 
-const GENERIC = new Set(["institutional", "liquidity", "native", "staked", "wrapped", "bridge", "earn", "points", "rewards", "claim", "airdrop", "foundation", "ecosystem", "official", "classic", "legacy", "mainnet", "testnet", "finance", "protocol", "network", "labs", "exchange", "swap", "dao", "money", "capital", "markets", "market", "chain", "bridge", "stake", "staking", "lend", "lending", "farm", "yield", "vault", "vaults", "pool", "pools", "wallet", "app", "defi", "the", "and", "token", "coin", "crypto", "dex", "perp", "perps", "liquid", "liquidity", "ai", "fi", "v1", "v2", "v3", "v4"]);
+const GENERIC = new Set(["portal", "claims", "checker", "rewards", "airdrops", "launch", "launchpad", "connect", "verify", "secure", "official", "institutional", "liquidity", "native", "staked", "wrapped", "bridge", "earn", "points", "rewards", "claim", "airdrop", "foundation", "ecosystem", "official", "classic", "legacy", "mainnet", "testnet", "finance", "protocol", "network", "labs", "exchange", "swap", "dao", "money", "capital", "markets", "market", "chain", "bridge", "stake", "staking", "lend", "lending", "farm", "yield", "vault", "vaults", "pool", "pools", "wallet", "app", "defi", "the", "and", "token", "coin", "crypto", "dex", "perp", "perps", "liquid", "liquidity", "ai", "fi", "v1", "v2", "v3", "v4"]);
 
 function tokensFromName(name) {
   const base = name.toLowerCase().replace(/\(.*?\)/g, "").trim();
