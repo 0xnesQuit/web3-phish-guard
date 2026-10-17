@@ -37,6 +37,7 @@ Uzantı her ana çerçeve gezintisinin URL'sini yerel olarak değerlendirir; bu,
 ```bash
 npm install
 npm run brands   # DefiLlama'dan data/brands.generated.json üretir (isteğe bağlı ama önerilir)
+OPENSEA_API_KEY=... npm run brands:nft   # OpenSea verified/approved koleksiyonlardan data/brands.nft.json (isteğe bağlı; anahtar yalnızca burada kullanılır)
 npm run build    # dist/ klasörünü üretir
 ```
 
@@ -67,7 +68,7 @@ test/              vitest
 ## Yol haritası
 
 - [ ] Marka → X hesabı çözümleme ve bio linki doğrulama (Xquik, isteğe bağlı backend; sadece şüpheli marka görüldüğünde, URL değil marka adı gönderilir)
-- [ ] OpenSea verified koleksiyonlardan NFT markaları
+- [x] OpenSea verified koleksiyonlardan NFT markaları (`scripts/build-nft-brands.mjs`, anahtar gerekir)
 - [ ] GoPlus `phishing_site` ve NFT kontrat riski sorgusu
 - [ ] Kullanıcı "yanlış pozitif bildir" akışı
 - [ ] Değerlendirme korpusu: eth-phishing-detect git geçmişi + PhishDestroy (pozitif), DefiLlama + MetaMask allowlist (negatif); ölçülmüş FPR

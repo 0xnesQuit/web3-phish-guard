@@ -1,3 +1,4 @@
 node_modules/
 dist/
 data/brands.generated.json
+data/brands.nft.json

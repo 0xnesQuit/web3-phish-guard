@@ -15,15 +15,16 @@ async function loadJson<T>(path: string): Promise<T | null> {
 /** Bundled static data (brands + signal word lists). Cached per service-worker lifetime. */
 export async function loadStaticData(): Promise<{ brands: Brand[]; lists: SignalLists }> {
   if (cache) return cache;
-  const [seed, generated, actions, hosts, tlds, trusted] = await Promise.all([
+  const [seed, generated, nft, actions, hosts, tlds, trusted] = await Promise.all([
     loadJson<Brand[]>("data/brands.seed.json"),
     loadJson<Brand[]>("data/brands.generated.json"),
+    loadJson<Brand[]>("data/brands.nft.json"),
     loadJson<{ strong: string[]; medium: string[] }>("data/action-words.json"),
     loadJson<{ strong: string[]; weak: string[] }>("data/free-hosts.json"),
     loadJson<{ strong: string[]; weak: string[] }>("data/tlds.json"),
     loadJson<Record<string, string[] | string>>("data/trusted.json"),
   ]);
-  const brands = mergeBrands(seed ?? [], generated ?? []);
+  const brands = mergeBrands(seed ?? [], [...(generated ?? []), ...(nft ?? [])]);
   cache = {
     brands,
     lists: {
