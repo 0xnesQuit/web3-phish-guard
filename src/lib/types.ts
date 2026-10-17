@@ -71,6 +71,8 @@ export interface OriginContext {
   isReply?: boolean;
   /** the display text X showed for the link, e.g. "rewards-axisrobotics.xyz" */
   display?: string;
+  /** hostname of the clicked href (t.co for wrapped links, else the direct target) */
+  target?: string;
   at: number;
 }
 

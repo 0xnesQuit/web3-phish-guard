@@ -1,32 +1,38 @@
 /**
  * Runs on x.com / twitter.com.
- *  1. On click of an external link inside a tweet, captures the tweet's context
- *     (poster handle, verified badge, reply-or-not, displayed domain) and hands it
- *     to the background, which attaches it to the navigation that follows.
- *  2. Proactively scores every external link visible in the timeline (pure
- *     hostname heuristics, no network) and marks suspicious ones with a badge.
+ *  1. On click of an external link inside a tweet or article, captures the context
+ *     (poster handle, verified badge, reply-or-not, the domain shown as link text and the
+ *     real href) and hands it to the background, which attaches it to the navigation that follows.
+ *  2. Proactively scores every external link visible in the timeline / article and marks
+ *     suspicious ones with a badge. Links whose visible text names one domain while the href
+ *     goes somewhere else ("jup.ag/claim" -> surge.sh) are the classic deception and are
+ *     flagged before the click; t.co links are resolved by the background to find the real target.
  */
-
 import type { Signal } from "../lib/types";
 import { t, signalText } from "../lib/i18n";
 
-interface Ctx { poster?: string; posterVerified?: boolean; isReply?: boolean; display?: string }
+interface Ctx { poster?: string; posterVerified?: boolean; isReply?: boolean; display?: string; target?: string }
+type HostVerdict = { host: string; band: string; score: number; signals: Signal[] };
 
 const BADGE_ATTR = "data-w3pg";
-type HostVerdict = { host: string; band: string; score: number; signals: Signal[] };
-const hostCache = new Map<string, HostVerdict>();
+const verdictCache = new Map<string, HostVerdict>(); // key: href|display
 
-/** X wraps every external link in t.co; profile/hashtag/status links are same-origin paths. */
-function isExternalLink(a: HTMLAnchorElement): boolean {
+function hrefHost(a: HTMLAnchorElement): string | null {
   try {
-    return new URL(a.href, location.href).hostname === "t.co";
+    return new URL(a.href, location.href).hostname.toLowerCase();
   } catch {
-    return false;
+    return null;
   }
 }
 
-function displayHost(a: HTMLAnchorElement): string | null {
-  if (!isExternalLink(a)) return null;
+/** Profile / hashtag / status links are same-origin paths; everything else leaves X. */
+function isExternalLink(a: HTMLAnchorElement): boolean {
+  const h = hrefHost(a);
+  return !!h && !/(^|\.)(x\.com|twitter\.com)$/.test(h);
+}
+
+/** The domain the link *shows* to the user, if its text looks like a URL. */
+function textHost(a: HTMLAnchorElement): string | null {
   const text = (a.textContent || "").trim().replace(/…$/, "");
   const m = text.match(/^(?:https?:\/\/)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)/i);
   if (!m) return null;
@@ -35,8 +41,8 @@ function displayHost(a: HTMLAnchorElement): string | null {
   return h;
 }
 
-function tweetOf(el: Element): HTMLElement | null {
-  return el.closest('article[data-testid="tweet"]') as HTMLElement | null;
+function containerOf(el: Element): HTMLElement | null {
+  return (el.closest('article[data-testid="tweet"]') ?? el.closest("article") ?? el.closest("main")) as HTMLElement | null;
 }
 
 function contextOf(article: HTMLElement | null): Ctx {
@@ -50,7 +56,6 @@ function contextOf(article: HTMLElement | null): Ctx {
     if (handle) ctx.poster = handle.slice(1);
     ctx.posterVerified = !!userName.querySelector('svg[data-testid="icon-verified"]');
   }
-  // "Replying to @x" row sits above the tweet text; X renders it with a link to the parent author.
   const head = (article.innerText || "").slice(0, 300);
   ctx.isReply = /replying to|yanıt olarak|antwort an|en réponse à|respondiendo a/i.test(head);
   return ctx;
@@ -61,14 +66,11 @@ document.addEventListener(
   "click",
   (e) => {
     const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
-    if (!a) return;
-    let href = "";
-    try { href = new URL(a.href, location.href).hostname; } catch { return; }
-    const external = href === "t.co" || (!/(^|\.)(x\.com|twitter\.com)$/.test(href));
-    if (!external) return;
-    const ctx = contextOf(tweetOf(a));
-    ctx.display = displayHost(a) ?? undefined;
-    chrome.runtime.sendMessage({ type: "w3pg:xclick", ctx }).catch(() => undefined);
+    if (!a || !isExternalLink(a)) return;
+    const ctx = contextOf(containerOf(a));
+    ctx.display = textHost(a) ?? undefined;
+    ctx.target = hrefHost(a) ?? undefined;
+    chrome.runtime.sendMessage({ type: "w3pg:xclick", ctx, href: a.href }).catch(() => undefined);
   },
   true,
 );
@@ -89,9 +91,9 @@ let queue = new Set<HTMLAnchorElement>();
 let timer: number | undefined;
 
 function scan(root: ParentNode = document) {
-  const anchors = root.querySelectorAll<HTMLAnchorElement>(`article[data-testid="tweet"] a[href]:not([${BADGE_ATTR}])`);
+  const anchors = root.querySelectorAll<HTMLAnchorElement>(`a[href]:not([${BADGE_ATTR}])`);
   for (const a of anchors) {
-    if (displayHost(a)) queue.add(a);
+    if (isExternalLink(a) && (textHost(a) || hrefHost(a) !== "t.co")) queue.add(a);
   }
   if (queue.size && timer === undefined) timer = window.setTimeout(flush, 300);
 }
@@ -100,26 +102,27 @@ async function flush() {
   timer = undefined;
   const batch = [...queue];
   queue = new Set();
-  const byHost = new Map<string, HTMLAnchorElement[]>();
   for (const a of batch) {
-    const h = displayHost(a);
-    if (!h) continue;
-    (byHost.get(h) ?? byHost.set(h, []).get(h)!).push(a);
-  }
-  for (const [host, anchors] of byHost) {
-    let v = hostCache.get(host);
+    if (a.hasAttribute(BADGE_ATTR)) continue;
+    const display = textHost(a);
+    const target = hrefHost(a);
+    if (!target) continue;
+    if (!display && target === "t.co") continue; // card links without a visible domain: nothing to judge yet
+    const key = `${a.href}|${display ?? ""}`;
+    let v = verdictCache.get(key);
     if (!v) {
-      const ctx = contextOf(tweetOf(anchors[0]));
+      const ctx = contextOf(containerOf(a));
+      ctx.display = display ?? undefined;
       let r: Omit<HostVerdict, "host"> | null = null;
       try {
-        r = (await chrome.runtime.sendMessage({ type: "w3pg:scoreHost", host, ctx })) as Omit<HostVerdict, "host"> | null;
+        r = (await chrome.runtime.sendMessage({ type: "w3pg:scoreLink", href: a.href, ctx })) as (Omit<HostVerdict, "host"> & { host?: string }) | null;
       } catch { r = null; }
       if (!r) continue;
-      v = { ...r, host };
-      if (v.band !== "none") console.debug("[w3pg]", host, v.score, v.signals.map(signalText));
-      hostCache.set(host, v);
+      v = { ...r, host: (r as { host?: string }).host ?? target };
+      if (v.band !== "none") console.debug("[w3pg]", v.host, v.score, v.signals.map(signalText));
+      verdictCache.set(key, v);
     }
-    for (const a of anchors) badge(a, v);
+    badge(a, v);
   }
 }
 

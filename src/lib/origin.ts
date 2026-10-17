@@ -32,6 +32,11 @@ export async function setPendingClick(o: OriginContext): Promise<void> {
   await chrome.storage.session.set({ pendingClick: o });
 }
 
+export async function peekPendingClick(): Promise<OriginContext | undefined> {
+  const o = (await chrome.storage.session.get("pendingClick")).pendingClick as OriginContext | undefined;
+  return o && Date.now() - o.at < 15_000 ? o : undefined;
+}
+
 export async function takePendingClick(): Promise<OriginContext | undefined> {
   const o = (await chrome.storage.session.get("pendingClick")).pendingClick as OriginContext | undefined;
   if (!o) return undefined;

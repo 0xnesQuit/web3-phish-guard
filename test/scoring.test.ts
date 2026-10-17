@@ -300,6 +300,22 @@ describe("free-host rotation and bait URLs", () => {
   });
 });
 
+describe("deceptive link text", () => {
+  it("text says jup.ag, page is surge.sh: blocked", () => {
+    const v = run("https://site-amber-mirror-580c.surge.sh/", { origin: { source: "x", at: 0, display: "jup.ag", target: "site-amber-mirror-580c.surge.sh" } });
+    expect(v.signals.some((s) => s.id === "display-mismatch")).toBe(true);
+    expect(v.band).toBe("block");
+  });
+  it("display matching the opened host (or its parent/sub domain) is fine", () => {
+    expect(run("https://app.uniswap.org/", { origin: { source: "x", at: 0, display: "uniswap.org" } }).signals.some((s) => s.id === "display-mismatch")).toBe(false);
+    expect(run("https://uniswap.org/", { origin: { source: "x", at: 0, display: "app.uniswap.org" } }).signals.some((s) => s.id === "display-mismatch")).toBe(false);
+  });
+  it("mismatch alone on a plain domain is a warning, not a block", () => {
+    const v = run("https://some-blog.com/", { origin: { source: "x", at: 0, display: "jup.ag" } });
+    expect(v.band).toBe("warn");
+  });
+});
+
 describe("blocklist helpers", () => {
   it("extractDomains handles plain arrays and nested configs", () => {
     expect(extractDomains(["a.com", "https://b.com/x"], ["blocklist"])).toEqual(["a.com", "b.com"]);

@@ -4,7 +4,7 @@ import { loadStaticData } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, listStatus } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
-import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick } from "./lib/origin";
+import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick } from "./lib/origin";
 import { resolveBrand, resolvePoster, getApiKey, setApiKey } from "./lib/xquik";
 import type { XIntel } from "./lib/types";
 import type { OriginContext, ProviderEvent, Signal, Verdict } from "./lib/types";
@@ -112,6 +112,29 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
   }
 }
 
+/** Follow a short-link (t.co) to its final URL. Cached; only the redirect target is kept. */
+const redirectCache = new Map<string, string>();
+async function resolveRedirect(url: string): Promise<string | null> {
+  const hit = redirectCache.get(url);
+  if (hit !== undefined) return hit || null;
+  try {
+    const ctrl = new AbortController();
+    const tmr = setTimeout(() => ctrl.abort(), 6000);
+    let res = await fetch(url, { method: "HEAD", redirect: "follow", signal: ctrl.signal, credentials: "omit" });
+    if (/^https?:\/\/t\.co\//.test(res.url)) {
+      // t.co sometimes answers HEAD with an interstitial; a GET follows the real redirect
+      res = await fetch(url, { method: "GET", redirect: "follow", signal: ctrl.signal, credentials: "omit" });
+    }
+    clearTimeout(tmr);
+    const finalUrl = /^https?:\/\/t\.co\//.test(res.url) ? "" : res.url;
+    redirectCache.set(url, finalUrl);
+    return finalUrl || null;
+  } catch {
+    redirectCache.set(url, "");
+    return null;
+  }
+}
+
 /** Pure hostname scoring for the X timeline badges: no RDAP, no tab state. */
 async function scoreHostOnly(host: string, ctx: Partial<OriginContext>): Promise<{ band: string; score: number; signals: Signal[] } | null> {
   const v = await evaluate(`https://${host}/`, { origin: { source: "x", at: Date.now(), ...ctx } });
@@ -149,7 +172,16 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
     }
     if (src) return; // the social site itself is never evaluated
 
-    const origin = await getTabOrigin(d.tabId);
+    let origin = await getTabOrigin(d.tabId);
+    if (!origin) {
+      // Article / card links often leave X without a t.co hop and open in a new tab with no referrer.
+      const pending = await peekPendingClick();
+      if (pending && (!pending.target || pending.target === "t.co" || pending.target === host || host.endsWith("." + pending.target))) {
+        await takePendingClick();
+        origin = { ...pending, at: Date.now() };
+        await setTabOrigin(d.tabId, origin);
+      }
+    }
     await evaluateAndApply(d.tabId, d.url, origin);
   } catch (e) {
     console.warn("[w3pg] evaluate failed", e);
@@ -215,19 +247,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const src = sourceFromHost(rh);
         if (!src) return;
         if (await getTabOrigin(tabId)) return;
-        const origin: OriginContext = { source: src, at: Date.now() };
+        const pending = (await takePendingClick()) ?? {};
+        const origin: OriginContext = { ...pending, source: src, at: Date.now() };
         await setTabOrigin(tabId, origin);
         await evaluateAndApply(tabId, sender.url, origin);
         return;
       }
       case "w3pg:xclick": {
         const c = (msg.ctx ?? {}) as Partial<OriginContext>;
-        await setPendingClick({ source: "x", at: Date.now(), poster: c.poster, posterVerified: c.posterVerified, isReply: c.isReply, display: c.display });
+        await setPendingClick({ source: "x", at: Date.now(), poster: c.poster, posterVerified: c.posterVerified, isReply: c.isReply, display: c.display, target: c.target });
         sendResponse(true);
         return;
       }
       case "w3pg:scoreHost": {
         sendResponse(await scoreHostOnly(String(msg.host), (msg.ctx ?? {}) as Partial<OriginContext>));
+        return;
+      }
+      case "w3pg:scoreLink": {
+        // Timeline / article link: resolve t.co to the real target, then score that host with the shown text as display.
+        const href = String(msg.href);
+        let target = "";
+        try { target = new URL(href).hostname.toLowerCase(); } catch { sendResponse(null); return; }
+        if (target === "t.co") {
+          const finalUrl = await resolveRedirect(href);
+          if (!finalUrl) { sendResponse(null); return; }
+          try { target = new URL(finalUrl).hostname.toLowerCase(); } catch { sendResponse(null); return; }
+        }
+        const r = await scoreHostOnly(target, (msg.ctx ?? {}) as Partial<OriginContext>);
+        sendResponse(r ? { ...r, host: target } : null);
         return;
       }
       case "w3pg:getSettings": {

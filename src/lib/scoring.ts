@@ -215,8 +215,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     if (o.isReply && (hasAction || matchedBrand)) {
       signals.push({ id: "poster-reply", weight: 10, key: "sig_poster_reply" });
     }
-    if (o.display && o.display.toLowerCase() !== p.host && !p.host.endsWith(o.display.toLowerCase())) {
-      signals.push({ id: "display-mismatch", weight: 10, key: "sig_display_mismatch", sub: [o.display] });
+    // Link text named one domain, the page opened on another: deliberate deception, near-certain scam.
+    const disp = o.display?.toLowerCase();
+    if (disp && disp !== p.host && !isUnderDomain(p.host, disp) && !isUnderDomain(disp, p.registrable)) {
+      signals.push({ id: "display-mismatch", weight: 40, key: "sig_display_mismatch", sub: [o.display!] });
     }
   }
 
