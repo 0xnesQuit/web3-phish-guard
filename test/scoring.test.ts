@@ -4,14 +4,16 @@ import { parseHost, tokenize, levenshtein } from "../src/lib/hostname";
 import { score, BLOCK_THRESHOLD, WARN_THRESHOLD } from "../src/lib/scoring";
 import { extractDomains, normalizeDomain, parentDomains } from "../src/lib/blocklist";
 import { parseRegistration } from "../src/lib/rdap";
-import { mergeBrands } from "../src/lib/lists";
+import { mergeBrands, flattenTrusted } from "../src/lib/lists";
 import type { Brand, SignalLists } from "../src/lib/types";
 
 const brands = JSON.parse(readFileSync("data/brands.seed.json", "utf8")) as Brand[];
 const actions = JSON.parse(readFileSync("data/action-words.json", "utf8"));
 const hosts = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
 const tlds = JSON.parse(readFileSync("data/tlds.json", "utf8"));
+const trustedJson = JSON.parse(readFileSync("data/trusted.json", "utf8"));
 const lists: SignalLists = {
+  trusted: flattenTrusted(trustedJson),
   actionStrong: actions.strong, actionMedium: actions.medium,
   freeHostsStrong: hosts.strong, freeHostsWeak: hosts.weak,
   tldStrong: tlds.strong, tldWeak: tlds.weak,
@@ -239,6 +241,33 @@ describe("false positives reported from the field", () => {
     expect(v.signals.some((s) => s.id === "poster-mismatch")).toBe(true);
     const w = run("https://kamino.finance/", { brands: mergeBrands(brands, [{ name: "Kamino Lend", tokens: ["kamino"], domains: ["kamino.com"], x: "Kamino" }]), origin: { source: "x", at: 0, poster: "someone" } });
     expect(w.signals.some((s) => s.id === "poster-mismatch")).toBe(false);
+  });
+});
+
+describe("trusted infrastructure and blocklist confidence", () => {
+  it("basescan.org listed by PhishDestroy is still clean", () => {
+    const v = run("https://basescan.org/tx/0x1", { blocklistHit: "phishdestroy" });
+    expect(v.band).toBe("none");
+    expect(v.signals[0].id).toBe("trusted");
+  });
+  it("goerli.basescan.org listed by ScamSniffer is still clean (subdomain of trusted)", () => {
+    expect(run("https://goerli.basescan.org/", { blocklistHit: "scamsniffer" }).band).toBe("none");
+  });
+  it("explorers, exchanges and wallets are never flagged by heuristics", () => {
+    for (const u of ["https://arbiscan.io/", "https://app.hyperliquid.xyz/", "https://btcturk.com/", "https://phantom.app/", "https://claim-rewards.etherscan.io/"]) {
+      expect(run(u, { origin: { source: "x", at: 0, poster: "someone", isReply: true } }).band, u).toBe("none");
+    }
+  });
+  it("PhishDestroy alone warns; with a local signal it blocks", () => {
+    expect(run("https://random-site.com/", { blocklistHit: "phishdestroy" }).band).toBe("warn");
+    expect(run("https://claim-random.com/", { blocklistHit: "phishdestroy" }).band).toBe("block");
+  });
+  it("MetaMask / ScamSniffer hits block outright", () => {
+    expect(run("https://random-site.com/", { blocklistHit: "metamask" }).band).toBe("block");
+    expect(run("https://random-site.com/", { blocklistHit: "scamsniffer" }).band).toBe("block");
+  });
+  it("user allowlist still wins over trusted/blocklist ordering", () => {
+    expect(run("https://basescan.org/", { userAllowed: true, blocklistHit: "metamask" }).band).toBe("none");
   });
 });
 

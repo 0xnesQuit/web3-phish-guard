@@ -107,6 +107,9 @@
   "sig_user_allow": {
     "message": "Bạn đã đánh dấu tên miền này là tin cậy"
   },
+  "sig_trusted": {
+    "message": "Tên miền hạ tầng crypto nổi tiếng"
+  },
   "sig_ip_host": {
     "message": "Địa chỉ IP thay vì tên miền"
   },

@@ -107,6 +107,9 @@
   "sig_user_allow": {
     "message": "Anda menandai domain ini sebagai dipercaya"
   },
+  "sig_trusted": {
+    "message": "Domain infrastruktur kripto terkenal"
+  },
   "sig_ip_host": {
     "message": "Alamat IP, bukan nama domain"
   },

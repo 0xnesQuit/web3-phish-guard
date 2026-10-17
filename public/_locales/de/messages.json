@@ -107,6 +107,9 @@
   "sig_user_allow": {
     "message": "Sie haben diese Domain als vertrauenswürdig markiert"
   },
+  "sig_trusted": {
+    "message": "Bekannte Krypto-Infrastruktur-Domain"
+  },
   "sig_ip_host": {
     "message": "IP-Adresse statt Domainname"
   },

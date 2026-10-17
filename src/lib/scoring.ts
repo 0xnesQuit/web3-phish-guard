@@ -53,6 +53,12 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     signals.push({ id: "user-allow", weight: 0, key: "sig_user_allow" });
     return done();
   }
+  if (ctx.lists.trusted.some((d) => isUnderDomain(p.host, d))) {
+    // Known infrastructure (explorers, exchanges, wallets...). Beats heuristics and single-source blocklist hits:
+    // feeds do list these by mistake (PhishDestroy had basescan.org, ScamSniffer goerli.basescan.org on 2026-10-17).
+    signals.push({ id: "trusted", weight: 0, key: "sig_trusted" });
+    return done();
+  }
   if (p.isIp) {
     signals.push({ id: "ip-host", weight: 10, key: "sig_ip_host" });
   }
@@ -114,7 +120,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   // ---- hard block gate ----------------------------------------------------
   if (ctx.blocklistHit) {
-    signals.push({ id: "blocklist", weight: 100, key: "sig_blocklist", sub: [ctx.blocklistHit] });
+    // MetaMask and ScamSniffer entries are reviewed; PhishDestroy is broader and noisier, so alone it only warns
+    // and becomes a block when any local heuristic agrees (the combination is added further down).
+    const reviewed = ctx.blocklistHit !== "phishdestroy";
+    signals.push({ id: "blocklist", weight: reviewed ? 100 : 50, key: "sig_blocklist", sub: [ctx.blocklistHit] });
   }
 
   // ---- hostname heuristics ---------------------------------------------------

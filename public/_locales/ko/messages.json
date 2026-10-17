@@ -107,6 +107,9 @@
   "sig_user_allow": {
     "message": "이 도메인을 신뢰로 표시했습니다"
   },
+  "sig_trusted": {
+    "message": "잘 알려진 크립토 인프라 도메인"
+  },
   "sig_ip_host": {
     "message": "도메인 대신 IP 주소"
   },

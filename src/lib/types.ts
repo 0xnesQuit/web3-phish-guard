@@ -11,6 +11,8 @@ export interface Brand {
 }
 
 export interface SignalLists {
+  /** registrable domains of well-known crypto infrastructure; never flagged */
+  trusted: string[];
   actionStrong: string[];
   actionMedium: string[];
   freeHostsStrong: string[];

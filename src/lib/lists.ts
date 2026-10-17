@@ -15,17 +15,19 @@ async function loadJson<T>(path: string): Promise<T | null> {
 /** Bundled static data (brands + signal word lists). Cached per service-worker lifetime. */
 export async function loadStaticData(): Promise<{ brands: Brand[]; lists: SignalLists }> {
   if (cache) return cache;
-  const [seed, generated, actions, hosts, tlds] = await Promise.all([
+  const [seed, generated, actions, hosts, tlds, trusted] = await Promise.all([
     loadJson<Brand[]>("data/brands.seed.json"),
     loadJson<Brand[]>("data/brands.generated.json"),
     loadJson<{ strong: string[]; medium: string[] }>("data/action-words.json"),
     loadJson<{ strong: string[]; weak: string[] }>("data/free-hosts.json"),
     loadJson<{ strong: string[]; weak: string[] }>("data/tlds.json"),
+    loadJson<Record<string, string[] | string>>("data/trusted.json"),
   ]);
   const brands = mergeBrands(seed ?? [], generated ?? []);
   cache = {
     brands,
     lists: {
+      trusted: flattenTrusted(trusted),
       actionStrong: actions?.strong ?? [],
       actionMedium: actions?.medium ?? [],
       freeHostsStrong: hosts?.strong ?? [],
@@ -35,6 +37,16 @@ export async function loadStaticData(): Promise<{ brands: Brand[]; lists: Signal
     },
   };
   return cache;
+}
+
+export function flattenTrusted(json: Record<string, string[] | string> | null): string[] {
+  if (!json) return [];
+  const out = new Set<string>();
+  for (const [k, v] of Object.entries(json)) {
+    if (k.startsWith("_") || !Array.isArray(v)) continue;
+    for (const d of v) out.add(d.toLowerCase());
+  }
+  return [...out];
 }
 
 /** Seed entries win over generated ones with the same name; domains are unioned. */

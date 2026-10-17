@@ -107,6 +107,9 @@
   "sig_user_allow": {
     "message": "您已将此域名标记为可信"
   },
+  "sig_trusted": {
+    "message": "知名加密基础设施域名"
+  },
   "sig_ip_host": {
     "message": "使用 IP 地址而非域名"
   },

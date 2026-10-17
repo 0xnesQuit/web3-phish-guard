@@ -15,7 +15,8 @@ const brands = mod.mergeBrands(seed, gen);
 const a = JSON.parse(readFileSync("data/action-words.json", "utf8"));
 const h = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
 const t = JSON.parse(readFileSync("data/tlds.json", "utf8"));
-const lists = { actionStrong: a.strong, actionMedium: a.medium, freeHostsStrong: h.strong, freeHostsWeak: h.weak, tldStrong: t.strong, tldWeak: t.weak };
+const tr = JSON.parse(readFileSync("data/trusted.json", "utf8"));
+const lists = { trusted: mod.flattenTrusted(tr), actionStrong: a.strong, actionMedium: a.medium, freeHostsStrong: h.strong, freeHostsWeak: h.weak, tldStrong: t.strong, tldWeak: t.weak };
 for (const u of process.argv.slice(2)) {
   const p = mod.parseHost(u, [...h.strong, ...h.weak]);
   const v = mod.score(u, p, { brands, lists, origin: process.env.ORIGIN ? { source: "x", at: 0, poster: process.env.POSTER, isReply: !!process.env.REPLY } : undefined });

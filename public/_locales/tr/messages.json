@@ -107,6 +107,9 @@
   "sig_user_allow": {
     "message": "Bu domaini güvenilir olarak işaretlediniz"
   },
+  "sig_trusted": {
+    "message": "Bilinen kripto altyapı alan adı"
+  },
   "sig_ip_host": {
     "message": "Alan adı yerine IP adresi"
   },

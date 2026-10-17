@@ -107,6 +107,9 @@
   "sig_user_allow": {
     "message": "このドメインを信頼済みにしました"
   },
+  "sig_trusted": {
+    "message": "既知の暗号資産インフラのドメイン"
+  },
   "sig_ip_host": {
     "message": "ドメイン名ではなく IP アドレス"
   },
