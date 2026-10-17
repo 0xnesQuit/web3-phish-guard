@@ -11,6 +11,8 @@ export interface ScoreContext {
   blocklistHit?: string;
   /** a listed phishing host on the same free host shares a distinctive token with this one */
   siblingHit?: string;
+  /** the hostname carries a token that many listed phishing domains share (brand under attack) */
+  attacked?: { token: string; count: number; example: string };
   /** host matched an external allowlist (MetaMask allowlist) */
   allowlistHit?: boolean;
   /** user explicitly trusted this registrable domain */
@@ -32,7 +34,7 @@ const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "sh
 
 /** "papertradefnd" -> "papertrade", "officialzama" -> "zama": clones glue affixes onto the real name. */
 export function stripCloneAffixes(token: string): string {
-  const AFFIX = ["foundation", "official", "finance", "protocol", "network", "labs", "team", "dao", "fnd", "fdn", "app", "xyz", "eth", "sol", "ico", "ido", "token", "coin", "portal", "claim", "drop", "io"];
+  const AFFIX = ["foundation", "official", "finance", "protocol", "network", "testnet", "mainnet", "labs", "team", "dao", "fnd", "fdn", "app", "xyz", "eth", "sol", "ico", "ido", "tge", "token", "coin", "portal", "claim", "drop", "net"];
   let t = token.toLowerCase();
   for (let pass = 0; pass < 2; pass++) {
     for (const a of AFFIX) {
@@ -146,6 +148,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   if (ctx.siblingHit && !ctx.blocklistHit) {
     signals.push({ id: "blocklist-sibling", weight: 45, key: "sig_blocklist_sibling", sub: [ctx.siblingHit] });
   }
+  // deferred: the attacked-brand signal needs hasAction / freeHost / fresh, computed below
 
   const fresh = ctx.ageDays !== undefined && ctx.ageDays < 30;
 
@@ -214,8 +217,16 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     signals.push({ id: "long-host", weight: 5, key: "sig_long_host" });
   }
 
+  // brand under attack: the token is shared by several listed phishing domains. Never alone (the real project's
+  // own site carries the same token), only next to a bait word, free host, fresh registration or a shortener.
+  let attackedFlagged = false;
+  if (ctx.attacked && !ctx.blocklistHit && !ctx.siblingHit && (hasAction || p.freeHost || fresh || ctx.origin?.shortener)) {
+    signals.push({ id: "attacked-brand", weight: 40, key: "sig_attacked_brand", sub: [ctx.attacked.token, String(ctx.attacked.count), ctx.attacked.example] });
+    attackedFlagged = true;
+  }
+
   // bait word in the path of an already suspicious host: coinmarketcap.evil.app/vote, brand-clone.xyz/claim, 0-day-old.xyz/register
-  if (brandFlagged || p.freeHost || fresh) {
+  if (brandFlagged || attackedFlagged || p.freeHost || fresh) {
     const path = (url.split("://")[1]?.slice(p.host.length) ?? "").split(/[?#]/)[0].toLowerCase();
     const seg = path.split("/").filter(Boolean)[0] ?? "";
     if (seg && (ctx.lists.actionStrong.includes(seg) || ctx.lists.actionMedium.includes(seg))) {
@@ -233,6 +244,9 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   const o = ctx.origin;
   if (o) {
     signals.push({ id: "origin-social", weight: 10, key: "sig_origin_social", sub: [SOURCE_LABEL[o.source]] });
+    if (o.shortener && (hasAction || attackedFlagged || brandFlagged || fresh || p.freeHost)) {
+      signals.push({ id: "shortener", weight: 10, key: "sig_shortener", sub: [o.shortener] });
+    }
     const poster = o.poster?.toLowerCase().replace(/^@/, "");
     // Clone-handle shapes: brand + fdn/fnd/foundation/official/team..., trailing "_" or digits (@papertrade_fdn_, @Uniswap_2)
     const CLONE_HANDLE = /(claim|airdrop|drop|reward|official|support|mint|giveaway|bonus|fdn|fnd|foundation|team|labs|ico|presale|sale|launch|promo|help|verify)/i;
@@ -316,7 +330,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     const raw = matchedBrand
       ? matchedBrand.tokens.find((t) => joined.includes(t.toLowerCase())) ?? matchedBrand.tokens[0]
       : tokens.filter((t) => t.length >= 5 && !actionSet.has(t) && !GENERIC.has(t)).sort((a, b) => b.length - a.length)[0];
-    if (raw) v.xToken = stripCloneAffixes(raw);
+    if (ctx.attacked) v.xToken = ctx.attacked.token;
+    else if (raw) v.xToken = stripCloneAffixes(raw);
   }
   return v;
 }

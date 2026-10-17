@@ -125,6 +125,12 @@
   "sig_blocklist_sibling": {
     "message": "Hermano de un sitio de phishing listado en el mismo host ($1)"
   },
+  "sig_attacked_brand": {
+    "message": "\"$1\" es una marca bajo ataque de phishing activo: $2 imitaciones listadas (p. ej. $3)"
+  },
+  "sig_shortener": {
+    "message": "Destino oculto tras un acortador de enlaces ($1)"
+  },
   "sig_address_in_url": {
     "message": "Dirección de token o billetera en la URL (página señuelo personalizada)"
   },

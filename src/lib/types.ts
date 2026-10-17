@@ -73,6 +73,8 @@ export interface OriginContext {
   display?: string;
   /** hostname of the clicked href (t.co for wrapped links, else the direct target) */
   target?: string;
+  /** the link went through a URL shortener that hides the destination (tr.ee, bit.ly ...) */
+  shortener?: string;
   at: number;
 }
 

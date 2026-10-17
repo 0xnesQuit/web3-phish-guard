@@ -125,6 +125,12 @@
   "sig_blocklist_sibling": {
     "message": "Geschwister einer gelisteten Phishing-Seite auf demselben Host ($1)"
   },
+  "sig_attacked_brand": {
+    "message": "\"$1\" ist eine Marke unter aktivem Phishing-Angriff: $2 gelistete Nachahmungen (z. B. $3)"
+  },
+  "sig_shortener": {
+    "message": "Ziel hinter einem Link-Kürzer versteckt ($1)"
+  },
   "sig_address_in_url": {
     "message": "Token- oder Wallet-Adresse in der URL (personalisierte Köderseite)"
   },

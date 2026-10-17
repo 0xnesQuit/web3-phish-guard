@@ -2,6 +2,12 @@ import type { OriginContext } from "./types";
 
 const TTL = 60_000;
 
+/** URL shorteners that hide the destination; treated as redirect hops, never evaluated themselves. */
+export const SHORTENERS = new Set(["t.co", "tr.ee", "bit.ly", "bitly.com", "tinyurl.com", "cutt.ly", "t.ly", "rb.gy", "shorturl.at", "is.gd", "v.gd", "rebrand.ly", "short.io", "tiny.cc", "lnkd.in", "buff.ly", "ow.ly", "s.id", "qrco.de", "dub.sh", "bl.ink", "shorte.st", "clck.ru", "goo.su", "u.to", "linkly.co", "snip.ly", "tiny.one", "urlz.fr", "shrtco.de", "l.linklyhq.com", "go.link", "out.reddit.com"]);
+export function isShortener(host: string): boolean {
+  return SHORTENERS.has(host.toLowerCase());
+}
+
 /** Map a referrer / redirector hostname to a social source. */
 export function sourceFromHost(host: string): OriginContext["source"] | null {
   const h = host.toLowerCase();

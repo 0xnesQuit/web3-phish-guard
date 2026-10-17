@@ -43,7 +43,7 @@ export type SiblingIndex = Map<string, Map<string, string>>; // freeHost -> toke
 let siblingIdx: SiblingIndex = new Map();
 let siblingHosts: string[] = [];
 
-const SIBLING_STOP = new Set(["claim", "claims", "airdrop", "airdrops", "rewards", "reward", "mint", "minting", "checker", "drop", "drops", "official", "portal", "app", "web", "www", "wallet", "connect", "verify", "secure", "login", "sign", "token", "tokens", "nft", "nfts", "crypto", "swap", "bridge", "stake", "staking", "presale", "whitelist", "giveaway", "bonus", "event", "events", "free", "live", "site", "page", "online", "network", "protocol", "finance", "exchange", "dapp", "dapps"]);
+const SIBLING_STOP = new Set(["register", "registration", "allocation", "allocations", "quest", "quests", "signup", "proposal", "proposals", "distribution", "dashboard", "collab", "foundation", "enter", "chain", "check", "voting", "vote", "migrate", "migration", "trust", "casino", "community", "eligibility", "eligible", "treasury", "layer", "event", "events", "login", "account", "accounts", "support", "service", "services", "update", "security", "verification", "verify", "promo", "pages", "github", "vercel", "netlify", "webflow", "weebly", "wixsite", "portfolio", "project", "projects", "program", "programs", "campaign", "season", "round", "phase", "testnet", "mainnet", "alpha", "beta", "early", "access", "points", "rewards", "reward", "bonus", "prize", "winners", "lottery", "giveaway", "holders", "holder", "staking", "stake", "restake", "bridge", "swap", "trade", "trading", "exchange", "market", "markets", "finance", "capital", "invest", "investment", "fund", "funds", "token", "tokens", "coin", "coins", "crypto", "cryptos", "wallet", "wallets", "connect", "dapp", "dapps", "defi", "nft", "nfts", "airdrop", "airdrops", "claim", "claims", "claims", "airdrop", "airdrops", "rewards", "reward", "mint", "minting", "checker", "drop", "drops", "official", "portal", "app", "web", "www", "wallet", "connect", "verify", "secure", "login", "sign", "token", "tokens", "nft", "nfts", "crypto", "swap", "bridge", "stake", "staking", "presale", "whitelist", "giveaway", "bonus", "event", "events", "free", "live", "site", "page", "online", "network", "protocol", "finance", "exchange", "dapp", "dapps"]);
 
 export function siblingTokens(label: string): string[] {
   return label.toLowerCase().split(/[-_.]+|(?<=\D)(?=\d)|(?<=\d)(?=\D)/).filter((t) => t.length >= 5 && /[a-z]/.test(t) && !SIBLING_STOP.has(t));
@@ -78,6 +78,71 @@ export function findSibling(host: string, idx: SiblingIndex): string | undefined
   return undefined;
 }
 
+/**
+ * Attacked-brand index: a token that appears in many listed phishing domains names a brand that is
+ * being phished right now (pharosnetwork-tge.com, testnet-pharosnetwork.net, vote-pharosnetwork.xyz ...).
+ * A fresh host carrying the same token (or its affix-stripped stem) inherits that knowledge before it is listed.
+ */
+export interface AttackedBrand { token: string; count: number; example: string }
+export type AttackIndex = Map<string, AttackedBrand>;
+let attackIdx: AttackIndex = new Map();
+
+const STEM_AFFIX = ["foundation", "official", "finance", "protocol", "network", "testnet", "mainnet", "airdrop", "claim", "labs", "team", "dao", "fnd", "fdn", "app", "xyz", "eth", "sol", "ico", "tge", "net"];
+export function stemToken(t: string): string {
+  let s = t.toLowerCase();
+  for (let pass = 0; pass < 2; pass++) {
+    for (const a of STEM_AFFIX) {
+      if (s.length - a.length >= 4 && s.endsWith(a)) { s = s.slice(0, -a.length); break; }
+      if (s.length - a.length >= 4 && s.startsWith(a)) { s = s.slice(a.length); break; }
+    }
+  }
+  return s;
+}
+
+export function buildAttackIndex(domains: Iterable<string>, minCount = 5, freeHosts: string[] = []): AttackIndex {
+  const counts = new Map<string, { count: number; example: string; hosts: Set<string> }>();
+  const fh = freeHosts.map((h) => "." + h);
+  for (const d of domains) {
+    const suffix = fh.find((h) => d.endsWith(h));
+    const labels = (suffix ? d.slice(0, -suffix.length) : d).split(".");
+    if (!suffix) labels.pop(); // drop the TLD (a free-host suffix was already removed)
+    const seen = new Set<string>();
+    for (const l of labels) {
+      for (const t of siblingTokens(l)) {
+        const stem = stemToken(t);
+        if (stem.length < 5 || SIBLING_STOP.has(stem)) continue;
+        if (seen.has(stem)) continue;
+        seen.add(stem);
+        const c = counts.get(stem) ?? { count: 0, example: d, hosts: new Set<string>() };
+        // count distinct registrable-ish roots so 50 subdomains of one host do not inflate a token
+        const root = labels.slice(-1)[0] + "." + (d.split(".").pop() ?? "");
+        if (!c.hosts.has(root)) { c.hosts.add(root); c.count++; }
+        counts.set(stem, c);
+      }
+    }
+  }
+  const idx: AttackIndex = new Map();
+  for (const [stem, c] of counts) if (c.count >= minCount) idx.set(stem, { token: stem, count: c.count, example: c.example });
+  return idx;
+}
+
+export function findAttackedBrand(host: string, idx: AttackIndex): AttackedBrand | undefined {
+  const labels = host.split(".");
+  labels.pop();
+  let best: AttackedBrand | undefined;
+  for (const l of labels) {
+    for (const t of siblingTokens(l)) {
+      const hit = idx.get(stemToken(t));
+      if (hit && (!best || hit.count > best.count)) best = hit;
+    }
+  }
+  return best;
+}
+
+export function attackedBrandHit(host: string): AttackedBrand | undefined {
+  return findAttackedBrand(host, attackIdx);
+}
+
 export function siblingHit(host: string): string | undefined {
   return findSibling(host, siblingIdx);
 }
@@ -87,6 +152,26 @@ export function rebuildSiblingIndex(freeHosts: string[]): void {
   const all: string[] = [];
   for (const set of mem.values()) for (const d of set) all.push(d);
   siblingIdx = buildSiblingIndex(all, freeHosts);
+  attackIdx = buildAttackIndex(all, 5, freeHosts);
+  void persistIndexes();
+}
+
+/** The indexes are derived data; persist them so a service-worker restart does not re-scan 600k domains. */
+async function persistIndexes(): Promise<void> {
+  try {
+    const sib: Array<[string, Array<[string, string]>]> = [...siblingIdx].map(([k, m]) => [k, [...m]]);
+    await chrome.storage.local.set({ "idx:sibling": sib, "idx:attack": [...attackIdx.values()], "idx:at": Date.now() });
+  } catch (e) {
+    console.warn("[w3pg] persist indexes failed", e);
+  }
+}
+
+async function loadIndexes(): Promise<boolean> {
+  const got = await chrome.storage.local.get(["idx:sibling", "idx:attack", "idx:at"]);
+  if (!got["idx:attack"] || !got["idx:sibling"]) return false;
+  siblingIdx = new Map((got["idx:sibling"] as Array<[string, Array<[string, string]>]>).map(([k, m]) => [k, new Map(m)]));
+  attackIdx = new Map((got["idx:attack"] as AttackedBrand[]).map((a) => [a.token, a]));
+  return true;
 }
 
 /** Walk arbitrary JSON and collect string arrays under keys that look like domain lists. */
@@ -186,7 +271,10 @@ export async function warmLists(freeHosts: string[] = []): Promise<void> {
   }
   const a = got["list:metamask-allow"] as StoredList | undefined;
   allowMem = new Set(a?.domains ?? []);
-  if (freeHosts.length) rebuildSiblingIndex(freeHosts);
+  if (freeHosts.length) {
+    siblingHosts = freeHosts;
+    if (!(await loadIndexes())) rebuildSiblingIndex(freeHosts);
+  }
 }
 
 export async function listStatus(): Promise<Record<string, { count: number; updatedAt: number }>> {

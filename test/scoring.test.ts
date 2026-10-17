@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parseHost, tokenize, levenshtein } from "../src/lib/hostname";
 import { score, BLOCK_THRESHOLD, WARN_THRESHOLD, stripCloneAffixes } from "../src/lib/scoring";
-import { extractDomains, normalizeDomain, parentDomains, buildSiblingIndex, findSibling } from "../src/lib/blocklist";
+import { extractDomains, normalizeDomain, parentDomains, buildSiblingIndex, findSibling, buildAttackIndex, findAttackedBrand, stemToken } from "../src/lib/blocklist";
 import { parseRegistration } from "../src/lib/rdap";
 import { mergeBrands, flattenTrusted, brandsFromTrusted } from "../src/lib/lists";
 import type { Brand, SignalLists } from "../src/lib/types";
@@ -373,6 +373,42 @@ describe("papertrade ICO clone (unknown small project)", () => {
   });
   it("clone handle shape never fires on a clean host", () => {
     expect(run("https://github.com/", { origin: { source: "x", at: 0, poster: "someone_fdn_" } }).signals.some((s) => s.id === "poster-name")).toBe(false);
+  });
+});
+
+describe("brand under attack (learned from blocklists)", () => {
+  const listed = ["pharosnetwork-tge.com", "testnet-pharosnetwork.net", "vote-pharosnetwork.xyz", "pharosnetwork.app", "register-pharosnetwork.xyz", "claim-zama.pages.dev", "random-site.com", "a.pages.dev", "b.pages.dev", "c.pages.dev", "d.pages.dev", "e.pages.dev", "portfolio-metamask.io", "portfolio-ledger.io", "portfolio-trezor.io", "portfolio-phantom.io", "portfolio-rabby.io"];
+  const idx = buildAttackIndex(listed, 3, ["pages.dev"]);
+  it("free-host labels and generic nouns never become attacked brands", () => {
+    expect(idx.has("pages")).toBe(false);
+    expect(idx.has("portfolio")).toBe(false);
+    expect(idx.has("portfol")).toBe(false);
+    expect(idx.has("register")).toBe(false);
+  });
+  it("index learns 'pharos' from the listed variants and ignores one-offs", () => {
+    expect(idx.get("pharos")?.count).toBeGreaterThanOrEqual(3);
+    expect(idx.has("zama")).toBe(false);
+    expect(idx.has("random")).toBe(false);
+  });
+  it("stemToken strips network/testnet/net affixes", () => {
+    expect(stemToken("pharosnetwork")).toBe("pharos");
+    expect(stemToken("pharosnet")).toBe("pharos");
+    expect(stemToken("testnetpharos")).toBe("pharos");
+  });
+  it("claim.pharosnet.xyz matches the attacked brand", () => {
+    const hit = findAttackedBrand("claim.pharosnet.xyz", idx);
+    expect(hit?.token).toBe("pharos");
+  });
+  it("scoring: attacked brand + claim + X + shortener blocks; the real site stays clean", () => {
+    const attacked = { token: "pharos", count: 5, example: "pharosnetwork-tge.com" };
+    const v = run("https://claim.pharosnet.xyz/", { attacked, origin: { source: "x", at: 0, poster: "LiLiHadid", shortener: "tr.ee" } });
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["attacked-brand", "action-strong", "shortener", "origin-social"]));
+    expect(v.band).toBe("block");
+    expect(run("https://pharosnetwork.xyz/", { attacked }).band).toBe("none");
+    expect(run("https://testnet.pharosnetwork.xyz/", { attacked }).band).toBe("none");
+  });
+  it("attacked brand alone with only a bait word is already a warning", () => {
+    expect(run("https://claim.pharosnet.xyz/", { attacked: { token: "pharos", count: 5, example: "x" } }).band).toBe("warn");
   });
 });
 

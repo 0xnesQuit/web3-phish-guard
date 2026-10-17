@@ -125,6 +125,12 @@
   "sig_blocklist_sibling": {
     "message": "Jumeau d'un site de phishing répertorié sur le même hébergeur ($1)"
   },
+  "sig_attacked_brand": {
+    "message": "« $1 » est une marque sous attaque de phishing active : $2 imitations répertoriées (ex. $3)"
+  },
+  "sig_shortener": {
+    "message": "Destination masquée derrière un raccourcisseur de lien ($1)"
+  },
   "sig_address_in_url": {
     "message": "Adresse de jeton ou de portefeuille dans l'URL (page d'appât personnalisée)"
   },

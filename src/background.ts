@@ -1,10 +1,10 @@
 import { parseHost } from "./lib/hostname";
 import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
 import { loadStaticData } from "./lib/lists";
-import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, listStatus } from "./lib/blocklist";
+import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, attackedBrandHit, listStatus } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
-import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick } from "./lib/origin";
+import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener } from "./lib/origin";
 import { resolveBrand, resolvePoster, getApiKey, setApiKey } from "./lib/xquik";
 import type { XIntel } from "./lib/types";
 import type { OriginContext, ProviderEvent, Signal, Verdict } from "./lib/types";
@@ -57,6 +57,7 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
     lists,
     blocklistHit: blocklistHit(p.host),
     siblingHit: siblingHit(p.host),
+    attacked: attackedBrandHit(p.host),
     allowlistHit: allowlistHit(p.host),
     userAllowed: userAllow.some((d) => p.host === d || p.host.endsWith("." + d)),
     ageDays: extra.ageDays,
@@ -121,12 +122,19 @@ async function resolveRedirect(url: string): Promise<string | null> {
     const ctrl = new AbortController();
     const tmr = setTimeout(() => ctrl.abort(), 6000);
     let res = await fetch(url, { method: "HEAD", redirect: "follow", signal: ctrl.signal, credentials: "omit" });
-    if (/^https?:\/\/t\.co\//.test(res.url)) {
-      // t.co sometimes answers HEAD with an interstitial; a GET follows the real redirect
+    const stuck = (r: Response) => isShortener(new URL(r.url).hostname); // the target may answer 403 to bots; its URL is still the answer
+    if (stuck(res)) {
+      // many shorteners refuse HEAD (tr.ee answers 405) or interpose an HTML page; GET follows the real redirect
       res = await fetch(url, { method: "GET", redirect: "follow", signal: ctrl.signal, credentials: "omit" });
     }
+    let finalUrl = stuck(res) ? "" : res.url;
+    if (!finalUrl && res.ok) {
+      // last resort: meta refresh / JS redirect in the interstitial body
+      const body = (await res.text()).slice(0, 20000);
+      const m = body.match(/(?:http-equiv="refresh"[^>]*url=|window\.location(?:\.href)?\s*=\s*["'])(https?:[^"'>\s]+)/i);
+      if (m) finalUrl = m[1];
+    }
     clearTimeout(tmr);
-    const finalUrl = /^https?:\/\/t\.co\//.test(res.url) ? "" : res.url;
     redirectCache.set(url, finalUrl);
     return finalUrl || null;
   } catch {
@@ -171,6 +179,12 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
       return;
     }
     if (src) return; // the social site itself is never evaluated
+    if (host && isShortener(host)) {
+      // tr.ee / bit.ly hop: keep the origin alive, remember that the destination was hidden
+      const existing = (await getTabOrigin(d.tabId)) ?? (await takePendingClick());
+      if (existing) await setTabOrigin(d.tabId, { ...existing, shortener: host, at: Date.now() });
+      return;
+    }
 
     let origin = await getTabOrigin(d.tabId);
     if (!origin) {
@@ -268,7 +282,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const href = String(msg.href);
         let target = "";
         try { target = new URL(href).hostname.toLowerCase(); } catch { sendResponse(null); return; }
-        if (target === "t.co") {
+        if (isShortener(target)) {
           const finalUrl = await resolveRedirect(href);
           if (!finalUrl) { sendResponse(null); return; }
           try { target = new URL(finalUrl).hostname.toLowerCase(); } catch { sendResponse(null); return; }

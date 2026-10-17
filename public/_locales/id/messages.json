@@ -125,6 +125,12 @@
   "sig_blocklist_sibling": {
     "message": "Saudara dari situs phishing terdaftar di host yang sama ($1)"
   },
+  "sig_attacked_brand": {
+    "message": "\"$1\" adalah merek yang sedang diserang phishing: $2 tiruan terdaftar (mis. $3)"
+  },
+  "sig_shortener": {
+    "message": "Tujuan disembunyikan di balik pemendek tautan ($1)"
+  },
   "sig_address_in_url": {
     "message": "Alamat token/dompet tertanam di URL (halaman umpan personal)"
   },

@@ -125,6 +125,12 @@
   "sig_blocklist_sibling": {
     "message": "Anh em của trang lừa đảo đã liệt kê trên cùng host ($1)"
   },
+  "sig_attacked_brand": {
+    "message": "\"$1\" là thương hiệu đang bị tấn công lừa đảo: $2 bản nhái đã liệt kê (vd. $3)"
+  },
+  "sig_shortener": {
+    "message": "Đích bị che bằng dịch vụ rút gọn liên kết ($1)"
+  },
   "sig_address_in_url": {
     "message": "URL chứa địa chỉ token/ví (trang mồi nhử cá nhân hóa)"
   },

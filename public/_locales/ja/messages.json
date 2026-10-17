@@ -125,6 +125,12 @@
   "sig_blocklist_sibling": {
     "message": "同じホスト上の既知フィッシングサイトの兄弟（$1）"
   },
+  "sig_attacked_brand": {
+    "message": "「$1」は現在フィッシング攻撃を受けているブランド：$2 件の模倣がリスト化（例：$3）"
+  },
+  "sig_shortener": {
+    "message": "リンク短縮サービスで宛先が隠されている（$1）"
+  },
   "sig_address_in_url": {
     "message": "URL にトークン／ウォレットアドレスを含む（個別化された誘導ページ）"
   },

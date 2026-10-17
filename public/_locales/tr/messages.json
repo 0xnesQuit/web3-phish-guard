@@ -125,6 +125,12 @@
   "sig_blocklist_sibling": {
     "message": "Aynı barındırmadaki bilinen phishing sitesinin kardeşi ($1)"
   },
+  "sig_attacked_brand": {
+    "message": "\"$1\" şu anda phishing saldırısı altındaki bir marka: listelerde $2 benzeri var (ör. $3)"
+  },
+  "sig_shortener": {
+    "message": "Hedef bir link kısaltıcısıyla gizlenmiş ($1)"
+  },
   "sig_address_in_url": {
     "message": "URL'de token/cüzdan adresi var (kişiye özel tuzak sayfa kalıbı)"
   },
