@@ -24,6 +24,10 @@ Yanlış pozitif frenleri:
 - DefiLlama'dan otomatik gelen ~4.900 marka "düşük güven" katmanındadır: isim ortak kelime olabildiği ve domainler değişebildiği için (`kamino.finance` vs `kamino.com`) tek başına uyarı üretmez.
 - 2 yıldan eski domainler puan kaybeder. Kullanıcının "güveniyorum" dediği domainler her şeyi geçersiz kılar.
 
+## Derin tarama ve bildirim (backend/)
+
+Popup'taki **Derin tara** butonu, sadece kullanıcı isteyince çalışan pahalı katmandır: `page-scan.js` sayfanın yapısal özetini çıkarır (kütüphaneler, script adları, obfuscation izleri, link dağılımı, cüzdan butonları, seed phrase alanları, geri sayım, drainer imzaları), background dış scriptleri indirip drainer string'lerini tarar, GoPlus `phishing_site`'a sorar, RDAP ve X çözümlemesini tamamlar ve hepsini `backend/` altındaki Cloudflare Worker'a gönderir; Worker Claude Haiku 5.5'ten kapalı şemalı bir karar alır. AI anahtarı yalnızca Worker'da durur. **Bu siteyi bildir** butonu bildirimi aynı Worker'a yollar; onaylananlar lists reposundaki `community-blocklist.json`'a girer ve uzantıda engelleme listesi olarak kullanılır. Kurulum ve güvenlik modeli: [backend/README.md](backend/README.md).
+
 ## Listelerin güncel tutulması
 
 Marka ve sinyal listeleri uzantının içinde gömülü gelir (ilk kurulumda sıfır gecikme) ve 12 saatte bir public `web3-phish-guard-lists` reposundan (`https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/`) tazelenir (`src/lib/lists.ts`, `refreshRemoteData`). Önce `manifest.json` çekilir; yalnızca yeni bir yayın varsa dosyalar indirilip `chrome.storage.local`'a yazılır ve gömülü kopyanın önüne geçer. İndirilen şey yalnızca JSON veridir.
