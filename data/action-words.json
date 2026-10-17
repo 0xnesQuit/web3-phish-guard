@@ -1,0 +1,4 @@
+{
+  "strong": ["claim", "claims", "airdrop", "airdrops", "rewards", "reward", "mint", "minting", "checker", "eligibility", "eligible", "allocation", "presale", "whitelist", "giveaway", "bonus", "distribution", "snapshot"],
+  "medium": ["bridge", "migration", "migrate", "restake", "points", "verify", "connect", "wallet", "drop", "claiming", "portal", "dapp", "launch", "launchpad", "stake", "staking", "v2", "v3", "official", "register", "registration", "refund", "compensation", "unlock", "vesting", "users", "secure", "update", "upgrade"]
+}

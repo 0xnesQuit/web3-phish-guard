@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 340px; margin: 0; font-family: system-ui, sans-serif; font-size: 13px; background: #111; color: #eee; }
+  header { padding: 12px 14px; border-bottom: 1px solid #333; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+  .safe { background: #1d4d2b; color: #9be3b0; }
+  .warn { background: #5a4310; color: #ffd27a; }
+  .block { background: #5a1a1a; color: #ff8a8a; }
+  .none { background: #333; color: #bbb; }
+  section { padding: 12px 14px; }
+  .host { font-family: ui-monospace, monospace; word-break: break-all; opacity: .9; }
+  ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.5; }
+  .meta { margin-top: 10px; opacity: .6; font-size: 12px; line-height: 1.5; }
+  button { font: inherit; margin-top: 10px; padding: 6px 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: #eee; cursor: pointer; }
+</style>
+</head>
+<body>
+  <header><span>Web3 Phish Guard</span><span id="badge" class="badge none">–</span></header>
+  <section>
+    <div class="host" id="host">…</div>
+    <ul id="reasons"></ul>
+    <button id="allow" hidden>Bu siteye güveniyorum (allowlist'e ekle)</button>
+    <div class="meta" id="meta"></div>
+  </section>
+  <script src="popup.js"></script>
+</body>
+</html>

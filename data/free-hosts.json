@@ -1,0 +1,4 @@
+{
+  "strong": ["pages.dev", "vercel.app", "netlify.app", "github.io", "webflow.io", "gitbook.io", "web.app", "firebaseapp.com", "surge.sh", "glitch.me", "repl.co", "replit.app", "wixsite.com", "weebly.com", "godaddysites.com", "framer.app", "framer.website", "onrender.com", "fly.dev", "workers.dev", "r2.dev", "ipfs.io", "dweb.link", "nftstorage.link", "w3s.link", "infura-ipfs.io", "flk-ipfs.xyz", "ipfs.fleek.co", "on-fleek.app", "cloudfront.net", "amplifyapp.com", "azurestaticapps.net", "azurewebsites.net", "appspot.com", "herokuapp.com", "000webhostapp.com", "neocities.org", "mystrikingly.com", "s3.amazonaws.com", "blogspot.com", "sites.google.com", "notion.site", "super.site", "typedream.app", "lovable.app", "bolt.host", "base44.app", "webflow.com"],
+  "weak": ["carrd.co", "linktr.ee", "bio.link", "beacons.ai", "squarespace.com"]
+}

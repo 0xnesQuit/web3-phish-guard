@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dikkat: olası phishing sitesi</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #1a0b0b; color: #f5e9e9; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .card { max-width: 640px; padding: 40px; background: #2a1010; border: 2px solid #e5484d; border-radius: 16px; }
+  h1 { margin: 0 0 8px; font-size: 28px; color: #ff6b6b; }
+  .host { font-family: ui-monospace, monospace; font-size: 18px; background: #3b1515; padding: 8px 12px; border-radius: 8px; word-break: break-all; margin: 16px 0; }
+  .score { font-size: 14px; opacity: .8; }
+  ul { padding-left: 20px; line-height: 1.6; }
+  .actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+  button { font: inherit; padding: 12px 18px; border-radius: 10px; border: 0; cursor: pointer; font-weight: 600; }
+  .back { background: #e5484d; color: #fff; }
+  .proceed { background: transparent; color: #f5b8b8; border: 1px solid #7a3030; }
+  .proceed:hover { background: #3b1515; }
+  .note { font-size: 13px; opacity: .7; margin-top: 16px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Bu site muhtemelen bir cüzdan boşaltma (drainer) sayfası</h1>
+    <div class="score" id="score"></div>
+    <div class="host" id="host"></div>
+    <p>Neden şüpheli bulundu:</p>
+    <ul id="reasons"></ul>
+    <div class="actions">
+      <button class="back" id="back">Geri dön (önerilen)</button>
+      <button class="proceed" id="proceed">Riski anlıyorum, yine de devam et</button>
+    </div>
+    <p class="note">Gerçek projeler airdrop ve mint akışlarını neredeyse her zaman resmi sitelerinin alt alan adında ya da resmi X/Discord hesaplarından duyurdukları adreste barındırır. X yorumlarından veya DM'den gelen "claim" linklerine güvenmeyin. Bu sayfadaki cüzdan bağlantı ve imza istekleri paranızı kaybettirebilir.</p>
+  </main>
+  <script src="warning.js"></script>
+</body>
+</html>
