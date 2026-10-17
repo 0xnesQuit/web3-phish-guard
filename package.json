@@ -6,6 +6,10 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/make-icons.mjs && node scripts/locales.mjs && node scripts/build.mjs",
+    "build:firefox": "node scripts/make-icons.mjs && node scripts/locales.mjs && node scripts/build.mjs --firefox",
+    "build:all": "npm run build && node scripts/build.mjs --firefox",
+    "lint:firefox": "web-ext lint --source-dir dist-firefox",
+    "package": "node scripts/package.mjs",
     "watch": "node scripts/build.mjs --watch",
     "test": "vitest run",
     "brands": "node scripts/build-brands.mjs",
@@ -18,7 +22,8 @@
     "@types/node": "^26.6.5",
     "esbuild": "^0.24.0",
     "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+    "vitest": "^2.1.0",
+    "web-ext": "^10.8.0"
   },
   "dependencies": {
     "tldts": "^6.1.0"

@@ -2,7 +2,8 @@ import * as esbuild from "esbuild";
 import { cpSync, mkdirSync, rmSync, existsSync } from "node:fs";
 
 const watch = process.argv.includes("--watch");
-const outdir = "dist";
+const firefox = process.argv.includes("--firefox");
+const outdir = firefox ? "dist-firefox" : "dist";
 
 if (existsSync(outdir)) rmSync(outdir, { recursive: true });
 mkdirSync(outdir, { recursive: true });
@@ -17,7 +18,8 @@ const common = {
 };
 
 const ctxs = await Promise.all([
-  esbuild.context({ ...common, entryPoints: ["src/background.ts"], outfile: `${outdir}/background.js`, format: "esm" }),
+  // Chrome runs the background as a module service worker; Firefox runs it as an event-page script, so bundle it as an IIFE there.
+  esbuild.context({ ...common, entryPoints: ["src/background.ts"], outfile: `${outdir}/background.js`, format: firefox ? "iife" : "esm" }),
   esbuild.context({ ...common, entryPoints: ["src/content/overlay.ts"], outfile: `${outdir}/overlay.js` }),
   esbuild.context({ ...common, entryPoints: ["src/content/provider-guard.ts"], outfile: `${outdir}/provider-guard.js` }),
   esbuild.context({ ...common, entryPoints: ["src/content/bridge.ts"], outfile: `${outdir}/bridge.js` }),
@@ -32,6 +34,9 @@ const ctxs = await Promise.all([
 function copyStatic() {
   cpSync("public", outdir, { recursive: true });
   cpSync("data", `${outdir}/data`, { recursive: true });
+  // one manifest per browser
+  if (firefox) cpSync(`${outdir}/manifest.firefox.json`, `${outdir}/manifest.json`);
+  rmSync(`${outdir}/manifest.firefox.json`, { force: true });
 }
 
 if (watch) {
@@ -42,5 +47,5 @@ if (watch) {
   await Promise.all(ctxs.map((c) => c.rebuild()));
   await Promise.all(ctxs.map((c) => c.dispose()));
   copyStatic();
-  console.log("build done -> dist/");
+  console.log(`build done -> ${outdir}/`);
 }

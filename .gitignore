@@ -4,3 +4,5 @@ data/brands.generated.json
 lists/
 data/brands.nft.json
 data/brands.cmc.json
+dist-firefox/
+packages/

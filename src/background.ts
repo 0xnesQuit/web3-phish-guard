@@ -153,6 +153,15 @@ async function resolveRedirect(url: string): Promise<string | null> {
 async function deepScan(tabId: number, language: string): Promise<DeepReport | { error: string }> {
   const tab = await chrome.tabs.get(tabId).catch(() => null);
   if (!tab?.url || !/^https?:/.test(tab.url)) return { error: "not_http" };
+  // Firefox 140+: the page snapshot leaves the browser, so ask for the declared optional data-collection permission first.
+  try {
+    const bss = chrome.runtime.getManifest().browser_specific_settings as { gecko?: { data_collection_permissions?: unknown } } | undefined;
+    const perms = chrome.permissions as unknown as { request?: (p: { data_collection?: string[] }) => Promise<boolean> };
+    if (bss?.gecko?.data_collection_permissions && perms?.request) {
+      const ok = await perms.request({ data_collection: ["websiteContent", "websiteActivity"] }).catch(() => true);
+      if (!ok) return { error: "permission_denied" };
+    }
+  } catch { /* Chrome: no data-collection permissions */ }
   let v = await getTabVerdict(tabId);
   if (!v) v = (await evaluate(tab.url)) ?? undefined;
   if (!v) return { error: "no_verdict" };
