@@ -56,6 +56,19 @@ Tarayıcıda: `chrome://extensions` (Brave: `brave://extensions`) → sağ üstt
 
 Kurulumdan ~6 saniye sonra listeler indirilir; popup'ta sayıları görürsünüz. Listeler inmeden de sezgisel katman çalışır.
 
+## Firefox
+
+```bash
+npm run build:firefox      # dist-firefox/ (public/manifest.firefox.json: event-page background, gecko id, veri toplama beyanı)
+npm run lint:firefox       # Mozilla web-ext lint (0 hata beklenir)
+```
+
+Firefox'ta deneme: `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → `dist-firefox/manifest.json`. Minimum Firefox 140 (veri toplama izinleri için). Derin tarama ilk kez çalışırken Firefox, beyan edilen isteğe bağlı veri toplama iznini sorar.
+
+## Paketleme
+
+`npm run build:all && npm run package` → `packages/` altında Chrome/Edge/Brave için ve Firefox için ayrı zip'ler.
+
 ## Test
 
 ```bash
