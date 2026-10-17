@@ -34,6 +34,61 @@ interface StoredList {
 const mem = new Map<string, Set<string>>();
 let allowMem: Set<string> | null = null;
 
+/**
+ * Sibling index: scammers rotate the label on a shared host (airdrop-onsolana.netlify.app is listed,
+ * drop-onsolana.netlify.app is live). Index listed free-host entries by (freeHost, distinctive token)
+ * so a fresh sibling is recognised from the token it shares with a listed one.
+ */
+export type SiblingIndex = Map<string, Map<string, string>>; // freeHost -> token -> listed host
+let siblingIdx: SiblingIndex = new Map();
+let siblingHosts: string[] = [];
+
+const SIBLING_STOP = new Set(["claim", "claims", "airdrop", "airdrops", "rewards", "reward", "mint", "minting", "checker", "drop", "drops", "official", "portal", "app", "web", "www", "wallet", "connect", "verify", "secure", "login", "sign", "token", "tokens", "nft", "nfts", "crypto", "swap", "bridge", "stake", "staking", "presale", "whitelist", "giveaway", "bonus", "event", "events", "free", "live", "site", "page", "online", "network", "protocol", "finance", "exchange", "dapp", "dapps"]);
+
+export function siblingTokens(label: string): string[] {
+  return label.toLowerCase().split(/[-_.]+|(?<=\D)(?=\d)|(?<=\d)(?=\D)/).filter((t) => t.length >= 5 && /[a-z]/.test(t) && !SIBLING_STOP.has(t));
+}
+
+export function buildSiblingIndex(domains: Iterable<string>, freeHosts: string[]): SiblingIndex {
+  const idx: SiblingIndex = new Map();
+  const fh = freeHosts.map((h) => "." + h);
+  for (const d of domains) {
+    const suffix = fh.find((h) => d.endsWith(h));
+    if (!suffix) continue;
+    const label = d.slice(0, -suffix.length).split(".").pop() ?? "";
+    for (const t of siblingTokens(label)) {
+      let m = idx.get(suffix);
+      if (!m) idx.set(suffix, (m = new Map()));
+      if (!m.has(t)) m.set(t, d);
+    }
+  }
+  return idx;
+}
+
+/** Returns the listed host that shares a distinctive token with `host` on the same free host, if any. */
+export function findSibling(host: string, idx: SiblingIndex): string | undefined {
+  for (const [suffix, m] of idx) {
+    if (!host.endsWith(suffix)) continue;
+    const label = host.slice(0, -suffix.length).split(".").pop() ?? "";
+    for (const t of siblingTokens(label)) {
+      const listed = m.get(t);
+      if (listed && listed !== host) return listed;
+    }
+  }
+  return undefined;
+}
+
+export function siblingHit(host: string): string | undefined {
+  return findSibling(host, siblingIdx);
+}
+
+export function rebuildSiblingIndex(freeHosts: string[]): void {
+  siblingHosts = freeHosts;
+  const all: string[] = [];
+  for (const set of mem.values()) for (const d of set) all.push(d);
+  siblingIdx = buildSiblingIndex(all, freeHosts);
+}
+
 /** Walk arbitrary JSON and collect string arrays under keys that look like domain lists. */
 export function extractDomains(json: unknown, keys: string[]): string[] {
   const out: string[] = [];
@@ -86,6 +141,7 @@ export async function refreshSource(src: ListSource): Promise<number> {
   const stored: StoredList = { domains, updatedAt: Date.now(), mmLastUpdated };
   await chrome.storage.local.set({ [`list:${src.id}`]: stored });
   mem.set(src.id, new Set(domains));
+  if (siblingHosts.length) rebuildSiblingIndex(siblingHosts);
   return domains.length;
 }
 
@@ -121,7 +177,7 @@ function findNumber(json: unknown, key: string, depth = 0): number | undefined {
 }
 
 /** Load lists from storage into memory (called on service worker start). */
-export async function warmLists(): Promise<void> {
+export async function warmLists(freeHosts: string[] = []): Promise<void> {
   const keys = [...SOURCES.map((s) => `list:${s.id}`), "list:metamask-allow"];
   const got = await chrome.storage.local.get(keys);
   for (const s of SOURCES) {
@@ -130,6 +186,7 @@ export async function warmLists(): Promise<void> {
   }
   const a = got["list:metamask-allow"] as StoredList | undefined;
   allowMem = new Set(a?.domains ?? []);
+  if (freeHosts.length) rebuildSiblingIndex(freeHosts);
 }
 
 export async function listStatus(): Promise<Record<string, { count: number; updatedAt: number }>> {

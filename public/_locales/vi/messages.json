@@ -122,6 +122,12 @@
   "sig_blocklist": {
     "message": "Có trong danh sách lừa đảo đã biết ($1)"
   },
+  "sig_blocklist_sibling": {
+    "message": "Anh em của trang lừa đảo đã liệt kê trên cùng host ($1)"
+  },
+  "sig_address_in_url": {
+    "message": "URL chứa địa chỉ token/ví (trang mồi nhử cá nhân hóa)"
+  },
   "sig_action_strong": {
     "message": "Từ mồi nhử trong tên miền: \"$1\""
   },

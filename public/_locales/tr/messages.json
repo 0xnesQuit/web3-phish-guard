@@ -122,6 +122,12 @@
   "sig_blocklist": {
     "message": "Bilinen phishing listesinde ($1)"
   },
+  "sig_blocklist_sibling": {
+    "message": "Aynı barındırmadaki bilinen phishing sitesinin kardeşi ($1)"
+  },
+  "sig_address_in_url": {
+    "message": "URL'de token/cüzdan adresi var (kişiye özel tuzak sayfa kalıbı)"
+  },
   "sig_action_strong": {
     "message": "Alan adında tuzak kelimeler: \"$1\""
   },

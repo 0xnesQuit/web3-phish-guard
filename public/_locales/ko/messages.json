@@ -122,6 +122,12 @@
   "sig_blocklist": {
     "message": "알려진 피싱 목록에 있음 ($1)"
   },
+  "sig_blocklist_sibling": {
+    "message": "같은 호스트의 알려진 피싱 사이트와 유사 ($1)"
+  },
+  "sig_address_in_url": {
+    "message": "URL에 토큰/지갑 주소 포함 (맞춤형 미끼 페이지)"
+  },
   "sig_action_strong": {
     "message": "도메인에 미끼 단어: \"$1\""
   },

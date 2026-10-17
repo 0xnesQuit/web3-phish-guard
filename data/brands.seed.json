@@ -1,45 +1,740 @@
 [
-  { "name": "Uniswap", "tokens": ["uniswap"], "domains": ["uniswap.org", "uniswap.exchange"], "x": "Uniswap" },
-  { "name": "MetaMask", "tokens": ["metamask"], "domains": ["metamask.io"], "x": "MetaMask" },
-  { "name": "OpenSea", "tokens": ["opensea"], "domains": ["opensea.io", "opensea.com", "opensea.pro", "opensea.foundation"], "x": "opensea" },
-  { "name": "Blur", "tokens": ["blur"], "domains": ["blur.io", "blur.foundation"], "x": "blur_io" },
-  { "name": "Zora", "tokens": ["zora"], "domains": ["zora.co", "zora.energy"], "x": "zora" },
-  { "name": "Magic Eden", "tokens": ["magiceden"], "domains": ["magiceden.io", "magiceden.us"], "x": "MagicEden" },
-  { "name": "Tensor", "tokens": ["tensor"], "domains": ["tensor.trade", "tensor.foundation"], "x": "tensor_hq" },
-  { "name": "EigenLayer", "tokens": ["eigenlayer", "eigen"], "domains": ["eigenlayer.xyz", "eigenfoundation.org", "eigencloud.xyz"], "x": "eigenlayer" },
-  { "name": "Starknet", "tokens": ["starknet"], "domains": ["starknet.io", "starknet.foundation"], "x": "Starknet" },
-  { "name": "zkSync", "tokens": ["zksync"], "domains": ["zksync.io", "zknation.io", "zksync.dev"], "x": "zksync" },
-  { "name": "LayerZero", "tokens": ["layerzero"], "domains": ["layerzero.network", "layerzero.foundation"], "x": "LayerZero_Core" },
-  { "name": "Arbitrum", "tokens": ["arbitrum"], "domains": ["arbitrum.io", "arbitrum.foundation"], "x": "arbitrum" },
-  { "name": "Optimism", "tokens": ["optimism"], "domains": ["optimism.io"], "x": "Optimism" },
-  { "name": "Ethena", "tokens": ["ethena"], "domains": ["ethena.fi"], "x": "ethena_labs" },
-  { "name": "Sophon", "tokens": ["sophon"], "domains": ["sophon.xyz"], "x": "sophon" },
-  { "name": "Hyperliquid", "tokens": ["hyperliquid"], "domains": ["hyperliquid.xyz", "hyperfoundation.org"], "x": "HyperliquidX" },
-  { "name": "Jupiter", "tokens": ["jupiter"], "domains": ["jup.ag", "jupresear.ch"], "x": "JupiterExchange" },
-  { "name": "pump.fun", "tokens": ["pumpfun"], "domains": ["pump.fun"], "x": "pumpdotfun" },
-  { "name": "Scroll", "tokens": ["scroll"], "domains": ["scroll.io", "scroll.foundation"], "x": "Scroll_ZKP" },
-  { "name": "Blast", "tokens": ["blast"], "domains": ["blast.io"], "x": "Blast_L2" },
-  { "name": "Linea", "tokens": ["linea"], "domains": ["linea.build"], "x": "LineaBuild" },
-  { "name": "Pudgy Penguins", "tokens": ["pudgypenguins", "pudgy"], "domains": ["pudgypenguins.com", "pudgyworld.com"], "x": "pudgypenguins" },
-  { "name": "Bored Ape Yacht Club", "tokens": ["boredapeyachtclub", "bayc", "yugalabs"], "domains": ["boredapeyachtclub.com", "yuga.com"], "x": "BoredApeYC" },
-  { "name": "Azuki", "tokens": ["azuki"], "domains": ["azuki.com"], "x": "Azuki" },
-  { "name": "Manifold", "tokens": ["manifold"], "domains": ["manifold.xyz"], "x": "manifoldxyz" },
-  { "name": "Highlight", "tokens": ["highlight"], "domains": ["highlight.xyz"], "x": "Highlight_xyz" },
-  { "name": "Galxe", "tokens": ["galxe"], "domains": ["galxe.com"], "x": "Galxe" },
-  { "name": "Layer3", "tokens": ["layer3"], "domains": ["layer3.xyz"], "x": "layer3" },
-  { "name": "Zealy", "tokens": ["zealy"], "domains": ["zealy.io"], "x": "zealy_io" },
-  { "name": "Etherscan", "tokens": ["etherscan"], "domains": ["etherscan.io"], "x": "etherscan" },
-  { "name": "PancakeSwap", "tokens": ["pancakeswap"], "domains": ["pancakeswap.finance"], "x": "PancakeSwap" },
-  { "name": "Aave", "tokens": ["aave"], "domains": ["aave.com"], "x": "aave" },
-  { "name": "Lido", "tokens": ["lido"], "domains": ["lido.fi"], "x": "LidoFinance" },
-  { "name": "Across", "tokens": ["across"], "domains": ["across.to"], "x": "AcrossProtocol" },
-  { "name": "Zama", "tokens": ["zama"], "domains": ["zama.ai", "zama.org"], "x": "zama" },
-  { "name": "WalletConnect / Reown", "tokens": ["walletconnect", "reown"], "domains": ["walletconnect.com", "walletconnect.network", "walletconnect.org", "reown.com"], "x": "WalletConnect" },
-  { "name": "Phantom", "tokens": ["phantom"], "domains": ["phantom.app", "phantom.com"], "x": "phantom" },
-  { "name": "Rabby", "tokens": ["rabby"], "domains": ["rabby.io"], "x": "Rabby_io" },
-  { "name": "Ledger", "tokens": ["ledger"], "domains": ["ledger.com"], "x": "Ledger" },
-  { "name": "Trezor", "tokens": ["trezor"], "domains": ["trezor.io"], "x": "Trezor" },
-  { "name": "Coinbase", "tokens": ["coinbase"], "domains": ["coinbase.com", "cb.id"], "x": "coinbase" },
-  { "name": "Binance", "tokens": ["binance"], "domains": ["binance.com", "binance.us"], "x": "binance" },
-  { "name": "Axis Robotics", "tokens": ["axisrobotics"], "domains": ["axisrobotics.ai"], "x": "axisrobotics", "note": "2026-10-17: @axisrobotics (64k, Business) Linktree -> axisrobotics.ai" }
+  {
+    "name": "Uniswap",
+    "tokens": [
+      "uniswap"
+    ],
+    "domains": [
+      "uniswap.org",
+      "uniswap.exchange"
+    ],
+    "x": "Uniswap"
+  },
+  {
+    "name": "MetaMask",
+    "tokens": [
+      "metamask"
+    ],
+    "domains": [
+      "metamask.io"
+    ],
+    "x": "MetaMask"
+  },
+  {
+    "name": "OpenSea",
+    "tokens": [
+      "opensea"
+    ],
+    "domains": [
+      "opensea.io",
+      "opensea.com",
+      "opensea.pro",
+      "opensea.foundation"
+    ],
+    "x": "opensea"
+  },
+  {
+    "name": "Blur",
+    "tokens": [
+      "blur"
+    ],
+    "domains": [
+      "blur.io",
+      "blur.foundation"
+    ],
+    "x": "blur_io"
+  },
+  {
+    "name": "Zora",
+    "tokens": [
+      "zora"
+    ],
+    "domains": [
+      "zora.co",
+      "zora.energy"
+    ],
+    "x": "zora"
+  },
+  {
+    "name": "Magic Eden",
+    "tokens": [
+      "magiceden"
+    ],
+    "domains": [
+      "magiceden.io",
+      "magiceden.us"
+    ],
+    "x": "MagicEden"
+  },
+  {
+    "name": "Tensor",
+    "tokens": [
+      "tensor"
+    ],
+    "domains": [
+      "tensor.trade",
+      "tensor.foundation"
+    ],
+    "x": "tensor_hq"
+  },
+  {
+    "name": "EigenLayer",
+    "tokens": [
+      "eigenlayer",
+      "eigen"
+    ],
+    "domains": [
+      "eigenlayer.xyz",
+      "eigenfoundation.org",
+      "eigencloud.xyz"
+    ],
+    "x": "eigenlayer"
+  },
+  {
+    "name": "Starknet",
+    "tokens": [
+      "starknet"
+    ],
+    "domains": [
+      "starknet.io",
+      "starknet.foundation"
+    ],
+    "x": "Starknet"
+  },
+  {
+    "name": "zkSync",
+    "tokens": [
+      "zksync"
+    ],
+    "domains": [
+      "zksync.io",
+      "zknation.io",
+      "zksync.dev"
+    ],
+    "x": "zksync"
+  },
+  {
+    "name": "LayerZero",
+    "tokens": [
+      "layerzero"
+    ],
+    "domains": [
+      "layerzero.network",
+      "layerzero.foundation"
+    ],
+    "x": "LayerZero_Core"
+  },
+  {
+    "name": "Arbitrum",
+    "tokens": [
+      "arbitrum"
+    ],
+    "domains": [
+      "arbitrum.io",
+      "arbitrum.foundation"
+    ],
+    "x": "arbitrum"
+  },
+  {
+    "name": "Optimism",
+    "tokens": [
+      "optimism"
+    ],
+    "domains": [
+      "optimism.io"
+    ],
+    "x": "Optimism"
+  },
+  {
+    "name": "Ethena",
+    "tokens": [
+      "ethena"
+    ],
+    "domains": [
+      "ethena.fi"
+    ],
+    "x": "ethena_labs"
+  },
+  {
+    "name": "Sophon",
+    "tokens": [
+      "sophon"
+    ],
+    "domains": [
+      "sophon.xyz"
+    ],
+    "x": "sophon"
+  },
+  {
+    "name": "Hyperliquid",
+    "tokens": [
+      "hyperliquid"
+    ],
+    "domains": [
+      "hyperliquid.xyz",
+      "hyperfoundation.org"
+    ],
+    "x": "HyperliquidX"
+  },
+  {
+    "name": "Jupiter",
+    "tokens": [
+      "jupiter"
+    ],
+    "domains": [
+      "jup.ag",
+      "jupresear.ch"
+    ],
+    "x": "JupiterExchange"
+  },
+  {
+    "name": "pump.fun",
+    "tokens": [
+      "pumpfun"
+    ],
+    "domains": [
+      "pump.fun"
+    ],
+    "x": "pumpdotfun"
+  },
+  {
+    "name": "Scroll",
+    "tokens": [
+      "scroll"
+    ],
+    "domains": [
+      "scroll.io",
+      "scroll.foundation"
+    ],
+    "x": "Scroll_ZKP"
+  },
+  {
+    "name": "Blast",
+    "tokens": [
+      "blast"
+    ],
+    "domains": [
+      "blast.io"
+    ],
+    "x": "Blast_L2"
+  },
+  {
+    "name": "Linea",
+    "tokens": [
+      "linea"
+    ],
+    "domains": [
+      "linea.build"
+    ],
+    "x": "LineaBuild"
+  },
+  {
+    "name": "Pudgy Penguins",
+    "tokens": [
+      "pudgypenguins",
+      "pudgy"
+    ],
+    "domains": [
+      "pudgypenguins.com",
+      "pudgyworld.com"
+    ],
+    "x": "pudgypenguins"
+  },
+  {
+    "name": "Bored Ape Yacht Club",
+    "tokens": [
+      "boredapeyachtclub",
+      "bayc",
+      "yugalabs"
+    ],
+    "domains": [
+      "boredapeyachtclub.com",
+      "yuga.com"
+    ],
+    "x": "BoredApeYC"
+  },
+  {
+    "name": "Azuki",
+    "tokens": [
+      "azuki"
+    ],
+    "domains": [
+      "azuki.com"
+    ],
+    "x": "Azuki"
+  },
+  {
+    "name": "Manifold",
+    "tokens": [
+      "manifold"
+    ],
+    "domains": [
+      "manifold.xyz"
+    ],
+    "x": "manifoldxyz"
+  },
+  {
+    "name": "Highlight",
+    "tokens": [
+      "highlight"
+    ],
+    "domains": [
+      "highlight.xyz"
+    ],
+    "x": "Highlight_xyz"
+  },
+  {
+    "name": "Galxe",
+    "tokens": [
+      "galxe"
+    ],
+    "domains": [
+      "galxe.com"
+    ],
+    "x": "Galxe"
+  },
+  {
+    "name": "Layer3",
+    "tokens": [
+      "layer3"
+    ],
+    "domains": [
+      "layer3.xyz"
+    ],
+    "x": "layer3"
+  },
+  {
+    "name": "Zealy",
+    "tokens": [
+      "zealy"
+    ],
+    "domains": [
+      "zealy.io"
+    ],
+    "x": "zealy_io"
+  },
+  {
+    "name": "Etherscan",
+    "tokens": [
+      "etherscan"
+    ],
+    "domains": [
+      "etherscan.io"
+    ],
+    "x": "etherscan"
+  },
+  {
+    "name": "PancakeSwap",
+    "tokens": [
+      "pancakeswap"
+    ],
+    "domains": [
+      "pancakeswap.finance"
+    ],
+    "x": "PancakeSwap"
+  },
+  {
+    "name": "Aave",
+    "tokens": [
+      "aave"
+    ],
+    "domains": [
+      "aave.com"
+    ],
+    "x": "aave"
+  },
+  {
+    "name": "Lido",
+    "tokens": [
+      "lido"
+    ],
+    "domains": [
+      "lido.fi"
+    ],
+    "x": "LidoFinance"
+  },
+  {
+    "name": "Across",
+    "tokens": [
+      "across"
+    ],
+    "domains": [
+      "across.to"
+    ],
+    "x": "AcrossProtocol"
+  },
+  {
+    "name": "Zama",
+    "tokens": [
+      "zama"
+    ],
+    "domains": [
+      "zama.ai",
+      "zama.org"
+    ],
+    "x": "zama"
+  },
+  {
+    "name": "WalletConnect / Reown",
+    "tokens": [
+      "walletconnect",
+      "reown"
+    ],
+    "domains": [
+      "walletconnect.com",
+      "walletconnect.network",
+      "walletconnect.org",
+      "reown.com"
+    ],
+    "x": "WalletConnect"
+  },
+  {
+    "name": "Phantom",
+    "tokens": [
+      "phantom"
+    ],
+    "domains": [
+      "phantom.app",
+      "phantom.com"
+    ],
+    "x": "phantom"
+  },
+  {
+    "name": "Rabby",
+    "tokens": [
+      "rabby"
+    ],
+    "domains": [
+      "rabby.io"
+    ],
+    "x": "Rabby_io"
+  },
+  {
+    "name": "Ledger",
+    "tokens": [
+      "ledger"
+    ],
+    "domains": [
+      "ledger.com"
+    ],
+    "x": "Ledger"
+  },
+  {
+    "name": "Trezor",
+    "tokens": [
+      "trezor"
+    ],
+    "domains": [
+      "trezor.io"
+    ],
+    "x": "Trezor"
+  },
+  {
+    "name": "Coinbase",
+    "tokens": [
+      "coinbase"
+    ],
+    "domains": [
+      "coinbase.com",
+      "cb.id"
+    ],
+    "x": "coinbase"
+  },
+  {
+    "name": "Binance",
+    "tokens": [
+      "binance"
+    ],
+    "domains": [
+      "binance.com",
+      "binance.us"
+    ],
+    "x": "binance"
+  },
+  {
+    "name": "Axis Robotics",
+    "tokens": [
+      "axisrobotics"
+    ],
+    "domains": [
+      "axisrobotics.ai"
+    ],
+    "x": "axisrobotics",
+    "note": "2026-10-17: @axisrobotics (64k, Business) Linktree -> axisrobotics.ai"
+  },
+  {
+    "name": "Solana",
+    "tokens": [
+      "solana"
+    ],
+    "domains": [
+      "solana.com",
+      "solana.org",
+      "solanamobile.com"
+    ],
+    "x": "solana"
+  },
+  {
+    "name": "Ethereum",
+    "tokens": [
+      "ethereum"
+    ],
+    "domains": [
+      "ethereum.org",
+      "ethereum.foundation"
+    ],
+    "x": "ethereum"
+  },
+  {
+    "name": "Polygon",
+    "tokens": [
+      "polygon"
+    ],
+    "domains": [
+      "polygon.technology"
+    ],
+    "x": "0xPolygon"
+  },
+  {
+    "name": "Avalanche",
+    "tokens": [
+      "avalanche",
+      "avax"
+    ],
+    "domains": [
+      "avax.network",
+      "avalabs.org"
+    ],
+    "x": "avax"
+  },
+  {
+    "name": "Sui",
+    "tokens": [
+      "suinetwork"
+    ],
+    "domains": [
+      "sui.io"
+    ],
+    "x": "SuiNetwork"
+  },
+  {
+    "name": "Aptos",
+    "tokens": [
+      "aptos"
+    ],
+    "domains": [
+      "aptoslabs.com",
+      "aptosfoundation.org"
+    ],
+    "x": "Aptos"
+  },
+  {
+    "name": "TON",
+    "tokens": [
+      "toncoin",
+      "tonblockchain"
+    ],
+    "domains": [
+      "ton.org"
+    ],
+    "x": "ton_blockchain"
+  },
+  {
+    "name": "Tron",
+    "tokens": [
+      "tronnetwork",
+      "trondao"
+    ],
+    "domains": [
+      "tron.network",
+      "trondao.org"
+    ],
+    "x": "trondao"
+  },
+  {
+    "name": "Sei",
+    "tokens": [
+      "seinetwork"
+    ],
+    "domains": [
+      "sei.io"
+    ],
+    "x": "SeiNetwork"
+  },
+  {
+    "name": "Berachain",
+    "tokens": [
+      "berachain"
+    ],
+    "domains": [
+      "berachain.com"
+    ],
+    "x": "berachain"
+  },
+  {
+    "name": "Monad",
+    "tokens": [
+      "monad"
+    ],
+    "domains": [
+      "monad.xyz"
+    ],
+    "x": "monad"
+  },
+  {
+    "name": "NEAR",
+    "tokens": [
+      "nearprotocol"
+    ],
+    "domains": [
+      "near.org"
+    ],
+    "x": "NEARProtocol"
+  },
+  {
+    "name": "Celestia",
+    "tokens": [
+      "celestia"
+    ],
+    "domains": [
+      "celestia.org"
+    ],
+    "x": "celestia"
+  },
+  {
+    "name": "Mantle",
+    "tokens": [
+      "mantle"
+    ],
+    "domains": [
+      "mantle.xyz"
+    ],
+    "x": "Mantle_Official"
+  },
+  {
+    "name": "Cardano",
+    "tokens": [
+      "cardano"
+    ],
+    "domains": [
+      "cardano.org",
+      "iohk.io"
+    ],
+    "x": "Cardano"
+  },
+  {
+    "name": "Ripple / XRP",
+    "tokens": [
+      "ripple",
+      "xrpledger"
+    ],
+    "domains": [
+      "ripple.com",
+      "xrpl.org"
+    ],
+    "x": "Ripple"
+  },
+  {
+    "name": "Chainlink",
+    "tokens": [
+      "chainlink"
+    ],
+    "domains": [
+      "chain.link",
+      "chainlink.org"
+    ],
+    "x": "chainlink"
+  },
+  {
+    "name": "Trust Wallet",
+    "tokens": [
+      "trustwallet"
+    ],
+    "domains": [
+      "trustwallet.com"
+    ],
+    "x": "TrustWallet"
+  },
+  {
+    "name": "Backpack",
+    "tokens": [
+      "backpack"
+    ],
+    "domains": [
+      "backpack.app",
+      "backpack.exchange"
+    ],
+    "x": "Backpack"
+  },
+  {
+    "name": "Solflare",
+    "tokens": [
+      "solflare"
+    ],
+    "domains": [
+      "solflare.com"
+    ],
+    "x": "solflare"
+  },
+  {
+    "name": "Raydium",
+    "tokens": [
+      "raydium"
+    ],
+    "domains": [
+      "raydium.io"
+    ],
+    "x": "RaydiumProtocol"
+  },
+  {
+    "name": "Kraken",
+    "tokens": [
+      "kraken"
+    ],
+    "domains": [
+      "kraken.com"
+    ],
+    "x": "krakenfx"
+  },
+  {
+    "name": "OKX",
+    "tokens": [
+      "okxwallet",
+      "okxweb3"
+    ],
+    "domains": [
+      "okx.com"
+    ],
+    "x": "okx"
+  },
+  {
+    "name": "Bybit",
+    "tokens": [
+      "bybit"
+    ],
+    "domains": [
+      "bybit.com"
+    ],
+    "x": "Bybit_Official"
+  },
+  {
+    "name": "Paribu",
+    "tokens": [
+      "paribu"
+    ],
+    "domains": [
+      "paribu.com"
+    ],
+    "x": "paribucom"
+  },
+  {
+    "name": "BtcTurk",
+    "tokens": [
+      "btcturk"
+    ],
+    "domains": [
+      "btcturk.com"
+    ],
+    "x": "btcturk"
+  }
 ]

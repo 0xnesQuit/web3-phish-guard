@@ -122,6 +122,12 @@
   "sig_blocklist": {
     "message": "既知のフィッシングリストに含まれる（$1）"
   },
+  "sig_blocklist_sibling": {
+    "message": "同じホスト上の既知フィッシングサイトの兄弟（$1）"
+  },
+  "sig_address_in_url": {
+    "message": "URL にトークン／ウォレットアドレスを含む（個別化された誘導ページ）"
+  },
   "sig_action_strong": {
     "message": "ドメインに誘導ワード：「$1」"
   },

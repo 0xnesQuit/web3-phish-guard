@@ -122,6 +122,12 @@
   "sig_blocklist": {
     "message": "On a known phishing list ($1)"
   },
+  "sig_blocklist_sibling": {
+    "message": "Sibling of a listed phishing site on the same host ($1)"
+  },
+  "sig_address_in_url": {
+    "message": "Token or wallet address embedded in the URL (personalised bait page)"
+  },
   "sig_action_strong": {
     "message": "Bait words in the domain: \"$1\""
   },

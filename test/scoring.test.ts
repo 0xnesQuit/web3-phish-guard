@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parseHost, tokenize, levenshtein } from "../src/lib/hostname";
 import { score, BLOCK_THRESHOLD, WARN_THRESHOLD } from "../src/lib/scoring";
-import { extractDomains, normalizeDomain, parentDomains } from "../src/lib/blocklist";
+import { extractDomains, normalizeDomain, parentDomains, buildSiblingIndex, findSibling } from "../src/lib/blocklist";
 import { parseRegistration } from "../src/lib/rdap";
 import { mergeBrands, flattenTrusted } from "../src/lib/lists";
 import type { Brand, SignalLists } from "../src/lib/types";
@@ -268,6 +268,29 @@ describe("trusted infrastructure and blocklist confidence", () => {
   });
   it("user allowlist still wins over trusted/blocklist ordering", () => {
     expect(run("https://basescan.org/", { userAllowed: true, blocklistHit: "metamask" }).band).toBe("none");
+  });
+});
+
+describe("free-host rotation and bait URLs", () => {
+  it("drop-onsolana.netlify.app: Solana brand on a free host blocks", () => {
+    const v = run("https://drop-onsolana.netlify.app/?life=58jtv8poaytP8BtYk4BL6MEhrzXUxX41kpDfvrDqpump");
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["brand-impersonation", "free-host", "address-in-url"]));
+    expect(v.band).toBe("block");
+  });
+  it("sibling of a listed host on the same free host is near-block even without a brand", () => {
+    const v = run("https://drop-xyzproj.netlify.app/", { siblingHit: "airdrop-xyzproj.netlify.app" });
+    expect(v.signals.some((s) => s.id === "blocklist-sibling")).toBe(true);
+    expect(v.band).toBe("block");
+  });
+  it("sibling index: shared distinctive token on the same free host", () => {
+    const idx = buildSiblingIndex(["airdrop-onsolana.netlify.app", "claim-zamaai.pages.dev", "example.com"], ["netlify.app", "pages.dev"]);
+    expect(findSibling("drop-onsolana.netlify.app", idx)).toBe("airdrop-onsolana.netlify.app");
+    expect(findSibling("zamaai-rewards.pages.dev", idx)).toBe("claim-zamaai.pages.dev");
+    expect(findSibling("my-portfolio.netlify.app", idx)).toBeUndefined();
+    expect(findSibling("claim-other.netlify.app", idx)).toBeUndefined(); // "claim" alone is not distinctive
+  });
+  it("address in URL only counts on bait-ish pages", () => {
+    expect(run("https://github.com/0x1234567890123456789012345678901234567890/").signals.some((s) => s.id === "address-in-url")).toBe(false);
   });
 });
 

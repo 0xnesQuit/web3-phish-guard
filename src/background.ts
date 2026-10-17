@@ -1,7 +1,7 @@
 import { parseHost } from "./lib/hostname";
 import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
 import { loadStaticData } from "./lib/lists";
-import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, listStatus } from "./lib/blocklist";
+import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, listStatus } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick } from "./lib/origin";
@@ -36,8 +36,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 async function ensureReady() {
-  if (!isWarm()) await warmLists();
-  return loadStaticData();
+  const data = await loadStaticData();
+  if (!isWarm()) await warmLists([...data.lists.freeHostsStrong, ...data.lists.freeHostsWeak]);
+  return data;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,6 +56,7 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
     brands,
     lists,
     blocklistHit: blocklistHit(p.host),
+    siblingHit: siblingHit(p.host),
     allowlistHit: allowlistHit(p.host),
     userAllowed: userAllow.some((d) => p.host === d || p.host.endsWith("." + d)),
     ageDays: extra.ageDays,

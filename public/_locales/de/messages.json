@@ -122,6 +122,12 @@
   "sig_blocklist": {
     "message": "Auf einer bekannten Phishing-Liste ($1)"
   },
+  "sig_blocklist_sibling": {
+    "message": "Geschwister einer gelisteten Phishing-Seite auf demselben Host ($1)"
+  },
+  "sig_address_in_url": {
+    "message": "Token- oder Wallet-Adresse in der URL (personalisierte Köderseite)"
+  },
   "sig_action_strong": {
     "message": "Köderwörter in der Domain: \"$1\""
   },

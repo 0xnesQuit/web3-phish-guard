@@ -122,6 +122,12 @@
   "sig_blocklist": {
     "message": "ज्ञात फ़िशिंग सूची में ($1)"
   },
+  "sig_blocklist_sibling": {
+    "message": "उसी होस्ट पर सूचीबद्ध फ़िशिंग साइट का सहोदर ($1)"
+  },
+  "sig_address_in_url": {
+    "message": "URL में टोकन/वॉलेट पता (व्यक्तिगत लालच पेज)"
+  },
   "sig_action_strong": {
     "message": "डोमेन में लालच वाले शब्द: \"$1\""
   },

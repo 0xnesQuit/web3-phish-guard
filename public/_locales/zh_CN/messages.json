@@ -122,6 +122,12 @@
   "sig_blocklist": {
     "message": "位于已知钓鱼列表（$1）"
   },
+  "sig_blocklist_sibling": {
+    "message": "与同一托管上已列出的钓鱼站点同源（$1）"
+  },
+  "sig_address_in_url": {
+    "message": "URL 中嵌入代币或钱包地址（个性化诱饵页面）"
+  },
   "sig_action_strong": {
     "message": "域名中包含诱饵词：“$1”"
   },

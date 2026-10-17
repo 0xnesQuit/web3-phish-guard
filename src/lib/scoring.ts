@@ -9,6 +9,8 @@ export interface ScoreContext {
   lists: SignalLists;
   /** host matched an external blocklist (MetaMask / PhishDestroy / ...) */
   blocklistHit?: string;
+  /** a listed phishing host on the same free host shares a distinctive token with this one */
+  siblingHit?: string;
   /** host matched an external allowlist (MetaMask allowlist) */
   allowlistHit?: boolean;
   /** user explicitly trusted this registrable domain */
@@ -126,6 +128,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     signals.push({ id: "blocklist", weight: reviewed ? 100 : 50, key: "sig_blocklist", sub: [ctx.blocklistHit] });
   }
 
+  if (ctx.siblingHit && !ctx.blocklistHit) {
+    signals.push({ id: "blocklist-sibling", weight: 45, key: "sig_blocklist_sibling", sub: [ctx.siblingHit] });
+  }
+
   // ---- hostname heuristics ---------------------------------------------------
   const strongActions = tokens.filter((t) => ctx.lists.actionStrong.includes(t));
   const mediumActions = tokens.filter((t) => ctx.lists.actionMedium.includes(t));
@@ -180,6 +186,11 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   if (p.subLabels.length >= 3 || p.host.length > 40) {
     signals.push({ id: "long-host", weight: 5, key: "sig_long_host" });
+  }
+
+  // token / wallet address in the URL of a bait page ("?life=<pump.fun mint>", "/claim/0xabc...")
+  if ((hasAction || p.freeHost || matchedBrand) && /(0x[0-9a-f]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})/.test(url.split("://")[1]?.slice(p.host.length) ?? "")) {
+    signals.push({ id: "address-in-url", weight: 10, key: "sig_address_in_url" });
   }
 
   // ---- social origin ----------------------------------------------------------
