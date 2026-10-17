@@ -18,6 +18,6 @@ const t = JSON.parse(readFileSync("data/tlds.json", "utf8"));
 const lists = { actionStrong: a.strong, actionMedium: a.medium, freeHostsStrong: h.strong, freeHostsWeak: h.weak, tldStrong: t.strong, tldWeak: t.weak };
 for (const u of process.argv.slice(2)) {
   const p = mod.parseHost(u, [...h.strong, ...h.weak]);
-  const v = mod.score(u, p, { brands, lists });
+  const v = mod.score(u, p, { brands, lists, origin: process.env.ORIGIN ? { source: "x", at: 0, poster: process.env.POSTER, isReply: !!process.env.REPLY } : undefined });
   console.log(`${v.band.padEnd(5)} ${String(v.score).padStart(3)}  ${u}  ${v.brand ? "[" + v.brand + "]" : ""}  ${v.signals.filter(s=>s.weight).map(s=>s.id+"+"+s.weight).join(" ")}`);
 }
