@@ -80,6 +80,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   const allLabels = [...p.subLabels, p.domainLabel];
   const tokens = tokenize(allLabels);
+  const strippedTokens = tokens.map(stripCloneAffixes);
   const joined = allLabels.join("").toLowerCase().replace(/[^a-z0-9]/g, "");
 
   // ---- brand matching -----------------------------------------------------
@@ -102,7 +103,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
         const generic = GENERIC.has(tok) || tok.length < 5;
         // Curated brands: substring match in the whole hostname (catches pancakeswapclaim6754).
         // Auto-imported brands: whole-token match only ("yieldfi" must not match "yieldfields").
-        const substringOk = b.tier !== "generated" ? joined.includes(tok) : tokens.includes(tok);
+        // Auto-imported: whole token, or whole token after stripping clone affixes ("papertradefnd" -> "papertrade").
+        const substringOk = b.tier !== "generated" ? joined.includes(tok) : tokens.includes(tok) || strippedTokens.includes(tok);
         if (!generic && substringOk) {
           matchedBrand = b;
           brandSignalKind = b.domains.length ? "impersonation" : "unverified";

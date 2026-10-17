@@ -364,6 +364,13 @@ describe("papertrade ICO clone (unknown small project)", () => {
     expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["x-domain-mismatch", "poster-mismatch", "x-poster-weak"]));
     expect(v.score).toBe(100);
   });
+  it("generated brand matches after stripping clone affixes", () => {
+    const gen: Brand[] = [{ name: "Papertrade", tokens: ["papertrade"], domains: ["papertrade.xyz"], x: "papertrade_xyz" }];
+    const v = score(url, parseHost(url, freeHosts)!, { brands: mergeBrands(brands, gen), lists });
+    expect(v.signals.some((s) => s.id === "brand-impersonation-weak")).toBe(true);
+    expect(v.band).toBe("warn");
+    expect(score(url, parseHost(url, freeHosts)!, { brands: mergeBrands(brands, gen), lists, ageDays: 0 }).band).toBe("block");
+  });
   it("clone handle shape never fires on a clean host", () => {
     expect(run("https://github.com/", { origin: { source: "x", at: 0, poster: "someone_fdn_" } }).signals.some((s) => s.id === "poster-name")).toBe(false);
   });
