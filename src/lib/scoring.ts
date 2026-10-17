@@ -30,6 +30,19 @@ const SOURCE_LABEL: Record<OriginContext["source"], string> = {
 /** Hostname tokens that are too generic to count as a brand on their own */
 const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "shop", "home", "info", "base", "blast", "scroll", "across", "blur", "eigen", "pudgy", "jupiter", "phantom", "ledger", "linea", "zama", "zora", "tensor", "highlight", "manifold", "optimism"]);
 
+/** "papertradefnd" -> "papertrade", "officialzama" -> "zama": clones glue affixes onto the real name. */
+export function stripCloneAffixes(token: string): string {
+  const AFFIX = ["foundation", "official", "finance", "protocol", "network", "labs", "team", "dao", "fnd", "fdn", "app", "xyz", "eth", "sol", "ico", "ido", "token", "coin", "portal", "claim", "drop", "io"];
+  let t = token.toLowerCase();
+  for (let pass = 0; pass < 2; pass++) {
+    for (const a of AFFIX) {
+      if (t.length - a.length >= 4 && t.endsWith(a)) { t = t.slice(0, -a.length); break; }
+      if (t.length - a.length >= 4 && t.startsWith(a)) { t = t.slice(a.length); break; }
+    }
+  }
+  return t;
+}
+
 export function bandOf(score: number): Band {
   if (score >= BLOCK_THRESHOLD) return "block";
   if (score >= WARN_THRESHOLD) return "warn";
@@ -132,6 +145,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     signals.push({ id: "blocklist-sibling", weight: 45, key: "sig_blocklist_sibling", sub: [ctx.siblingHit] });
   }
 
+  const fresh = ctx.ageDays !== undefined && ctx.ageDays < 30;
+
   // ---- hostname heuristics ---------------------------------------------------
   const strongActions = tokens.filter((t) => ctx.lists.actionStrong.includes(t));
   const mediumActions = tokens.filter((t) => ctx.lists.actionMedium.includes(t));
@@ -197,8 +212,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     signals.push({ id: "long-host", weight: 5, key: "sig_long_host" });
   }
 
-  // bait word in the path of an already suspicious host: coinmarketcap.evil.app/vote, brand-clone.xyz/claim
-  if (brandFlagged || p.freeHost) {
+  // bait word in the path of an already suspicious host: coinmarketcap.evil.app/vote, brand-clone.xyz/claim, 0-day-old.xyz/register
+  if (brandFlagged || p.freeHost || fresh) {
     const path = (url.split("://")[1]?.slice(p.host.length) ?? "").split(/[?#]/)[0].toLowerCase();
     const seg = path.split("/").filter(Boolean)[0] ?? "";
     if (seg && (ctx.lists.actionStrong.includes(seg) || ctx.lists.actionMedium.includes(seg))) {
@@ -217,6 +232,12 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   if (o) {
     signals.push({ id: "origin-social", weight: 10, key: "sig_origin_social", sub: [SOURCE_LABEL[o.source]] });
     const poster = o.poster?.toLowerCase().replace(/^@/, "");
+    // Clone-handle shapes: brand + fdn/fnd/foundation/official/team..., trailing "_" or digits (@papertrade_fdn_, @Uniswap_2)
+    const CLONE_HANDLE = /(claim|airdrop|drop|reward|official|support|mint|giveaway|bonus|fdn|fnd|foundation|team|labs|ico|presale|sale|launch|promo|help|verify)/i;
+    const cloneShape = !!poster && (CLONE_HANDLE.test(poster) || /[_]$/.test(poster) || /[a-z]_?\d{1,3}$/.test(poster) || /__/.test(poster));
+    if (poster && cloneShape && (hasAction || fresh || brandFlagged || p.freeHost) && !(matchedBrand && brandFlagged && matchedBrand.x)) {
+      signals.push({ id: "poster-name", weight: 15, key: "sig_poster_name", sub: ["@" + poster] });
+    }
     if (matchedBrand && brandFlagged && poster) {
       const official = matchedBrand.x?.toLowerCase().replace(/^@/, "");
       // a poster whose handle carries the brand's own token is not "someone else" (yieldfields_rh vs yieldfields.fun)
@@ -225,8 +246,6 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       const posterCarriesHost = label.length >= 6 && poster.replace(/[^a-z0-9]/g, "").includes(label);
       if (official && poster !== official && !posterCarriesHost) {
         signals.push({ id: "poster-mismatch", weight: matchedBrand.tier === "generated" ? 15 : 30, key: "sig_poster_mismatch", sub: ["@" + poster, "@" + official] });
-      } else if (!official && /(claim|airdrop|drop|reward|official|support|mint|giveaway|bonus)/i.test(poster)) {
-        signals.push({ id: "poster-name", weight: 15, key: "sig_poster_name", sub: ["@" + poster] });
       }
     }
     if (o.isReply && (hasAction || matchedBrand)) {
@@ -250,17 +269,17 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       // the project's own X account links to exactly this domain: treat like an official domain
       signals.push({ id: "x-domain-match", weight: -100, key: "sig_x_domain_match", sub: ["@" + off.handle] });
       xCleared = true;
-    } else if (!hostMatches && off.domains.length && (brandFlagged || hasAction)) {
+    } else if (!hostMatches && off.domains.length && (brandFlagged || hasAction || fresh)) {
       signals.push({ id: "x-domain-mismatch", weight: 25, key: "sig_x_domain_mismatch", sub: ["@" + off.handle, off.domains[0]] });
     }
     const poster = o?.poster?.toLowerCase().replace(/^@/, "");
-    if (poster && poster !== off.handle.toLowerCase() && !hostMatches && (brandFlagged || hasAction)) {
+    if (poster && poster !== off.handle.toLowerCase() && !hostMatches && (brandFlagged || hasAction || fresh)) {
       if (!signals.some((s) => s.id === "poster-mismatch")) {
         signals.push({ id: "poster-mismatch", weight: 30, key: "sig_poster_mismatch", sub: ["@" + poster, "@" + off.handle] });
       }
     }
   }
-  if (xi?.poster && o?.poster && !xCleared && (hasAction || brandFlagged)) {
+  if (xi?.poster && o?.poster && !xCleared && (hasAction || brandFlagged || fresh || o.display)) {
     const pp = xi.poster;
     const young = pp.ageDays !== undefined && pp.ageDays < 30;
     if (young || pp.followers < 100) {
@@ -292,10 +311,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // Which name should the X layer look up? The matched brand token, else the most brand-like hostname token.
   if (!ctx.x && !ctx.blocklistHit && v.score >= floor) {
     const actionSet = new Set([...ctx.lists.actionStrong, ...ctx.lists.actionMedium]);
-    const candidate = matchedBrand
+    const raw = matchedBrand
       ? matchedBrand.tokens.find((t) => joined.includes(t.toLowerCase())) ?? matchedBrand.tokens[0]
       : tokens.filter((t) => t.length >= 5 && !actionSet.has(t) && !GENERIC.has(t)).sort((a, b) => b.length - a.length)[0];
-    if (candidate) v.xToken = candidate;
+    if (raw) v.xToken = stripCloneAffixes(raw);
   }
   return v;
 }

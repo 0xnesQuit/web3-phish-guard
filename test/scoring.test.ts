@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parseHost, tokenize, levenshtein } from "../src/lib/hostname";
-import { score, BLOCK_THRESHOLD, WARN_THRESHOLD } from "../src/lib/scoring";
+import { score, BLOCK_THRESHOLD, WARN_THRESHOLD, stripCloneAffixes } from "../src/lib/scoring";
 import { extractDomains, normalizeDomain, parentDomains, buildSiblingIndex, findSibling } from "../src/lib/blocklist";
 import { parseRegistration } from "../src/lib/rdap";
 import { mergeBrands, flattenTrusted, brandsFromTrusted } from "../src/lib/lists";
@@ -335,6 +335,37 @@ describe("brand as subdomain of an unrelated domain", () => {
   it("trusted-derived brands skip generic labels", () => {
     const names = brandsFromTrusted(["blockchain.com", "crypto.com", "coinmarketcap.com", "app.ens.domains", "base.org"]).map((b) => b.name);
     expect(names).toEqual(["coinmarketcap"]);
+  });
+});
+
+describe("papertrade ICO clone (unknown small project)", () => {
+  const url = "https://ico-papertradefnd.xyz/register/";
+  it("fresh domain + ico + clone handle from X blocks even without a known brand", () => {
+    const v = run(url, { ageDays: 0, origin: { source: "x", at: 0, poster: "papertrade_fdn_" } });
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["action-strong", "age-7", "poster-name", "action-path", "origin-social"]));
+    expect(v.band).toBe("block");
+  });
+  it("with the card's shown domain the mismatch alone is decisive", () => {
+    const v = run(url, { origin: { source: "x", at: 0, poster: "papertrade_fdn_", display: "papertrade.xyz" } });
+    expect(v.signals.some((s) => s.id === "display-mismatch")).toBe(true);
+    expect(v.band).toBe("block");
+  });
+  it("without any X context it is still a warning once the age is known", () => {
+    expect(run(url, { ageDays: 0 }).band).toBe("warn");
+  });
+  it("X token strips clone affixes so the real project is searched", () => {
+    expect(run(url, { ageDays: 0 }).xToken).toBe("papertrade");
+    expect(stripCloneAffixes("officialzama")).toBe("zama");
+    expect(stripCloneAffixes("uniswap")).toBe("uniswap");
+    expect(stripCloneAffixes("pumpfun")).toBe("pumpfun"); // "fun" is not an affix, pump.fun stays
+  });
+  it("X resolver: official @papertrade_xyz links papertrade.xyz, poster differs", () => {
+    const v = run(url, { ageDays: 0, origin: { source: "x", at: 0, poster: "papertrade_fdn_" }, x: { token: "papertrade", confidence: 0.7, official: { handle: "papertrade_xyz", domains: ["papertrade.xyz"], followers: 12000 }, poster: { handle: "papertrade_fdn_", followers: 40, ageDays: 5, domains: [] } } });
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["x-domain-mismatch", "poster-mismatch", "x-poster-weak"]));
+    expect(v.score).toBe(100);
+  });
+  it("clone handle shape never fires on a clean host", () => {
+    expect(run("https://github.com/", { origin: { source: "x", at: 0, poster: "someone_fdn_" } }).signals.some((s) => s.id === "poster-name")).toBe(false);
   });
 });
 

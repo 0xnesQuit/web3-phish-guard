@@ -17,7 +17,11 @@
     "giveaway",
     "bonus",
     "distribution",
-    "snapshot"
+    "snapshot",
+    "ico",
+    "ido",
+    "tge",
+    "fairlaunch"
   ],
   "medium": [
     "bridge",
@@ -57,6 +61,26 @@
     "winners",
     "winner",
     "prize",
-    "prizes"
+    "prizes",
+    "kyc",
+    "listing",
+    "public",
+    "round",
+    "fundraise",
+    "invest",
+    "investment",
+    "sale",
+    "token",
+    "tokens",
+    "form",
+    "apply",
+    "application",
+    "join",
+    "access",
+    "early",
+    "beta",
+    "alpha",
+    "signup",
+    "waitlist"
   ]
 }
