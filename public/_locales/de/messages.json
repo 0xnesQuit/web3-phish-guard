@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "Köderwörter in der Domain: \"$1\""
   },
+  "sig_action_path": {
+    "message": "Köderpfad auf verdächtigem Host ($1)"
+  },
   "sig_action_medium": {
     "message": "Domain enthält \"$1\""
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "Trägt den Namen \"$1\", ist aber nicht dessen offizielle Domain ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\" ist nur ein Subdomain-Label; die eigentliche Seite ist $2"
   },
   "sig_brand_typo": {
     "message": "Ein-Buchstaben-Imitation von \"$1\""

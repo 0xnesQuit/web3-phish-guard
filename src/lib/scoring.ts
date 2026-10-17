@@ -175,6 +175,14 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     }
   }
 
+  // brand as a subdomain of an unrelated registrable domain: coinmarketcap.communityphase.app, metamask.evil.xyz
+  if (matchedBrand && brandFlagged && p.subLabels.length) {
+    const subJoined = p.subLabels.join("").toLowerCase();
+    if (matchedBrand.tokens.some((tk) => tk.length >= 5 && subJoined.includes(tk.toLowerCase()))) {
+      signals.push({ id: "brand-subdomain", weight: 15, key: "sig_brand_subdomain", sub: [matchedBrand.name, p.registrable] });
+    }
+  }
+
   // digits glued to words: pancakeswapclaim6754, claim-arb2
   if (/[a-z]\d{2,}/.test(p.domainLabel.replace(/-/g, "")) && (hasAction || matchedBrand)) {
     signals.push({ id: "digits", weight: 10, key: "sig_digits" });
@@ -187,6 +195,15 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   if (p.subLabels.length >= 3 || p.host.length > 40) {
     signals.push({ id: "long-host", weight: 5, key: "sig_long_host" });
+  }
+
+  // bait word in the path of an already suspicious host: coinmarketcap.evil.app/vote, brand-clone.xyz/claim
+  if (brandFlagged || p.freeHost) {
+    const path = (url.split("://")[1]?.slice(p.host.length) ?? "").split(/[?#]/)[0].toLowerCase();
+    const seg = path.split("/").filter(Boolean)[0] ?? "";
+    if (seg && (ctx.lists.actionStrong.includes(seg) || ctx.lists.actionMedium.includes(seg))) {
+      signals.push({ id: "action-path", weight: 10, key: "sig_action_path", sub: ["/" + seg] });
+    }
   }
 
   // token / wallet address in the URL of a bait page ("?life=<pump.fun mint>", "/claim/0xabc...")

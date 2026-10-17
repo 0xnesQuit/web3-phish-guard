@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "डोमेन में लालच वाले शब्द: \"$1\""
   },
+  "sig_action_path": {
+    "message": "संदिग्ध होस्ट पर लालच वाला पथ ($1)"
+  },
   "sig_action_medium": {
     "message": "डोमेन में \"$1\" है"
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "\"$1\" नाम है लेकिन यह उसका आधिकारिक डोमेन नहीं ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\" केवल एक सबडोमेन है; असली साइट $2 है"
   },
   "sig_brand_typo": {
     "message": "\"$1\" की एक अक्षर बदली नकल"

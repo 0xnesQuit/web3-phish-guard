@@ -34,7 +34,13 @@ function isExternalLink(a: HTMLAnchorElement): boolean {
 /** The domain the link *shows* to the user, if its text looks like a URL. */
 function textHost(a: HTMLAnchorElement): string | null {
   const text = (a.textContent || "").trim().replace(/…$/, "");
-  const m = text.match(/^(?:https?:\/\/)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)/i);
+  let m = text.match(/^(?:https?:\/\/)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)/i);
+  if (!m) {
+    // link-preview cards: the only domain-like text is the "From coinmarketcap.com" / "Kaynak: ..." line,
+    // which X fills from the page's own metadata and scammers spoof
+    const card = a.closest('[data-testid="card.wrapper"]') ?? a;
+    m = (card.textContent || "").match(/(?:^|\s)((?:[a-z0-9-]+\.)+[a-z]{2,})(?=\s|$)/i);
+  }
   if (!m) return null;
   const h = m[1].toLowerCase();
   if (/(^|\.)(x\.com|twitter\.com|t\.co|pic\.twitter\.com)$/.test(h)) return null;

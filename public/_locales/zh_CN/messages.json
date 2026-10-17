@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "域名中包含诱饵词：“$1”"
   },
+  "sig_action_path": {
+    "message": "可疑主机上的诱饵路径（$1）"
+  },
   "sig_action_medium": {
     "message": "域名包含“$1”"
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "包含“$1”名称但并非其官方域名（$2）"
+  },
+  "sig_brand_subdomain": {
+    "message": "“$1”只是子域名标签；真正的站点是 $2"
   },
   "sig_brand_typo": {
     "message": "与“$1”仅一字之差的仿冒"

@@ -4,10 +4,12 @@ import { parseHost, tokenize, levenshtein } from "../src/lib/hostname";
 import { score, BLOCK_THRESHOLD, WARN_THRESHOLD } from "../src/lib/scoring";
 import { extractDomains, normalizeDomain, parentDomains, buildSiblingIndex, findSibling } from "../src/lib/blocklist";
 import { parseRegistration } from "../src/lib/rdap";
-import { mergeBrands, flattenTrusted } from "../src/lib/lists";
+import { mergeBrands, flattenTrusted, brandsFromTrusted } from "../src/lib/lists";
 import type { Brand, SignalLists } from "../src/lib/types";
 
-const brands = JSON.parse(readFileSync("data/brands.seed.json", "utf8")) as Brand[];
+const seedOnly = JSON.parse(readFileSync("data/brands.seed.json", "utf8")) as Brand[];
+const trustedJsonEarly = JSON.parse(readFileSync("data/trusted.json", "utf8"));
+const brands: Brand[] = [...seedOnly, ...brandsFromTrusted(flattenTrusted(trustedJsonEarly))];
 const actions = JSON.parse(readFileSync("data/action-words.json", "utf8"));
 const hosts = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
 const tlds = JSON.parse(readFileSync("data/tlds.json", "utf8"));
@@ -313,6 +315,26 @@ describe("deceptive link text", () => {
   it("mismatch alone on a plain domain is a warning, not a block", () => {
     const v = run("https://some-blog.com/", { origin: { source: "x", at: 0, display: "jup.ag" } });
     expect(v.band).toBe("warn");
+  });
+});
+
+describe("brand as subdomain of an unrelated domain", () => {
+  it("coinmarketcap.communityphase.app/vote?contract=0x... is blocked", () => {
+    const v = run("https://coinmarketcap.communityphase.app/vote?contract=0xded852De9fe9bA9b6f27f39e8e81CF851A5C79cc");
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["brand-impersonation", "brand-subdomain", "address-in-url"]));
+    expect(v.band).toBe("block");
+  });
+  it("metamask.evil.xyz warns at least", () => {
+    expect(run("https://metamask.evil.xyz/").band).not.toBe("none");
+  });
+  it("trusted domains themselves and their subdomains stay clean", () => {
+    for (const u of ["https://coinmarketcap.com/currencies/x", "https://pro.coinmarketcap.com/", "https://www.coingecko.com/", "https://accounts.binance.com/"]) {
+      expect(run(u).band, u).toBe("none");
+    }
+  });
+  it("trusted-derived brands skip generic labels", () => {
+    const names = brandsFromTrusted(["blockchain.com", "crypto.com", "coinmarketcap.com", "app.ens.domains", "base.org"]).map((b) => b.name);
+    expect(names).toEqual(["coinmarketcap"]);
   });
 });
 

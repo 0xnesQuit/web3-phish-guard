@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "Palabras señuelo en el dominio: \"$1\""
   },
+  "sig_action_path": {
+    "message": "Ruta señuelo en un host sospechoso ($1)"
+  },
   "sig_action_medium": {
     "message": "El dominio contiene \"$1\""
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "Lleva el nombre \"$1\" pero no es su dominio oficial ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\" es solo un subdominio; el sitio real es $2"
   },
   "sig_brand_typo": {
     "message": "Imitación de \"$1\" con una letra cambiada"

@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "Bait words in the domain: \"$1\""
   },
+  "sig_action_path": {
+    "message": "Bait path on a suspicious host ($1)"
+  },
   "sig_action_medium": {
     "message": "Domain contains \"$1\""
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "Carries the \"$1\" name but is not its official domain ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\" is only a subdomain label; the real site is $2"
   },
   "sig_brand_typo": {
     "message": "One-letter imitation of \"$1\""

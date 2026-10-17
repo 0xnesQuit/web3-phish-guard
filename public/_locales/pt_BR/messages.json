@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "Palavras-isca no domínio: \"$1\""
   },
+  "sig_action_path": {
+    "message": "Caminho-isca em host suspeito ($1)"
+  },
   "sig_action_medium": {
     "message": "O domínio contém \"$1\""
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "Usa o nome \"$1\" mas não é o domínio oficial ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\" é apenas um subdomínio; o site real é $2"
   },
   "sig_brand_typo": {
     "message": "Imitação de \"$1\" com uma letra trocada"

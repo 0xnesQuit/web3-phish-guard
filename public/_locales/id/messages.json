@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "Kata umpan di domain: \"$1\""
   },
+  "sig_action_path": {
+    "message": "Jalur umpan pada host mencurigakan ($1)"
+  },
   "sig_action_medium": {
     "message": "Domain mengandung \"$1\""
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "Memakai nama \"$1\" tetapi bukan domain resminya ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\" hanya label subdomain; situs sebenarnya $2"
   },
   "sig_brand_typo": {
     "message": "Tiruan \"$1\" dengan satu huruf berbeda"

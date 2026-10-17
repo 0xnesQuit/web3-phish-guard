@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "ドメインに誘導ワード：「$1」"
   },
+  "sig_action_path": {
+    "message": "疑わしいホスト上の誘導パス（$1）"
+  },
   "sig_action_medium": {
     "message": "ドメインに「$1」を含む"
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "「$1」の名前を含むが公式ドメインではない（$2）"
+  },
+  "sig_brand_subdomain": {
+    "message": "「$1」はサブドメインに過ぎず、実際のサイトは $2"
   },
   "sig_brand_typo": {
     "message": "「$1」の一文字違いの偽装"

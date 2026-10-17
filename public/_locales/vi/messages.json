@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "Từ mồi nhử trong tên miền: \"$1\""
   },
+  "sig_action_path": {
+    "message": "Đường dẫn mồi nhử trên máy chủ đáng ngờ ($1)"
+  },
   "sig_action_medium": {
     "message": "Tên miền chứa \"$1\""
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "Mang tên \"$1\" nhưng không phải tên miền chính thức ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\" chỉ là tên miền phụ; trang thật là $2"
   },
   "sig_brand_typo": {
     "message": "Giả mạo \"$1\" chỉ khác một ký tự"

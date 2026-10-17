@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "Alan adında tuzak kelimeler: \"$1\""
   },
+  "sig_action_path": {
+    "message": "Şüpheli alan adında tuzak yol ($1)"
+  },
   "sig_action_medium": {
     "message": "Alan adında \"$1\" kelimesi"
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "\"$1\" adını taşıyor ama resmi alan adı değil ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\" sadece alt alan adı; gerçek site $2"
   },
   "sig_brand_typo": {
     "message": "\"$1\" adının bir harf farklı taklidi"

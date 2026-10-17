@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "도메인에 미끼 단어: \"$1\""
   },
+  "sig_action_path": {
+    "message": "의심스러운 호스트의 미끼 경로 ($1)"
+  },
   "sig_action_medium": {
     "message": "도메인에 \"$1\" 포함"
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "\"$1\" 이름을 사용하지만 공식 도메인이 아님 ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "\"$1\"은(는) 하위 도메인일 뿐이며 실제 사이트는 $2"
   },
   "sig_brand_typo": {
     "message": "\"$1\"의 한 글자 변형 모방"

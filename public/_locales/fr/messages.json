@@ -131,6 +131,9 @@
   "sig_action_strong": {
     "message": "Mots d'appât dans le domaine : « $1 »"
   },
+  "sig_action_path": {
+    "message": "Chemin d'appât sur un hôte suspect ($1)"
+  },
   "sig_action_medium": {
     "message": "Le domaine contient « $1 »"
   },
@@ -145,6 +148,9 @@
   },
   "sig_brand_impersonation": {
     "message": "Porte le nom « $1 » mais n'est pas son domaine officiel ($2)"
+  },
+  "sig_brand_subdomain": {
+    "message": "« $1 » n'est qu'un sous-domaine ; le vrai site est $2"
   },
   "sig_brand_typo": {
     "message": "Imitation de « $1 » à une lettre près"

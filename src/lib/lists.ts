@@ -24,11 +24,12 @@ export async function loadStaticData(): Promise<{ brands: Brand[]; lists: Signal
     loadJson<{ strong: string[]; weak: string[] }>("data/tlds.json"),
     loadJson<Record<string, string[] | string>>("data/trusted.json"),
   ]);
-  const brands = mergeBrands(seed ?? [], [...(generated ?? []), ...(nft ?? [])]);
+  const trustedList = flattenTrusted(trusted);
+  const brands = mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? [])]);
   cache = {
     brands,
     lists: {
-      trusted: flattenTrusted(trusted),
+      trusted: trustedList,
       actionStrong: actions?.strong ?? [],
       actionMedium: actions?.medium ?? [],
       freeHostsStrong: hosts?.strong ?? [],
@@ -38,6 +39,26 @@ export async function loadStaticData(): Promise<{ brands: Brand[]; lists: Signal
     },
   };
   return cache;
+}
+
+const TRUSTED_GENERIC = new Set(["rainbow", "phantom", "backpack", "exodus", "family", "frame", "magic", "dynamic", "brave", "gemini", "upside", "sonic", "mode", "spark", "sky", "blast", "shape", "world", "blockchain", "crypto", "wallet", "bridge", "explorer", "swap", "exchange", "network", "protocol", "finance", "foundation", "portal", "relay", "jumper", "family", "frame", "magic", "dynamic", "privy", "spark", "across", "scroll", "blast", "mode", "base", "zora", "blur", "tensor", "manifold", "highlight", "foundation", "superrare", "rarible", "github", "google", "apple", "microsoft", "cloudflare", "vercel", "netlify", "youtube", "discord", "telegram", "twitter", "medium", "notion", "gitbook", "mirror", "paragraph", "snapshot", "tally", "cookie", "kaito", "dune", "sky", "curve", "balancer", "matcha", "odos", "meteora", "photon", "axiom", "bullx", "gmgn", "pump", "relay", "socket", "bungee", "hop", "stargate", "wormhole", "portalbridge", "safe", "gnosis", "ens", "unstoppabledomains", "ipfs", "pinata", "alchemy", "infura", "quicknode", "helius", "thegraph", "chainlink", "chain", "sonic", "mantle", "linea", "monad", "sei", "celestia", "cosmos", "polkadot", "near", "ton", "tron", "sui", "aptoslabs", "avax", "bnbchain", "polygon", "optimism", "arbitrum", "solana", "ethereum", "revolut", "etoro", "robinhood", "moonpay", "transak", "ramp", "tradingview", "messari", "glassnode", "santiment", "mempool", "blockchair", "oklink", "3xpl", "routescan", "blockscout", "subscan", "mintscan", "tonscan", "tonviewer", "tronscan", "suiscan", "suivision", "aptoscan", "starkscan", "voyager", "seitrace", "hypurrscan", "cardanoscan", "sonarscan", "xray", "era", "explorer", "app"]);
+
+/**
+ * Every trusted domain also acts as a curated brand: "coinmarketcap.communityphase.app" must read as an
+ * impersonation of coinmarketcap.com. Labels that are ordinary words or chain names already covered by the
+ * seed list are skipped.
+ */
+export function brandsFromTrusted(trusted: string[]): Brand[] {
+  const out: Brand[] = [];
+  const seen = new Set<string>();
+  for (const d of trusted) {
+    const parts = d.split(".");
+    const label = (parts.length > 2 && parts[0].length < 6 ? parts[1] : parts[0]).toLowerCase();
+    if (label.length < 6 || TRUSTED_GENERIC.has(label) || seen.has(label)) continue;
+    seen.add(label);
+    out.push({ name: label, tokens: [label], domains: [d], tier: "seed" });
+  }
+  return out;
 }
 
 export function flattenTrusted(json: Record<string, string[] | string> | null): string[] {
