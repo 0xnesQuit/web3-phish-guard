@@ -346,6 +346,11 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     const disp = o.display?.toLowerCase();
     if (disp && disp !== p.host && !isUnderDomain(p.host, disp) && !isUnderDomain(disp, p.registrable)) {
       signals.push({ id: "display-mismatch", weight: 40, key: "sig_display_mismatch", sub: [o.display!] });
+      // The card borrowed a real project's domain ("Kaynak: artblocks.io" -> qql-desk.com): impersonation by proxy.
+      const borrowed = ctx.brands.find((b) => b.domains.some((d) => isUnderDomain(disp, d))) ?? (ctx.lists.trusted.some((d) => isUnderDomain(disp, d)) ? { name: disp } : undefined);
+      if (borrowed) signals.push({ id: "display-brand-mismatch", weight: 25, key: "sig_display_brand_mismatch", sub: [borrowed.name] });
+      // ...and hid the real destination behind a shortener: nothing legitimate needs both
+      if (o.shortener) signals.push({ id: "display-shortener", weight: 15, key: "sig_display_shortener", sub: [o.shortener] });
     }
   }
 

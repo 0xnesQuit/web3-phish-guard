@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "Partagé en réponse (schéma du faux lien sous une annonce officielle)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "La carte affiche l'adresse de $1 mais ouvre un autre site"
+  },
+  "sig_display_shortener": {
+    "message": "La vraie destination est cachée derrière un raccourcisseur ($1)"
+  },
   "sig_display_mismatch": {
     "message": "L'adresse affichée sur X ($1) diffère de celle ouverte"
   },

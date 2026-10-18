@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "Compartido como respuesta (patrón de enlace falso bajo un anuncio oficial)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "La tarjeta muestra la dirección de $1 pero abre otro sitio"
+  },
+  "sig_display_shortener": {
+    "message": "El destino real está oculto tras un acortador ($1)"
+  },
   "sig_display_mismatch": {
     "message": "La dirección mostrada en X ($1) difiere de la abierta"
   },

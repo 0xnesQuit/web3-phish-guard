@@ -548,6 +548,14 @@ describe("X resolver signals", () => {
     const young = run("https://yieldfields.fun/whitelist", { ageDays: 5, origin: { source: "x", at: 0, poster: "YieldFields_RH" }, x: { token: "yieldfields", confidence: 0.8, official } });
     expect(young.signals.some((s) => s.id === "x-domain-match")).toBe(false);
   });
+  it("an X card that borrows a real project's domain and hides the target behind a shortener blocks (qql-desk.com, 2026-10-19)", () => {
+    const v = run("https://qql-desk.com/", { origin: { source: "x", at: 0, display: "artblocks.io", shortener: "tinyurl.com" } });
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["display-mismatch", "display-brand-mismatch", "display-shortener"]));
+    expect(v.band).toBe("block");
+    // the same deception without a known brand behind the shown domain still warns loudly
+    const unknown = run("https://some-desk.com/", { origin: { source: "x", at: 0, display: "unknown-project.io", shortener: "tinyurl.com" } });
+    expect(unknown.score).toBeGreaterThanOrEqual(60);
+  });
   it("official account links elsewhere -> mismatch on a bait domain", () => {
     const v = run("https://yieldfields-claim.xyz/", { origin: { source: "x", at: 0, poster: "yf_claims" }, x: { token: "yieldfields", confidence: 0.6, official } });
     expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["x-domain-mismatch", "poster-mismatch"]));

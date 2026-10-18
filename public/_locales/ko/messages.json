@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "답글로 공유됨 (공식 공지 아래 가짜 링크 패턴)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "카드는 $1 주소를 보여주지만 다른 곳이 열립니다"
+  },
+  "sig_display_shortener": {
+    "message": "실제 목적지가 단축 링크($1) 뒤에 숨겨져 있습니다"
+  },
   "sig_display_mismatch": {
     "message": "X에 표시된 주소($1)와 열린 주소가 다름"
   },

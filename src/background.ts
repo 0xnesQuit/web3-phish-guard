@@ -289,10 +289,15 @@ async function deepScan(tabId: number, language: string): Promise<DeepReport | {
   return report;
 }
 
-/** Pure hostname scoring for the X timeline badges: no RDAP, no tab state. */
+/** Hostname scoring for the X timeline badges: no tab state; a registry age lookup (cached) only for undecided hosts. */
 async function scoreHostOnly(host: string, ctx: Partial<OriginContext>): Promise<{ band: string; score: number; signals: Signal[] } | null> {
-  const v = await evaluate(`https://${host}/`, { origin: { source: "x", at: Date.now(), ...ctx } });
+  const origin = { source: "x" as const, at: Date.now(), ...ctx };
+  let v = await evaluate(`https://${host}/`, { origin });
   if (!v) return null;
+  if (v.needsAgeCheck || v.band === "warn") {
+    const ageDays = await domainAgeDays(v.registrable).catch(() => undefined);
+    if (ageDays !== undefined) v = (await evaluate(`https://${host}/`, { origin, ageDays })) ?? v;
+  }
   return { band: v.band, score: v.score, signals: v.signals.filter((s) => s.weight > 0) };
 }
 
@@ -613,12 +618,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const href = String(msg.href);
         let target = "";
         try { target = new URL(href).hostname.toLowerCase(); } catch { sendResponse(null); return; }
+        const ctx = { ...((msg.ctx ?? {}) as Partial<OriginContext>) };
         if (isShortener(target)) {
           const finalUrl = await resolveRedirect(href);
           if (!finalUrl) { sendResponse(null); return; }
+          ctx.shortener = target;
           try { target = new URL(finalUrl).hostname.toLowerCase(); } catch { sendResponse(null); return; }
         }
-        const r = await scoreHostOnly(target, (msg.ctx ?? {}) as Partial<OriginContext>);
+        const r = await scoreHostOnly(target, ctx);
         sendResponse(r ? { ...r, host: target } : null);
         return;
       }

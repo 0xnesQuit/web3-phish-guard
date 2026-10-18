@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "以回复形式发布（官方公告下的假领取链接模式）"
   },
+  "sig_display_brand_mismatch": {
+    "message": "卡片显示的是 $1 的地址，却打开了别的网站"
+  },
+  "sig_display_shortener": {
+    "message": "真实目标被短链接 ($1) 隐藏"
+  },
   "sig_display_mismatch": {
     "message": "X 上显示的地址（$1）与实际打开的不同"
   },

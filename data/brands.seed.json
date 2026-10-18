@@ -753,5 +753,35 @@
       "btcturk.com"
     ],
     "x": "btcturk"
+  },
+  {
+    "name": "Art Blocks",
+    "tokens": [
+      "artblocks"
+    ],
+    "domains": [
+      "artblocks.io"
+    ],
+    "x": "artblocks_io"
+  },
+  {
+    "name": "QQL",
+    "tokens": [
+      "qql"
+    ],
+    "domains": [
+      "qql.art"
+    ],
+    "x": "qql_art"
+  },
+  {
+    "name": "Fidenza",
+    "tokens": [
+      "fidenza"
+    ],
+    "domains": [
+      "tylerxhobbs.com"
+    ],
+    "x": "tylerxhobbs"
   }
 ]

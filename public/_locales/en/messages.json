@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "Shared as a reply (fake claim link under an official announcement pattern)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "The card borrowed $1's address but opens somewhere else"
+  },
+  "sig_display_shortener": {
+    "message": "The real destination was hidden behind a link shortener ($1)"
+  },
   "sig_display_mismatch": {
     "message": "The address shown on X ($1) differs from the one opened"
   },

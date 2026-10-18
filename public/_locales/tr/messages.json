@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "Yanıt olarak paylaşılmış (resmi duyurunun altına sahte claim linki kalıbı)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "Kart $1 adresini gösteriyor ama başka bir yere açılıyor"
+  },
+  "sig_display_shortener": {
+    "message": "Gerçek hedef bir kısa link ($1) arkasına gizlenmiş"
+  },
   "sig_display_mismatch": {
     "message": "X'te gösterilen adres ($1) ile açılan adres farklı"
   },

@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "返信として共有（公式告知の下に偽リンクを置く手口）"
   },
+  "sig_display_brand_mismatch": {
+    "message": "カードは $1 のアドレスを表示していますが別のサイトが開きます"
+  },
+  "sig_display_shortener": {
+    "message": "本当のリンク先が短縮リンク ($1) の裏に隠されています"
+  },
   "sig_display_mismatch": {
     "message": "X に表示されたアドレス（$1）と開いたものが異なる"
   },

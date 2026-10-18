@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "Als Antwort geteilt (Muster: gefälschter Claim-Link unter offizieller Ankündigung)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "Die Karte zeigt die Adresse von $1, öffnet aber eine andere Seite"
+  },
+  "sig_display_shortener": {
+    "message": "Das eigentliche Ziel ist hinter einem Link-Kürzer ($1) versteckt"
+  },
   "sig_display_mismatch": {
     "message": "Die auf X angezeigte Adresse ($1) weicht von der geöffneten ab"
   },

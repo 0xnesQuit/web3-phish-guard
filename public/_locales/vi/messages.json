@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "Chia sẻ dưới dạng trả lời (mẫu liên kết giả dưới thông báo chính thức)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "Thẻ hiển thị địa chỉ của $1 nhưng mở trang khác"
+  },
+  "sig_display_shortener": {
+    "message": "Đích thật bị giấu sau liên kết rút gọn ($1)"
+  },
   "sig_display_mismatch": {
     "message": "Địa chỉ hiển thị trên X ($1) khác với địa chỉ mở"
   },

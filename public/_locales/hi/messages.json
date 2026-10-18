@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "रिप्लाई के रूप में साझा (आधिकारिक घोषणा के नीचे नकली लिंक पैटर्न)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "कार्ड $1 का पता दिखाता है लेकिन कहीं और खुलता है"
+  },
+  "sig_display_shortener": {
+    "message": "असली गंतव्य एक लिंक शॉर्टनर ($1) के पीछे छिपा है"
+  },
   "sig_display_mismatch": {
     "message": "X पर दिखाया पता ($1) खुले पते से अलग है"
   },

@@ -299,6 +299,12 @@
   "sig_poster_reply": {
     "message": "Dibagikan sebagai balasan (pola tautan palsu di bawah pengumuman resmi)"
   },
+  "sig_display_brand_mismatch": {
+    "message": "Kartu menampilkan alamat $1 tetapi membuka situs lain"
+  },
+  "sig_display_shortener": {
+    "message": "Tujuan sebenarnya disembunyikan di balik pemendek tautan ($1)"
+  },
   "sig_display_mismatch": {
     "message": "Alamat yang ditampilkan di X ($1) berbeda dari yang dibuka"
   },
