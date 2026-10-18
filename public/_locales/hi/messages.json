@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "साझा करने वाला खाता $1 कमज़ोर: $2 फ़ॉलोअर, $3 दिन पुराना"
   },
+  "sig_tx_eoa_spender": {
+    "message": "अनुमति/permit किसी कॉन्ट्रैक्ट को नहीं, सादे वॉलेट पते ($1) को: क्लासिक ड्रेनर"
+  },
+  "sig_tx_poisoning": {
+    "message": "प्राप्तकर्ता पहले वाले जैसा दिखता है पर बीच में अलग है (address poisoning)"
+  },
+  "sig_tx_delegation": {
+    "message": "EIP-7702 डेलीगेशन: आपके पूरे वॉलेट का नियंत्रण एक कॉन्ट्रैक्ट को देता है"
+  },
+  "sig_tx_eth_send": {
+    "message": "एक पते पर ETH भेजता है"
+  },
+  "sig_sol_batch": {
+    "message": "Solana: एक साथ कई लेनदेन साइन करने को कहा"
+  },
+  "sig_fake_wallet": {
+    "message": "एक वॉलेट प्रोवाइडर झूठी पहचान बता रहा है ($1)"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "स्टोर लिस्टिंग वॉलेट जैसा नाम रखती है (\"$1\") पर आधिकारिक एक्सटेंशन नहीं"
+  },
+  "sig_clickfix": {
+    "message": "पेज ने क्लिपबोर्ड में सिस्टम कमांड कॉपी किया (\"$1\"); कहीं भी पेस्ट न करें"
+  },
+  "sig_clipboard_swap": {
+    "message": "पेज ने कॉपी किए गए पते को दूसरे से बदल दिया ($1)"
+  },
+  "sig_seed_phrase": {
+    "message": "इस पेज पर रिकवरी फ्रेज़ टाइप किया गया"
+  },
+  "sig_private_key": {
+    "message": "इस पेज पर निजी कुंजी टाइप की गई"
+  },
+  "sig_wc_modal": {
+    "message": "WalletConnect QR मोडल खोलता है (मोबाइल वॉलेट पेज-सुरक्षा के बाहर हैं)"
+  },
+  "sig_gate_rejected": {
+    "message": "आपने इस पेज के खतरनाक वॉलेट अनुरोध को अस्वीकार किया"
+  },
+  "gate_title": {
+    "message": "वॉलेट अनुरोध रोका गया"
+  },
+  "gate_sub": {
+    "message": "यह पेज आपके वॉलेट से ऐसा कुछ माँग रहा है जो बाद में आपकी संपत्ति ले जा सकता है। साइट जोखिम: $1/100।"
+  },
+  "gate_request": {
+    "message": "अनुरोध"
+  },
+  "gate_counterparty": {
+    "message": "प्राप्तकर्ता / खर्च करने वाला"
+  },
+  "gate_eoa": {
+    "message": "सादा वॉलेट पता, कॉन्ट्रैक्ट नहीं"
+  },
+  "gate_unlimited": {
+    "message": "असीमित राशि: यह टोकन पूरा अभी या बाद में ले सकता है"
+  },
+  "gate_poison": {
+    "message": "यह पता आपके पहले वाले पते ($1) की नकल है: address poisoning"
+  },
+  "gate_batch": {
+    "message": "बैच कॉल: $1"
+  },
+  "gate_no_click": {
+    "message": "आपके क्लिक के बिना ट्रिगर हुआ"
+  },
+  "gate_reject": {
+    "message": "अस्वीकार करें (अनुशंसित)"
+  },
+  "gate_allow": {
+    "message": "इस बार अनुमति दें"
+  },
+  "gate_kind_approve": {
+    "message": "टोकन खर्च की अनुमति"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "असीमित टोकन खर्च की अनुमति"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "एक संग्रह के आपके सभी NFT के लिए ऑपरेटर अनुमति"
+  },
+  "gate_kind_permit2": {
+    "message": "Permit/Permit2 हस्ताक्षर (बिना लेनदेन टोकन ट्रांसफर अधिकार)"
+  },
+  "gate_kind_permit": {
+    "message": "Permit हस्ताक्षर (टोकन ट्रांसफर अधिकार)"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Permit2 बैच हस्ताक्षर (कई टोकन एक साथ)"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "PermitForAll हस्ताक्षर (सभी NFT)"
+  },
+  "gate_kind_seaport_order": {
+    "message": "मार्केटप्लेस ऑर्डर हस्ताक्षर (Seaport)"
+  },
+  "gate_kind_blur_order": {
+    "message": "मार्केटप्लेस ऑर्डर हस्ताक्षर (Blur)"
+  },
+  "gate_kind_delegation": {
+    "message": "डेलीगेशन हस्ताक्षर"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702: पूरा खाता एक कॉन्ट्रैक्ट को सौंपना"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign: कच्चा हस्ताक्षर जो कुछ भी अधिकृत कर सकता है"
+  },
+  "gate_kind_transfer": {
+    "message": "टोकन ट्रांसफर"
+  },
+  "gate_kind_transferFrom": {
+    "message": "आपके वॉलेट से टोकन/NFT ट्रांसफर"
+  },
+  "gate_kind_eth_send": {
+    "message": "ETH ट्रांसफर"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "अज्ञात कॉन्ट्रैक्ट कॉल में ETH देता है"
+  },
+  "seed_title": {
+    "message": "रुकें: यह पेज आपका रिकवरी फ्रेज़ माँग रहा है"
+  },
+  "key_title": {
+    "message": "रुकें: यह पेज आपकी निजी कुंजी माँग रहा है"
+  },
+  "seed_body": {
+    "message": "कोई वेबसाइट, सपोर्ट एजेंट, एयरड्रॉप, माइग्रेशन या \"वॉलेट सिंक\" इसे कभी नहीं माँगता। जिसके पास यह है, वॉलेट की हर चीज़ उसकी है।"
+  },
+  "seed_body2": {
+    "message": "यदि आपने इसे यहाँ डाल दिया है, तो तुरंत अपनी संपत्ति नए वॉलेट में ले जाएँ।"
+  },
+  "seed_leave": {
+    "message": "इस पेज को छोड़ें"
+  },
+  "seed_stay": {
+    "message": "मैं जोखिम समझता हूँ, रहें"
+  },
   "sig_sol_sign": {
     "message": "Solana लेनदेन हस्ताक्षर का अनुरोध ($1)"
   }

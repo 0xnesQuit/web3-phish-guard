@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "Akun pembagi $1 lemah: $2 pengikut, berusia $3 hari"
   },
+  "sig_tx_eoa_spender": {
+    "message": "Persetujuan/permit ke alamat dompet biasa ($1), bukan kontrak: drainer klasik"
+  },
+  "sig_tx_poisoning": {
+    "message": "Penerima mirip alamat lama tapi berbeda di tengah (address poisoning)"
+  },
+  "sig_tx_delegation": {
+    "message": "Delegasi EIP-7702: menyerahkan kendali seluruh dompet ke kontrak"
+  },
+  "sig_tx_eth_send": {
+    "message": "Mengirim ETH ke sebuah alamat"
+  },
+  "sig_sol_batch": {
+    "message": "Solana: meminta menandatangani beberapa transaksi sekaligus"
+  },
+  "sig_fake_wallet": {
+    "message": "Penyedia dompet mengumumkan identitas palsu ($1)"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "Entri toko bernama seperti dompet (\"$1\") tetapi bukan ekstensi resmi"
+  },
+  "sig_clickfix": {
+    "message": "Halaman menyalin perintah sistem ke clipboard (\"$1\"); jangan tempel di mana pun"
+  },
+  "sig_clipboard_swap": {
+    "message": "Halaman mengganti alamat yang Anda salin dengan alamat lain ($1)"
+  },
+  "sig_seed_phrase": {
+    "message": "Frasa pemulihan diketik di halaman ini"
+  },
+  "sig_private_key": {
+    "message": "Kunci privat diketik di halaman ini"
+  },
+  "sig_wc_modal": {
+    "message": "Membuka modal QR WalletConnect (dompet seluler di luar perlindungan halaman)"
+  },
+  "sig_gate_rejected": {
+    "message": "Anda menolak permintaan dompet berbahaya dari halaman ini"
+  },
+  "gate_title": {
+    "message": "Permintaan dompet ditahan"
+  },
+  "gate_sub": {
+    "message": "Halaman ini meminta dompet Anda sesuatu yang dapat memindahkan aset nanti. Risiko situs: $1/100."
+  },
+  "gate_request": {
+    "message": "Permintaan"
+  },
+  "gate_counterparty": {
+    "message": "Penerima / pembelanja"
+  },
+  "gate_eoa": {
+    "message": "alamat dompet biasa, bukan kontrak"
+  },
+  "gate_unlimited": {
+    "message": "Jumlah tak terbatas: bisa mengambil seluruh token ini sekarang atau nanti"
+  },
+  "gate_poison": {
+    "message": "Alamat ini meniru alamat yang pernah Anda pakai ($1): address poisoning"
+  },
+  "gate_batch": {
+    "message": "Panggilan batch: $1"
+  },
+  "gate_no_click": {
+    "message": "Dipicu tanpa klik Anda"
+  },
+  "gate_reject": {
+    "message": "Tolak (disarankan)"
+  },
+  "gate_allow": {
+    "message": "Izinkan sekali ini"
+  },
+  "gate_kind_approve": {
+    "message": "Izin pengeluaran token"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "Izin pengeluaran token tak terbatas"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "Persetujuan operator untuk SEMUA NFT Anda di koleksi"
+  },
+  "gate_kind_permit2": {
+    "message": "Tanda tangan Permit/Permit2 (wewenang transfer token tanpa transaksi)"
+  },
+  "gate_kind_permit": {
+    "message": "Tanda tangan Permit (wewenang transfer token)"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Tanda tangan batch Permit2 (beberapa token)"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "Tanda tangan PermitForAll (semua NFT)"
+  },
+  "gate_kind_seaport_order": {
+    "message": "Tanda tangan order marketplace (Seaport)"
+  },
+  "gate_kind_blur_order": {
+    "message": "Tanda tangan order marketplace (Blur)"
+  },
+  "gate_kind_delegation": {
+    "message": "Tanda tangan delegasi"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702: menyerahkan seluruh akun ke kontrak"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign: tanda tangan mentah yang bisa mengotorisasi apa saja"
+  },
+  "gate_kind_transfer": {
+    "message": "Transfer token"
+  },
+  "gate_kind_transferFrom": {
+    "message": "Transfer token/NFT dari dompet Anda"
+  },
+  "gate_kind_eth_send": {
+    "message": "Transfer ETH"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "Membayar ETH ke pemanggilan kontrak tak dikenal"
+  },
+  "seed_title": {
+    "message": "Berhenti: halaman ini meminta frasa pemulihan Anda"
+  },
+  "key_title": {
+    "message": "Berhenti: halaman ini meminta kunci privat Anda"
+  },
+  "seed_body": {
+    "message": "Tidak ada situs, agen dukungan, airdrop, migrasi, atau \"sinkronisasi dompet\" yang membutuhkannya. Siapa pun yang memilikinya memiliki semua isi dompet."
+  },
+  "seed_body2": {
+    "message": "Jika Anda sudah memasukkannya di sini, segera pindahkan dana ke dompet baru."
+  },
+  "seed_leave": {
+    "message": "Tinggalkan halaman ini"
+  },
+  "seed_stay": {
+    "message": "Saya paham risikonya, tetap di sini"
+  },
   "sig_sol_sign": {
     "message": "Permintaan tanda tangan transaksi Solana ($1)"
   }

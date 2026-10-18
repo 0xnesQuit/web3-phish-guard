@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "La cuenta que compartió $1 es débil: $2 seguidores, $3 días"
   },
+  "sig_tx_eoa_spender": {
+    "message": "Aprobación/permit a una dirección de billetera simple ($1), no a un contrato: drainer clásico"
+  },
+  "sig_tx_poisoning": {
+    "message": "El destinatario parece uno anterior pero difiere en el medio (address poisoning)"
+  },
+  "sig_tx_delegation": {
+    "message": "Delegación EIP-7702: cede el control total de tu billetera a un contrato"
+  },
+  "sig_tx_eth_send": {
+    "message": "Envía ETH a una dirección"
+  },
+  "sig_sol_batch": {
+    "message": "Solana: pide firmar varias transacciones a la vez"
+  },
+  "sig_fake_wallet": {
+    "message": "Un proveedor de billetera anuncia una identidad falsa ($1)"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "La ficha se llama como una billetera (\"$1\") pero no es la extensión oficial"
+  },
+  "sig_clickfix": {
+    "message": "La página copió un comando del sistema al portapapeles (\"$1\"); no lo pegues en ningún sitio"
+  },
+  "sig_clipboard_swap": {
+    "message": "La página sustituyó la dirección copiada por otra ($1)"
+  },
+  "sig_seed_phrase": {
+    "message": "Se escribió una frase de recuperación en esta página"
+  },
+  "sig_private_key": {
+    "message": "Se escribió una clave privada en esta página"
+  },
+  "sig_wc_modal": {
+    "message": "Abre un modal QR de WalletConnect (las billeteras móviles quedan fuera de la protección en página)"
+  },
+  "sig_gate_rejected": {
+    "message": "Rechazaste una solicitud de billetera peligrosa de esta página"
+  },
+  "gate_title": {
+    "message": "Solicitud de billetera en espera"
+  },
+  "gate_sub": {
+    "message": "Esta página pide a tu billetera algo que puede mover tus activos más tarde. Riesgo del sitio: $1/100."
+  },
+  "gate_request": {
+    "message": "Solicitud"
+  },
+  "gate_counterparty": {
+    "message": "Destinatario / gastador"
+  },
+  "gate_eoa": {
+    "message": "dirección de billetera simple, no un contrato"
+  },
+  "gate_unlimited": {
+    "message": "Importe ilimitado: podría llevarse todo este token ahora o después"
+  },
+  "gate_poison": {
+    "message": "Esta dirección imita una que usaste antes ($1): address poisoning"
+  },
+  "gate_batch": {
+    "message": "Llamadas agrupadas: $1"
+  },
+  "gate_no_click": {
+    "message": "Se activó sin un clic tuyo"
+  },
+  "gate_reject": {
+    "message": "Rechazar (recomendado)"
+  },
+  "gate_allow": {
+    "message": "Permitir esta vez"
+  },
+  "gate_kind_approve": {
+    "message": "Aprobación de gasto de tokens"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "Aprobación ilimitada de gasto de tokens"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "Aprobación de operador para TODOS tus NFT de una colección"
+  },
+  "gate_kind_permit2": {
+    "message": "Firma Permit/Permit2 (autoridad para transferir tokens sin transacción)"
+  },
+  "gate_kind_permit": {
+    "message": "Firma Permit (autoridad para transferir tokens)"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Firma Permit2 por lotes (varios tokens a la vez)"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "Firma PermitForAll (todos los NFT)"
+  },
+  "gate_kind_seaport_order": {
+    "message": "Firma de orden de mercado (Seaport)"
+  },
+  "gate_kind_blur_order": {
+    "message": "Firma de orden de mercado (Blur)"
+  },
+  "gate_kind_delegation": {
+    "message": "Firma de delegación"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702: entregar toda tu cuenta a un contrato"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign: firma en bruto que puede autorizar cualquier cosa"
+  },
+  "gate_kind_transfer": {
+    "message": "Transferencia de tokens"
+  },
+  "gate_kind_transferFrom": {
+    "message": "Transferencia de token/NFT desde tu billetera"
+  },
+  "gate_kind_eth_send": {
+    "message": "Transferencia de ETH"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "Paga ETH a una llamada de contrato desconocida"
+  },
+  "seed_title": {
+    "message": "Alto: esta página quiere tu frase de recuperación"
+  },
+  "key_title": {
+    "message": "Alto: esta página quiere tu clave privada"
+  },
+  "seed_body": {
+    "message": "Ningún sitio web, agente de soporte, airdrop, migración o \"sincronización de billetera\" la necesita. Quien la tenga posee todo lo que hay en la billetera."
+  },
+  "seed_body2": {
+    "message": "Si ya la introdujiste aquí, mueve tus fondos a una billetera nueva de inmediato."
+  },
+  "seed_leave": {
+    "message": "Salir de esta página"
+  },
+  "seed_stay": {
+    "message": "Entiendo el riesgo, quedarme"
+  },
   "sig_sol_sign": {
     "message": "Se solicitó firmar una transacción de Solana ($1)"
   }

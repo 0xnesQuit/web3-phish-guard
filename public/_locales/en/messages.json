@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "Sharing account $1 is weak: $2 followers, $3 days old"
   },
+  "sig_tx_eoa_spender": {
+    "message": "Approval / permit to a plain wallet address ($1), not a contract: classic drainer"
+  },
+  "sig_tx_poisoning": {
+    "message": "Recipient looks like one you used before but differs in the middle (address poisoning)"
+  },
+  "sig_tx_delegation": {
+    "message": "EIP-7702 account delegation: hands control of your whole wallet to a contract"
+  },
+  "sig_tx_eth_send": {
+    "message": "Sends ETH to an address"
+  },
+  "sig_sol_batch": {
+    "message": "Solana: asked to sign several transactions at once"
+  },
+  "sig_fake_wallet": {
+    "message": "A wallet provider announces a false identity ($1)"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "Store listing named like a wallet (\"$1\") but it is not the official extension"
+  },
+  "sig_clickfix": {
+    "message": "The page copied a system command to your clipboard (\"$1\"); never paste it anywhere"
+  },
+  "sig_clipboard_swap": {
+    "message": "The page replaced the address you copied with another one ($1)"
+  },
+  "sig_seed_phrase": {
+    "message": "A recovery phrase was typed into this page"
+  },
+  "sig_private_key": {
+    "message": "A private key was typed into this page"
+  },
+  "sig_wc_modal": {
+    "message": "Opens a WalletConnect QR modal (mobile wallets are not covered by the on-page guard)"
+  },
+  "sig_gate_rejected": {
+    "message": "You rejected a dangerous wallet request from this page"
+  },
+  "gate_title": {
+    "message": "Wallet request on hold"
+  },
+  "gate_sub": {
+    "message": "This page is asking your wallet for something that can move your assets later. Site risk: $1/100."
+  },
+  "gate_request": {
+    "message": "Request"
+  },
+  "gate_counterparty": {
+    "message": "Recipient / spender"
+  },
+  "gate_eoa": {
+    "message": "plain wallet address, not a contract"
+  },
+  "gate_unlimited": {
+    "message": "Unlimited amount: it could take all of this token, now or later"
+  },
+  "gate_poison": {
+    "message": "This address imitates one you used before ($1): address poisoning"
+  },
+  "gate_batch": {
+    "message": "Batched calls: $1"
+  },
+  "gate_no_click": {
+    "message": "Triggered without a click from you"
+  },
+  "gate_reject": {
+    "message": "Reject (recommended)"
+  },
+  "gate_allow": {
+    "message": "Allow this once"
+  },
+  "gate_kind_approve": {
+    "message": "Token spending approval"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "Unlimited token spending approval"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "Operator approval for ALL your NFTs in a collection"
+  },
+  "gate_kind_permit2": {
+    "message": "Permit / Permit2 signature (token transfer authority without a transaction)"
+  },
+  "gate_kind_permit": {
+    "message": "Permit signature (token transfer authority)"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Permit2 batch signature (several tokens at once)"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "PermitForAll signature (all NFTs)"
+  },
+  "gate_kind_seaport_order": {
+    "message": "Marketplace order signature (Seaport)"
+  },
+  "gate_kind_blur_order": {
+    "message": "Marketplace order signature (Blur)"
+  },
+  "gate_kind_delegation": {
+    "message": "Delegation signature"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702: hand your whole account to a contract"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign: raw signature that can authorize anything"
+  },
+  "gate_kind_transfer": {
+    "message": "Token transfer"
+  },
+  "gate_kind_transferFrom": {
+    "message": "Token / NFT transfer from your wallet"
+  },
+  "gate_kind_eth_send": {
+    "message": "ETH transfer"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "Pays ETH into an unknown contract call"
+  },
+  "seed_title": {
+    "message": "Stop: this page wants your recovery phrase"
+  },
+  "key_title": {
+    "message": "Stop: this page wants your private key"
+  },
+  "seed_body": {
+    "message": "No website, support agent, airdrop, migration or \"wallet sync\" ever needs it. Anyone who has it owns everything in the wallet."
+  },
+  "seed_body2": {
+    "message": "If you already entered it here, move your funds to a new wallet immediately."
+  },
+  "seed_leave": {
+    "message": "Leave this page"
+  },
+  "seed_stay": {
+    "message": "I understand the risk, stay"
+  },
   "sig_sol_sign": {
     "message": "Solana transaction signing requested ($1)"
   }

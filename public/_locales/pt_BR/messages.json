@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "A conta que compartilhou $1 é fraca: $2 seguidores, $3 dias"
   },
+  "sig_tx_eoa_spender": {
+    "message": "Aprovação/permit para um endereço de carteira comum ($1), não um contrato: drainer clássico"
+  },
+  "sig_tx_poisoning": {
+    "message": "O destinatário parece um anterior mas difere no meio (address poisoning)"
+  },
+  "sig_tx_delegation": {
+    "message": "Delegação EIP-7702: entrega o controle total da carteira a um contrato"
+  },
+  "sig_tx_eth_send": {
+    "message": "Envia ETH para um endereço"
+  },
+  "sig_sol_batch": {
+    "message": "Solana: pede para assinar várias transações de uma vez"
+  },
+  "sig_fake_wallet": {
+    "message": "Um provedor de carteira anuncia identidade falsa ($1)"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "A listagem tem nome de carteira (\"$1\") mas não é a extensão oficial"
+  },
+  "sig_clickfix": {
+    "message": "A página copiou um comando do sistema para a área de transferência (\"$1\"); nunca cole"
+  },
+  "sig_clipboard_swap": {
+    "message": "A página trocou o endereço copiado por outro ($1)"
+  },
+  "sig_seed_phrase": {
+    "message": "Uma frase de recuperação foi digitada nesta página"
+  },
+  "sig_private_key": {
+    "message": "Uma chave privada foi digitada nesta página"
+  },
+  "sig_wc_modal": {
+    "message": "Abre um modal QR do WalletConnect (carteiras móveis ficam fora da proteção na página)"
+  },
+  "sig_gate_rejected": {
+    "message": "Você recusou uma solicitação de carteira perigosa desta página"
+  },
+  "gate_title": {
+    "message": "Solicitação de carteira em espera"
+  },
+  "gate_sub": {
+    "message": "Esta página pede à sua carteira algo que pode mover seus ativos depois. Risco do site: $1/100."
+  },
+  "gate_request": {
+    "message": "Solicitação"
+  },
+  "gate_counterparty": {
+    "message": "Destinatário / gastador"
+  },
+  "gate_eoa": {
+    "message": "endereço de carteira comum, não um contrato"
+  },
+  "gate_unlimited": {
+    "message": "Valor ilimitado: pode levar todo este token agora ou depois"
+  },
+  "gate_poison": {
+    "message": "Este endereço imita um que você já usou ($1): address poisoning"
+  },
+  "gate_batch": {
+    "message": "Chamadas em lote: $1"
+  },
+  "gate_no_click": {
+    "message": "Disparado sem um clique seu"
+  },
+  "gate_reject": {
+    "message": "Recusar (recomendado)"
+  },
+  "gate_allow": {
+    "message": "Permitir desta vez"
+  },
+  "gate_kind_approve": {
+    "message": "Aprovação de gasto de tokens"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "Aprovação ilimitada de gasto de tokens"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "Aprovação de operador para TODOS os seus NFTs de uma coleção"
+  },
+  "gate_kind_permit2": {
+    "message": "Assinatura Permit/Permit2 (autoridade de transferência sem transação)"
+  },
+  "gate_kind_permit": {
+    "message": "Assinatura Permit (autoridade de transferência)"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Assinatura Permit2 em lote (vários tokens de uma vez)"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "Assinatura PermitForAll (todos os NFTs)"
+  },
+  "gate_kind_seaport_order": {
+    "message": "Assinatura de ordem de marketplace (Seaport)"
+  },
+  "gate_kind_blur_order": {
+    "message": "Assinatura de ordem de marketplace (Blur)"
+  },
+  "gate_kind_delegation": {
+    "message": "Assinatura de delegação"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702: entregar toda a sua conta a um contrato"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign: assinatura bruta que pode autorizar qualquer coisa"
+  },
+  "gate_kind_transfer": {
+    "message": "Transferência de tokens"
+  },
+  "gate_kind_transferFrom": {
+    "message": "Transferência de token/NFT da sua carteira"
+  },
+  "gate_kind_eth_send": {
+    "message": "Transferência de ETH"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "Paga ETH em uma chamada de contrato desconhecida"
+  },
+  "seed_title": {
+    "message": "Pare: esta página quer sua frase de recuperação"
+  },
+  "key_title": {
+    "message": "Pare: esta página quer sua chave privada"
+  },
+  "seed_body": {
+    "message": "Nenhum site, suporte, airdrop, migração ou \"sincronização de carteira\" precisa dela. Quem a tem é dono de tudo na carteira."
+  },
+  "seed_body2": {
+    "message": "Se você já a digitou aqui, mova seus fundos para uma nova carteira imediatamente."
+  },
+  "seed_leave": {
+    "message": "Sair desta página"
+  },
+  "seed_stay": {
+    "message": "Entendo o risco, ficar"
+  },
   "sig_sol_sign": {
     "message": "Assinatura de transação Solana solicitada ($1)"
   }

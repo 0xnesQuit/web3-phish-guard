@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "Paylaşan hesap $1 zayıf: $2 takipçi, $3 günlük"
   },
+  "sig_tx_eoa_spender": {
+    "message": "Onay/permit bir kontrata değil düz bir cüzdan adresine ($1) veriliyor: klasik drainer"
+  },
+  "sig_tx_poisoning": {
+    "message": "Alıcı adres daha önce kullandığınıza benziyor ama ortası farklı (address poisoning)"
+  },
+  "sig_tx_delegation": {
+    "message": "EIP-7702 hesap devri: cüzdanınızın tüm kontrolünü bir kontrata veriyor"
+  },
+  "sig_tx_eth_send": {
+    "message": "Bir adrese ETH gönderiyor"
+  },
+  "sig_sol_batch": {
+    "message": "Solana: tek seferde birden fazla işlem imzalatmak istiyor"
+  },
+  "sig_fake_wallet": {
+    "message": "Bir cüzdan sağlayıcısı sahte kimlik bildiriyor ($1)"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "Mağaza kaydı bir cüzdan adı taşıyor (\"$1\") ama resmi uzantı değil"
+  },
+  "sig_clickfix": {
+    "message": "Sayfa panonuza bir sistem komutu kopyaladı (\"$1\"); asla bir yere yapıştırmayın"
+  },
+  "sig_clipboard_swap": {
+    "message": "Sayfa kopyaladığınız adresi başka bir adresle değiştirdi ($1)"
+  },
+  "sig_seed_phrase": {
+    "message": "Bu sayfaya bir kurtarma ifadesi (seed) girildi"
+  },
+  "sig_private_key": {
+    "message": "Bu sayfaya bir özel anahtar girildi"
+  },
+  "sig_wc_modal": {
+    "message": "WalletConnect QR penceresi açıyor (mobil cüzdanlar sayfa içi korumanın dışında)"
+  },
+  "sig_gate_rejected": {
+    "message": "Bu sayfadan gelen tehlikeli bir cüzdan isteğini reddettiniz"
+  },
+  "gate_title": {
+    "message": "Cüzdan isteği bekletiliyor"
+  },
+  "gate_sub": {
+    "message": "Bu sayfa cüzdanınızdan, varlıklarınızı sonradan taşıyabilecek bir şey istiyor. Site riski: $1/100."
+  },
+  "gate_request": {
+    "message": "İstek"
+  },
+  "gate_counterparty": {
+    "message": "Alıcı / harcayıcı"
+  },
+  "gate_eoa": {
+    "message": "kontrat değil, düz cüzdan adresi"
+  },
+  "gate_unlimited": {
+    "message": "Sınırsız miktar: bu token'ın tamamını şimdi veya sonra alabilir"
+  },
+  "gate_poison": {
+    "message": "Bu adres daha önce kullandığınız bir adresi ($1) taklit ediyor: address poisoning"
+  },
+  "gate_batch": {
+    "message": "Toplu çağrılar: $1"
+  },
+  "gate_no_click": {
+    "message": "Sizin bir tıklamanız olmadan tetiklendi"
+  },
+  "gate_reject": {
+    "message": "Reddet (önerilen)"
+  },
+  "gate_allow": {
+    "message": "Bu seferlik izin ver"
+  },
+  "gate_kind_approve": {
+    "message": "Token harcama izni"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "Sınırsız token harcama izni"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "Bir koleksiyondaki TÜM NFT'leriniz için operatör izni"
+  },
+  "gate_kind_permit2": {
+    "message": "Permit / Permit2 imzası (işlem olmadan token transfer yetkisi)"
+  },
+  "gate_kind_permit": {
+    "message": "Permit imzası (token transfer yetkisi)"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Permit2 toplu imza (birden fazla token birden)"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "PermitForAll imzası (tüm NFT'ler)"
+  },
+  "gate_kind_seaport_order": {
+    "message": "Pazar yeri sipariş imzası (Seaport)"
+  },
+  "gate_kind_blur_order": {
+    "message": "Pazar yeri sipariş imzası (Blur)"
+  },
+  "gate_kind_delegation": {
+    "message": "Devir imzası"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702: tüm hesabınızı bir kontrata devretme"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign: her şeyi yetkilendirebilen ham imza"
+  },
+  "gate_kind_transfer": {
+    "message": "Token transferi"
+  },
+  "gate_kind_transferFrom": {
+    "message": "Cüzdanınızdan token / NFT transferi"
+  },
+  "gate_kind_eth_send": {
+    "message": "ETH transferi"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "Bilinmeyen bir kontrat çağrısına ETH ödüyor"
+  },
+  "seed_title": {
+    "message": "Dur: bu sayfa kurtarma ifadenizi istiyor"
+  },
+  "key_title": {
+    "message": "Dur: bu sayfa özel anahtarınızı istiyor"
+  },
+  "seed_body": {
+    "message": "Hiçbir web sitesi, destek görevlisi, airdrop, taşıma veya \"cüzdan senkronu\" buna ihtiyaç duymaz. Elinde olan herkes cüzdandaki her şeyin sahibi olur."
+  },
+  "seed_body2": {
+    "message": "Buraya zaten girdiyseniz paranızı hemen yeni bir cüzdana taşıyın."
+  },
+  "seed_leave": {
+    "message": "Bu sayfadan çık"
+  },
+  "seed_stay": {
+    "message": "Riski anlıyorum, kal"
+  },
   "sig_sol_sign": {
     "message": "Solana işlem imzası istendi ($1)"
   }

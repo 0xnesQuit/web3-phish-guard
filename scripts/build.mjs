@@ -26,6 +26,7 @@ const ctxs = await Promise.all([
   esbuild.context({ ...common, entryPoints: ["src/content/referrer.ts"], outfile: `${outdir}/referrer.js` }),
   esbuild.context({ ...common, entryPoints: ["src/content/x-watch.ts"], outfile: `${outdir}/x-watch.js` }),
   esbuild.context({ ...common, entryPoints: ["src/content/page-scan.ts"], outfile: `${outdir}/page-scan.js` }),
+  esbuild.context({ ...common, entryPoints: ["src/content/seed-guard.ts"], outfile: `${outdir}/seed-guard.js` }),
   esbuild.context({ ...common, entryPoints: ["src/pages/warning.ts"], outfile: `${outdir}/warning.js` }),
   esbuild.context({ ...common, entryPoints: ["src/pages/popup.ts"], outfile: `${outdir}/popup.js` }),
   esbuild.context({ ...common, entryPoints: ["src/pages/options.ts"], outfile: `${outdir}/options.js` }),

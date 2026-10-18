@@ -286,6 +286,36 @@ async function showWarning(tabId: number, v: Verdict) {
   await chrome.tabs.update(tabId, { url: `${WARNING_PAGE}?n=${nonce}` }).catch(() => undefined);
 }
 
+/** Official extension ids of major wallets on the Chrome Web Store; a listing named like a wallet with another id is a counterfeit. */
+const WALLET_STORE_IDS: Array<[RegExp, string[]]> = [
+  [/metamask/i, ["nkbihfbeogaeaoehlefnkodbefgpgknn"]],
+  [/phantom/i, ["bfnaelmomeimhlpmgjnjophhpkkoljpa"]],
+  [/coinbase/i, ["hnfanknocfeofbddgcijnmhnfnkdnaad"]],
+  [/rabby/i, ["acmacodkjbdgmoleebolmdjonilkdbch"]],
+  [/okx/i, ["mcohilncbfahbmgdjkbpemcciiolgcge"]],
+  [/trust ?wallet/i, ["egjidjbpglichdcondbcbdnbeeppgdph"]],
+  [/keplr/i, ["dmkamcknogkgcdfhhbddcghachkejeap"]],
+  [/backpack/i, ["aflkmfhebedbjioipglgcbcmnbpgliof"]],
+  [/solflare/i, ["bhhhlbepdkbapadjdnnojkbgioiodbic"]],
+  [/rainbow/i, ["opfgelmcmbiajamepnmloijbpoleiama"]],
+  [/unisat/i, ["ppbibelpcjmhbdihakflkdcoccbgbkpo"]],
+  [/argent/i, ["dlcobpjiigpikoobohmabehhmhfoodbb"]],
+];
+async function checkStoreListing(tabId: number, url: string): Promise<boolean> {
+  const m = url.match(/^https:\/\/chromewebstore\.google\.com\/detail\/([^/]+)\/([a-p]{32})/);
+  if (!m) return false;
+  const slug = decodeURIComponent(m[1]).replace(/-/g, " ");
+  const id = m[2];
+  for (const [re, ids] of WALLET_STORE_IDS) {
+    if (re.test(slug) && !ids.includes(id)) {
+      const v: Verdict = { url, host: "chromewebstore.google.com", registrable: "google.com", score: 75, band: "block", signals: [{ id: "fake-wallet-listing", weight: 75, key: "sig_fake_wallet_listing", sub: [slug] }], needsAgeCheck: false, at: Date.now() };
+      await applyVerdict(tabId, v);
+      return true;
+    }
+  }
+  return false;
+}
+
 async function resetTab(tabId: number) {
   await clearTab(tabId);
   await chrome.action.setBadgeText({ tabId, text: "" }).catch(() => undefined);
@@ -311,6 +341,7 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
       return;
     }
     if (d.url.startsWith(EXT_ORIGIN)) return;
+    if (await checkStoreListing(d.tabId, d.url)) return;
 
     let origin = await getTabOrigin(d.tabId);
     if (!origin) {
@@ -412,10 +443,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         let frameHost = "";
         try { frameHost = new URL(sender.url).hostname; } catch { /* ignore */ }
         if (sender.frameId !== 0 && frameHost !== prev.host) return;
-        if (prev.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted")) return;
-        const weight = providerWeight(ev);
+        const safeSite = prev.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted");
+        const alwaysCounts = ev.kind === "seed-input" || ev.kind === "clickfix" || ev.kind === "clipboard-swap" || ev.kind === "fake-wallet" || ev.detail === "eoa-spender" || ev.detail === "poisoning" || ev.detail === "delegation";
+        if (safeSite && !alwaysCounts) return;
+        let weight = providerWeight(ev);
+        if (safeSite) weight = Math.min(weight, 30);
         if (!weight) return;
-        const id = `provider-${ev.kind}`;
+        const id = `provider-${ev.kind}${ev.detail && ["eoa-spender", "poisoning", "delegation"].includes(ev.detail) ? "-" + ev.detail : ""}`;
         if (prev.signals.some((s) => s.id === id)) return;
         const signals = [...prev.signals, { id, weight, ...providerKey(ev) }];
         try {
@@ -452,6 +486,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const total = Math.max(0, Math.min(100, merged.signals.reduce((s, x) => s + x.weight, 0)));
           await applyVerdict(tabId, { ...merged, score: total, band: bandOf(total) });
         }
+        return;
+      }
+      case "w3pg:gate": {
+        const tabId = sender.tab?.id;
+        if (tabId === undefined || !sender.url) { sendResponse({ ask: false }); return; }
+        const v = (await getTabVerdict(tabId)) ?? (await evaluate(sender.url));
+        sendResponse(gateDecision(v, (msg.details ?? {}) as Record<string, unknown>));
+        return;
+      }
+      case "w3pg:gateRejected": {
+        const tabId = sender.tab?.id;
+        if (tabId === undefined || !sender.url) return;
+        const prev = (await getTabVerdict(tabId)) ?? (await evaluate(sender.url));
+        if (!prev || prev.signals.some((s) => s.id === "provider-gate-rejected")) return;
+        const signals = [...prev.signals, { id: "provider-gate-rejected", weight: 40, key: "sig_gate_rejected" }];
+        const total = Math.max(0, Math.min(100, signals.reduce((s, x) => s + x.weight, 0)));
+        await applyVerdict(tabId, { ...prev, signals, score: total, band: bandOf(total), at: Date.now() });
+        return;
+      }
+      case "w3pg:leaveTab": {
+        const tabId = sender.tab?.id;
+        if (tabId === undefined) return;
+        await chrome.tabs.update(tabId, { url: "about:blank" }).catch(() => undefined);
         return;
       }
       case "w3pg:referrer": {
@@ -545,15 +602,59 @@ function providerWeight(ev: ProviderEvent): number {
     case "auto-connect":
       return ev.hadGesture ? 0 : 15;
     case "risky-sign":
+      if (ev.detail === "eoa-spender") return 40;
       return ev.hadGesture ? 20 : 35;
     case "risky-tx":
+      if (ev.detail === "eoa-spender" || ev.detail === "poisoning" || ev.detail === "delegation") return 40;
+      if (ev.detail === "solana") return ev.hadGesture ? 5 : 15;
+      if (ev.detail === "solana_batch") return 25;
+      if (ev.detail === "eth_send") return ev.hadGesture ? 5 : 20;
       return ev.hadGesture ? 20 : 35;
     case "chain-switch":
       return ev.hadGesture ? 0 : 5;
+    case "fake-wallet":
+      return 40;
+    case "clickfix":
+    case "clipboard-swap":
+    case "seed-input":
+      return 60;
+    case "wc-modal":
+      return 15;
+    case "gate-rejected":
+      return 40;
   }
 }
 
+/** Should a held wallet request be shown to the user before it reaches the wallet? */
+function gateDecision(v: Verdict | null, g: Record<string, unknown>): { ask: boolean; score?: number } {
+  const kind = String(g.kind ?? "");
+  const eoa = g.counterpartyEoa === true;
+  const poisoned = !!g.poisonedTwin;
+  const band = v?.band ?? "none";
+  const safeSite = !!v && v.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted");
+  // always: things no legitimate flow asks for from a page
+  if (eoa || poisoned || kind === "delegation-7702" || kind === "eth_sign") return { ask: true, score: v?.score };
+  if (safeSite) return { ask: false };
+  // unknown or suspicious sites: hold anything that can move assets later without another click
+  const alwaysHold = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation"]);
+  if (alwaysHold.has(kind)) return { ask: true, score: v?.score };
+  if (band !== "none") return { ask: true, score: v?.score };
+  return { ask: false };
+}
+
 const DETAIL_KEYS: Record<string, string> = {
+  "eoa-spender": "sig_tx_eoa_spender",
+  poisoning: "sig_tx_poisoning",
+  delegation: "sig_tx_delegation",
+  eth_send: "sig_tx_eth_send",
+  solana_batch: "sig_sol_batch",
+  fake_wallet: "sig_fake_wallet",
+  clickfix: "sig_clickfix",
+  clipboard_swap: "sig_clipboard_swap",
+  seed_phrase: "sig_seed_phrase",
+  private_key: "sig_private_key",
+  wc_modal: "sig_wc_modal",
+  rejected: "sig_gate_rejected",
   approve: "sig_tx_approve",
   increaseAllowance: "sig_tx_approve",
   setApprovalForAll: "sig_tx_set_approval_for_all",

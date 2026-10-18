@@ -125,7 +125,7 @@ export interface DeepReport {
 }
 
 export interface ProviderEvent {
-  kind: "auto-connect" | "risky-sign" | "risky-tx" | "chain-switch";
+  kind: "auto-connect" | "risky-sign" | "risky-tx" | "chain-switch" | "fake-wallet" | "clickfix" | "clipboard-swap" | "seed-input" | "wc-modal" | "gate-rejected";
   method: string;
   /** machine-readable detail code, mapped to an i18n key in the background */
   detail: string;

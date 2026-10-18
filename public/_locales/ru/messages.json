@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "Аккаунт $1 слабый: $2 подписчиков, возраст $3 дн."
   },
+  "sig_tx_eoa_spender": {
+    "message": "Разрешение/permit выдаётся обычному адресу кошелька ($1), а не контракту: классический drainer"
+  },
+  "sig_tx_poisoning": {
+    "message": "Получатель похож на прежний адрес, но отличается в середине (address poisoning)"
+  },
+  "sig_tx_delegation": {
+    "message": "Делегирование EIP-7702: передаёт полный контроль над кошельком контракту"
+  },
+  "sig_tx_eth_send": {
+    "message": "Отправка ETH на адрес"
+  },
+  "sig_sol_batch": {
+    "message": "Solana: запрос подписать несколько транзакций сразу"
+  },
+  "sig_fake_wallet": {
+    "message": "Провайдер кошелька объявляет ложную идентичность ($1)"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "Запись в магазине названа как кошелёк («$1»), но это не официальное расширение"
+  },
+  "sig_clickfix": {
+    "message": "Страница скопировала системную команду в буфер обмена («$1»); никуда её не вставляйте"
+  },
+  "sig_clipboard_swap": {
+    "message": "Страница подменила скопированный адрес ($1)"
+  },
+  "sig_seed_phrase": {
+    "message": "На этой странице введена seed-фраза"
+  },
+  "sig_private_key": {
+    "message": "На этой странице введён приватный ключ"
+  },
+  "sig_wc_modal": {
+    "message": "Открывает QR-окно WalletConnect (мобильные кошельки не покрыты защитой на странице)"
+  },
+  "sig_gate_rejected": {
+    "message": "Вы отклонили опасный запрос кошелька с этой страницы"
+  },
+  "gate_title": {
+    "message": "Запрос кошелька приостановлен"
+  },
+  "gate_sub": {
+    "message": "Страница просит у кошелька то, что позже может переместить ваши активы. Риск сайта: $1/100."
+  },
+  "gate_request": {
+    "message": "Запрос"
+  },
+  "gate_counterparty": {
+    "message": "Получатель / spender"
+  },
+  "gate_eoa": {
+    "message": "обычный адрес кошелька, не контракт"
+  },
+  "gate_unlimited": {
+    "message": "Неограниченная сумма: может забрать весь токен сейчас или позже"
+  },
+  "gate_poison": {
+    "message": "Этот адрес имитирует использованный ранее ($1): address poisoning"
+  },
+  "gate_batch": {
+    "message": "Пакет вызовов: $1"
+  },
+  "gate_no_click": {
+    "message": "Сработало без вашего клика"
+  },
+  "gate_reject": {
+    "message": "Отклонить (рекомендуется)"
+  },
+  "gate_allow": {
+    "message": "Разрешить один раз"
+  },
+  "gate_kind_approve": {
+    "message": "Разрешение на трату токенов"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "Неограниченное разрешение на трату токенов"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "Доступ оператора ко ВСЕМ вашим NFT коллекции"
+  },
+  "gate_kind_permit2": {
+    "message": "Подпись Permit/Permit2 (право перевода токенов без транзакции)"
+  },
+  "gate_kind_permit": {
+    "message": "Подпись Permit (право перевода токенов)"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Пакетная подпись Permit2 (несколько токенов сразу)"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "Подпись PermitForAll (все NFT)"
+  },
+  "gate_kind_seaport_order": {
+    "message": "Подпись ордера маркетплейса (Seaport)"
+  },
+  "gate_kind_blur_order": {
+    "message": "Подпись ордера маркетплейса (Blur)"
+  },
+  "gate_kind_delegation": {
+    "message": "Подпись делегирования"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702: передать весь аккаунт контракту"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign: сырая подпись, разрешающая что угодно"
+  },
+  "gate_kind_transfer": {
+    "message": "Перевод токенов"
+  },
+  "gate_kind_transferFrom": {
+    "message": "Перевод токена/NFT из вашего кошелька"
+  },
+  "gate_kind_eth_send": {
+    "message": "Перевод ETH"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "Отправляет ETH в неизвестный вызов контракта"
+  },
+  "seed_title": {
+    "message": "Стоп: эта страница запрашивает вашу seed-фразу"
+  },
+  "key_title": {
+    "message": "Стоп: эта страница запрашивает ваш приватный ключ"
+  },
+  "seed_body": {
+    "message": "Ни один сайт, поддержка, аирдроп, миграция или «синхронизация кошелька» её не требует. Кто ею владеет, владеет всем кошельком."
+  },
+  "seed_body2": {
+    "message": "Если вы уже ввели её здесь, немедленно переведите средства в новый кошелёк."
+  },
+  "seed_leave": {
+    "message": "Покинуть страницу"
+  },
+  "seed_stay": {
+    "message": "Я понимаю риск, остаться"
+  },
   "sig_sol_sign": {
     "message": "Запрошена подпись транзакции Solana ($1)"
   }

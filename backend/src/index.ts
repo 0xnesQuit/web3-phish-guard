@@ -158,6 +158,8 @@ async function metamaskHit(env: Env, host: string): Promise<boolean> {
   return false;
 }
 
+const RDAP_HEADERS = { accept: "application/rdap+json, application/json", "user-agent": "Mozilla/5.0 (compatible; W3PG-API/1.0; +https://github.com/0xnesQuit/web3-phish-guard-lists)" };
+
 /** RDAP registration age in days, via the IANA bootstrap; cached 7 days. */
 async function serverAgeDays(env: Env, registrable: string): Promise<number | undefined> {
   const k = `rdap:${registrable}`;
@@ -167,9 +169,11 @@ async function serverAgeDays(env: Env, registrable: string): Promise<number | un
   try {
     const boot = await fetchJsonCached<{ services: Array<[string[], string[]]> }>(env, "https://data.iana.org/rdap/dns.json", "rdap:bootstrap", 7 * 86400);
     const base = serverForTld(boot ? { services: boot.services, fetchedAt: Date.now() } : null, registrable.split(".").pop() ?? "");
-    if (base) {
-      const res = await fetch(`${base}domain/${registrable}`, { headers: { accept: "application/rdap+json" }, signal: AbortSignal.timeout(8000) });
-      if (res.ok && (res.headers.get("content-type") ?? "").includes("json")) ms = parseRegistration(await res.json()) ?? 0;
+    // Some registries (CentralNic for .xyz) answer 403 to datacenter IPs; try the authoritative server, then rdap.org.
+    for (const u of [base ? `${base}domain/${registrable}` : null, `https://rdap.org/domain/${registrable}`]) {
+      if (!u) continue;
+      const res = await fetch(u, { headers: RDAP_HEADERS, redirect: "follow", signal: AbortSignal.timeout(8000) });
+      if (res.ok && (res.headers.get("content-type") ?? "").includes("json")) { ms = parseRegistration(await res.json()) ?? 0; if (ms) break; }
     }
   } catch { /* unknown */ }
   await env.W3PG_KV.put(k, String(ms), { expirationTtl: ms ? 7 * 86400 : 6 * 3600 });
@@ -621,9 +625,11 @@ export default {
       const base = serverForTld(boot ? { services: boot.services, fetchedAt: Date.now() } : null, d.split(".").pop() ?? "");
       let status = 0, ct = "", events: unknown = null;
       try {
-        const res = await fetch(`${base}domain/${d}`, { headers: { accept: "application/rdap+json" }, signal: AbortSignal.timeout(8000) });
-        status = res.status; ct = res.headers.get("content-type") ?? "";
-        if (ct.includes("json")) events = (await res.json() as { events?: unknown }).events;
+        for (const u of [`${base}domain/${d}`, `https://rdap.org/domain/${d}`]) {
+          const res = await fetch(u, { headers: RDAP_HEADERS, redirect: "follow", signal: AbortSignal.timeout(8000) });
+          status = res.status; ct = res.headers.get("content-type") ?? "";
+          if (ct.includes("json")) { events = (await res.json() as { events?: unknown }).events; break; }
+        }
       } catch (e) { events = String(e); }
       return json({ d, base, bootstrapServices: boot?.services?.length ?? 0, status, ct, events, cached: await env.W3PG_KV.get(`rdap:${d}`) });
     }

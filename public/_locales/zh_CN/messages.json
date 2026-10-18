@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "分享账号 $1 可信度低：$2 个关注者，注册 $3 天"
   },
+  "sig_tx_eoa_spender": {
+    "message": "授权/permit 给的是普通钱包地址（$1）而非合约：典型盗取器"
+  },
+  "sig_tx_poisoning": {
+    "message": "收款地址与您用过的相似但中间不同（地址投毒）"
+  },
+  "sig_tx_delegation": {
+    "message": "EIP-7702 账户委托：将整个钱包的控制权交给合约"
+  },
+  "sig_tx_eth_send": {
+    "message": "向地址发送 ETH"
+  },
+  "sig_sol_batch": {
+    "message": "Solana：要求一次签署多笔交易"
+  },
+  "sig_fake_wallet": {
+    "message": "钱包提供者宣称虚假身份（$1）"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "商店条目名称像钱包（“$1”）但不是官方扩展"
+  },
+  "sig_clickfix": {
+    "message": "页面把系统命令复制到了剪贴板（“$1”）；切勿粘贴到任何地方"
+  },
+  "sig_clipboard_swap": {
+    "message": "页面把您复制的地址换成了另一个（$1）"
+  },
+  "sig_seed_phrase": {
+    "message": "此页面中输入了助记词"
+  },
+  "sig_private_key": {
+    "message": "此页面中输入了私钥"
+  },
+  "sig_wc_modal": {
+    "message": "打开 WalletConnect 二维码弹窗（页面防护不覆盖移动钱包）"
+  },
+  "sig_gate_rejected": {
+    "message": "您拒绝了此页面的危险钱包请求"
+  },
+  "gate_title": {
+    "message": "钱包请求已暂停"
+  },
+  "gate_sub": {
+    "message": "此页面向您的钱包请求的权限可能在之后转移您的资产。站点风险：$1/100。"
+  },
+  "gate_request": {
+    "message": "请求"
+  },
+  "gate_counterparty": {
+    "message": "收款方 / 支出方"
+  },
+  "gate_eoa": {
+    "message": "普通钱包地址，而非合约"
+  },
+  "gate_unlimited": {
+    "message": "无限额度：现在或以后可取走该代币的全部"
+  },
+  "gate_poison": {
+    "message": "此地址模仿您用过的地址（$1）：地址投毒"
+  },
+  "gate_batch": {
+    "message": "批量调用：$1"
+  },
+  "gate_no_click": {
+    "message": "未经您点击即触发"
+  },
+  "gate_reject": {
+    "message": "拒绝（推荐）"
+  },
+  "gate_allow": {
+    "message": "仅此一次允许"
+  },
+  "gate_kind_approve": {
+    "message": "代币支出授权"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "无限代币支出授权"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "对您某系列全部 NFT 的操作者授权"
+  },
+  "gate_kind_permit2": {
+    "message": "Permit/Permit2 签名（无需交易即可转移代币的授权）"
+  },
+  "gate_kind_permit": {
+    "message": "Permit 签名（代币转移授权）"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Permit2 批量签名（多个代币）"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "PermitForAll 签名（全部 NFT）"
+  },
+  "gate_kind_seaport_order": {
+    "message": "市场订单签名（Seaport）"
+  },
+  "gate_kind_blur_order": {
+    "message": "市场订单签名（Blur）"
+  },
+  "gate_kind_delegation": {
+    "message": "委托签名"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702：把整个账户交给合约"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign：可授权任何操作的原始签名"
+  },
+  "gate_kind_transfer": {
+    "message": "代币转账"
+  },
+  "gate_kind_transferFrom": {
+    "message": "从您的钱包转移代币/NFT"
+  },
+  "gate_kind_eth_send": {
+    "message": "ETH 转账"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "向未知合约调用支付 ETH"
+  },
+  "seed_title": {
+    "message": "停止：此页面想要您的助记词"
+  },
+  "key_title": {
+    "message": "停止：此页面想要您的私钥"
+  },
+  "seed_body": {
+    "message": "任何网站、客服、空投、迁移或“钱包同步”都不需要它。谁拥有它，谁就拥有钱包里的一切。"
+  },
+  "seed_body2": {
+    "message": "如果您已经在此输入，请立即把资金转到新钱包。"
+  },
+  "seed_leave": {
+    "message": "离开此页面"
+  },
+  "seed_stay": {
+    "message": "我了解风险，留下"
+  },
   "sig_sol_sign": {
     "message": "请求签署 Solana 交易（$1）"
   }

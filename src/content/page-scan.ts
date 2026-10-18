@@ -140,6 +140,19 @@ function sendSocials() {
 setTimeout(sendSocials, 800);
 setTimeout(sendSocials, 4000);
 
+// WalletConnect / AppKit modal: mobile wallets bypass the provider wrapper, so the modal itself is the signal
+let wcSent = false;
+const wcObs = new MutationObserver(() => {
+  if (wcSent) return;
+  if (document.querySelector("wcm-modal, w3m-modal, w3m-router, wui-flex, #walletconnect-wrapper, [class*='walletconnect-modal']")) {
+    wcSent = true;
+    chrome.runtime.sendMessage({ type: "w3pg:provider", event: { kind: "wc-modal", method: "walletconnect", detail: "wc_modal", msSinceLoad: performance.now(), hadGesture: true } }).catch(() => undefined);
+    wcObs.disconnect();
+  }
+});
+wcObs.observe(document.documentElement, { childList: true, subtree: true });
+setTimeout(() => wcObs.disconnect(), 120_000);
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "w3pg:collect") {
     try { sendResponse(collect()); } catch (e) { sendResponse({ error: String(e) }); }

@@ -27,6 +27,7 @@
     "web-ext": "^10.8.0"
   },
   "dependencies": {
+    "@scure/bip39": "^2.4.0",
     "tldts": "^6.1.0"
   }
 }

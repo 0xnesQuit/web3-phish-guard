@@ -341,6 +341,144 @@
   "sig_x_poster_weak": {
     "message": "Tài khoản chia sẻ $1 yếu: $2 người theo dõi, $3 ngày tuổi"
   },
+  "sig_tx_eoa_spender": {
+    "message": "Phê duyệt/permit cho địa chỉ ví thường ($1), không phải hợp đồng: drainer điển hình"
+  },
+  "sig_tx_poisoning": {
+    "message": "Người nhận giống địa chỉ cũ nhưng khác ở giữa (address poisoning)"
+  },
+  "sig_tx_delegation": {
+    "message": "Ủy quyền EIP-7702: giao toàn quyền ví cho một hợp đồng"
+  },
+  "sig_tx_eth_send": {
+    "message": "Gửi ETH đến một địa chỉ"
+  },
+  "sig_sol_batch": {
+    "message": "Solana: yêu cầu ký nhiều giao dịch cùng lúc"
+  },
+  "sig_fake_wallet": {
+    "message": "Một ví khai báo danh tính giả ($1)"
+  },
+  "sig_fake_wallet_listing": {
+    "message": "Mục trên cửa hàng mang tên ví (\"$1\") nhưng không phải tiện ích chính thức"
+  },
+  "sig_clickfix": {
+    "message": "Trang đã sao chép lệnh hệ thống vào clipboard (\"$1\"); đừng dán ở bất cứ đâu"
+  },
+  "sig_clipboard_swap": {
+    "message": "Trang đã thay địa chỉ bạn sao chép bằng địa chỉ khác ($1)"
+  },
+  "sig_seed_phrase": {
+    "message": "Cụm từ khôi phục đã được nhập vào trang này"
+  },
+  "sig_private_key": {
+    "message": "Khóa riêng đã được nhập vào trang này"
+  },
+  "sig_wc_modal": {
+    "message": "Mở hộp QR WalletConnect (ví di động không được bảo vệ trên trang)"
+  },
+  "sig_gate_rejected": {
+    "message": "Bạn đã từ chối một yêu cầu ví nguy hiểm từ trang này"
+  },
+  "gate_title": {
+    "message": "Yêu cầu ví đang bị giữ"
+  },
+  "gate_sub": {
+    "message": "Trang này yêu cầu ví của bạn một quyền có thể chuyển tài sản sau này. Rủi ro trang: $1/100."
+  },
+  "gate_request": {
+    "message": "Yêu cầu"
+  },
+  "gate_counterparty": {
+    "message": "Người nhận / người chi"
+  },
+  "gate_eoa": {
+    "message": "địa chỉ ví thường, không phải hợp đồng"
+  },
+  "gate_unlimited": {
+    "message": "Số lượng không giới hạn: có thể lấy toàn bộ token này ngay hoặc sau"
+  },
+  "gate_poison": {
+    "message": "Địa chỉ này giả dạng địa chỉ bạn từng dùng ($1): address poisoning"
+  },
+  "gate_batch": {
+    "message": "Gọi hàng loạt: $1"
+  },
+  "gate_no_click": {
+    "message": "Kích hoạt mà bạn không nhấp"
+  },
+  "gate_reject": {
+    "message": "Từ chối (khuyến nghị)"
+  },
+  "gate_allow": {
+    "message": "Cho phép lần này"
+  },
+  "gate_kind_approve": {
+    "message": "Phê duyệt chi tiêu token"
+  },
+  "gate_kind_approve_unlimited": {
+    "message": "Phê duyệt chi tiêu token không giới hạn"
+  },
+  "gate_kind_setApprovalForAll": {
+    "message": "Cấp quyền điều hành TẤT CẢ NFT của bạn trong bộ sưu tập"
+  },
+  "gate_kind_permit2": {
+    "message": "Chữ ký Permit/Permit2 (quyền chuyển token không cần giao dịch)"
+  },
+  "gate_kind_permit": {
+    "message": "Chữ ký Permit (quyền chuyển token)"
+  },
+  "gate_kind_permit_batch": {
+    "message": "Chữ ký Permit2 hàng loạt (nhiều token)"
+  },
+  "gate_kind_permit_for_all": {
+    "message": "Chữ ký PermitForAll (tất cả NFT)"
+  },
+  "gate_kind_seaport_order": {
+    "message": "Chữ ký lệnh sàn (Seaport)"
+  },
+  "gate_kind_blur_order": {
+    "message": "Chữ ký lệnh sàn (Blur)"
+  },
+  "gate_kind_delegation": {
+    "message": "Chữ ký ủy quyền"
+  },
+  "gate_kind_delegation_7702": {
+    "message": "EIP-7702: giao toàn bộ tài khoản cho hợp đồng"
+  },
+  "gate_kind_eth_sign": {
+    "message": "eth_sign: chữ ký thô có thể ủy quyền mọi thứ"
+  },
+  "gate_kind_transfer": {
+    "message": "Chuyển token"
+  },
+  "gate_kind_transferFrom": {
+    "message": "Chuyển token/NFT từ ví của bạn"
+  },
+  "gate_kind_eth_send": {
+    "message": "Chuyển ETH"
+  },
+  "gate_kind_unknown_payable": {
+    "message": "Trả ETH vào một lệnh gọi hợp đồng không rõ"
+  },
+  "seed_title": {
+    "message": "Dừng lại: trang này muốn cụm từ khôi phục của bạn"
+  },
+  "key_title": {
+    "message": "Dừng lại: trang này muốn khóa riêng của bạn"
+  },
+  "seed_body": {
+    "message": "Không website, nhân viên hỗ trợ, airdrop, di chuyển hay \"đồng bộ ví\" nào cần nó. Ai có nó sẽ sở hữu mọi thứ trong ví."
+  },
+  "seed_body2": {
+    "message": "Nếu bạn đã nhập ở đây, hãy chuyển tiền sang ví mới ngay lập tức."
+  },
+  "seed_leave": {
+    "message": "Rời trang này"
+  },
+  "seed_stay": {
+    "message": "Tôi hiểu rủi ro, ở lại"
+  },
   "sig_sol_sign": {
     "message": "Yêu cầu ký giao dịch Solana ($1)"
   }
