@@ -20,6 +20,8 @@ export const SOURCES: ListSource[] = [
   { id: "phishdestroy", url: "https://gitlab.com/phishdestroy/destroylist/-/raw/main/dns/active_domains.json", kind: "blocklist", every: 60 * 6 },
   // Community reports approved by the Web3 Phish Guard moderators (published daily to the lists repo)
   { id: "community", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6 },
+  // same file, the AI-confirmed "auto" set
+  { id: "community-auto", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6 },
   // ScamSniffer open database (7-day delayed, GPL-3.0 data; fetched at runtime, not bundled)
   { id: "scamsniffer", url: "https://raw.githubusercontent.com/scamsniffer/scam-database/main/blacklist/domains.json", kind: "blocklist", every: 60 * 24 },
 ];
@@ -222,6 +224,10 @@ export async function refreshSource(src: ListSource): Promise<number> {
     await chrome.storage.local.set({ "list:metamask-allow": { domains: allow, updatedAt: Date.now() } satisfies StoredList });
     allowMem = new Set(allow);
     mmLastUpdated = findNumber(json, "lastUpdated");
+  } else if (src.id === "community-auto") {
+    domains = extractDomains(json, ["auto"]);
+  } else if (src.id === "community") {
+    domains = extractDomains(json, ["domains"]);
   } else {
     domains = extractDomains(json, ["domains", "blocklist", "blacklist", "list", "data", "active_domains"]);
   }

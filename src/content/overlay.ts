@@ -41,7 +41,16 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === "w3pg:overlay" && msg.verdict) render(msg.verdict as Verdict);
 });
 
-// If the verdict was decided before this script loaded, ask for it.
-chrome.runtime.sendMessage({ type: "w3pg:getVerdict" }).then((v: Verdict | undefined) => {
-  if (v && v.band === "warn") render(v);
-}).catch(() => undefined);
+// If the verdict was decided before this script loaded, ask for it; ask again later for slow pages / SPAs.
+let shownScore = -1;
+function pull() {
+  chrome.runtime.sendMessage({ type: "w3pg:getVerdict" }).then((v: Verdict | undefined) => {
+    if (v && v.band === "warn" && v.score !== shownScore) { shownScore = v.score; render(v); }
+  }).catch(() => undefined);
+}
+pull();
+setTimeout(pull, 1500);
+setTimeout(pull, 5000);
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === "w3pg:overlay" && msg.verdict) shownScore = (msg.verdict as Verdict).score;
+});

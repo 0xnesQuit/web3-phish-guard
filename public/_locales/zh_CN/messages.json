@@ -143,6 +143,18 @@
   "verdict_safe": {
     "message": "安全"
   },
+  "opt_warn_heading": {
+    "message": "在哪里显示“可疑”警告"
+  },
+  "opt_warn_page": {
+    "message": "页面顶部黄色横幅并显示在图标中"
+  },
+  "opt_warn_popup": {
+    "message": "仅在图标和弹窗中（页面无横幅）"
+  },
+  "opt_warn_note": {
+    "message": "危险页面（70 分以上）始终打开整页警告。"
+  },
   "opt_api_heading": {
     "message": "深度扫描与举报服务器"
   },
@@ -235,6 +247,9 @@
   },
   "sig_brand_subdomain": {
     "message": "“$1”只是子域名标签；真正的站点是 $2"
+  },
+  "sig_page_official_x": {
+    "message": "页面链接到 $2 的真实 X 账号 $1，其官网是 $3，而非此站"
   },
   "sig_brand_typo": {
     "message": "与“$1”仅一字之差的仿冒"

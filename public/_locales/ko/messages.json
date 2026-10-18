@@ -143,6 +143,18 @@
   "verdict_safe": {
     "message": "안전"
   },
+  "opt_warn_heading": {
+    "message": "\"의심\" 경고 표시 위치"
+  },
+  "opt_warn_page": {
+    "message": "페이지 상단 노란 배너와 아이콘"
+  },
+  "opt_warn_popup": {
+    "message": "아이콘과 팝업에만 (페이지 배너 없음)"
+  },
+  "opt_warn_note": {
+    "message": "위험한 페이지(70점 이상)는 항상 전체 화면 경고를 엽니다."
+  },
   "opt_api_heading": {
     "message": "정밀 검사 및 신고 서버"
   },
@@ -235,6 +247,9 @@
   },
   "sig_brand_subdomain": {
     "message": "\"$1\"은(는) 하위 도메인일 뿐이며 실제 사이트는 $2"
+  },
+  "sig_page_official_x": {
+    "message": "페이지가 $2의 실제 X 계정 $1에 연결됨; 해당 사이트는 $3이며 이 사이트가 아님"
   },
   "sig_brand_typo": {
     "message": "\"$1\"의 한 글자 변형 모방"

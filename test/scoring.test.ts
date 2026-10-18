@@ -270,6 +270,10 @@ describe("trusted infrastructure and blocklist confidence", () => {
     expect(run("https://random-site.com/", { blocklistHit: "phishdestroy" }).band).toBe("warn");
     expect(run("https://claim-random.com/", { blocklistHit: "phishdestroy" }).band).toBe("block");
   });
+  it("AI auto-listed domains block at 70, approved community at 100", () => {
+    expect(run("https://random-site.com/", { blocklistHit: "community-auto" }).score).toBe(70);
+    expect(run("https://random-site.com/", { blocklistHit: "community" }).score).toBe(100);
+  });
   it("MetaMask / ScamSniffer hits block outright", () => {
     expect(run("https://random-site.com/", { blocklistHit: "metamask" }).band).toBe("block");
     expect(run("https://random-site.com/", { blocklistHit: "scamsniffer" }).band).toBe("block");
@@ -409,6 +413,21 @@ describe("brand under attack (learned from blocklists)", () => {
   });
   it("attacked brand alone with only a bait word is already a warning", () => {
     expect(run("https://claim.pharosnet.xyz/", { attacked: { token: "pharos", count: 5, example: "x" } }).band).toBe("warn");
+  });
+});
+
+describe("page links the victim's real X account", () => {
+  const idx = new Map<string, Brand>([["ethgasofficial", { name: "ETHGas", tokens: ["ethgas"], domains: ["ethgas.com"], x: "ETHGasOfficial", tier: "generated" }]]);
+  it("claim.egfoundation.cyou with a footer link to @ETHGasOfficial is blocked", () => {
+    const v = run("https://claim.egfoundation.cyou/", { ageDays: 33, origin: { source: "x", at: 0 }, socials: { xHandles: ["ETHGasOfficial"], count: 3 }, handleIndex: idx });
+    expect(v.signals.some((s) => s.id === "page-official-x")).toBe(true);
+    expect(v.band).toBe("block");
+  });
+  it("the project's own site linking its own account is fine", () => {
+    expect(run("https://ethgas.com/", { socials: { xHandles: ["ETHGasOfficial"], count: 3 }, handleIndex: idx }).signals.some((s) => s.id === "page-official-x")).toBe(false);
+  });
+  it("a plain page (no bait, no origin) linking a project account is not flagged", () => {
+    expect(run("https://cryptonews-example.com/", { socials: { xHandles: ["ETHGasOfficial"], count: 40 }, handleIndex: idx }).signals.some((s) => s.id === "page-official-x")).toBe(false);
   });
 });
 

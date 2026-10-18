@@ -3,7 +3,7 @@
  * but does nothing until the background asks (user pressed "deep scan"). Collects
  * structure and a bounded text sample; never form values, never cookies.
  */
-import type { PageSnapshot } from "../lib/types";
+import type { PageSnapshot, PageSocials } from "../lib/types";
 
 const LIBS: Array<[RegExp, string]> = [
   [/ethers(?:\.min)?\.js|ethers@|\bethers\b/i, "ethers.js"],
@@ -35,6 +35,22 @@ function hostOf(u: string): string | null {
 function registrableish(h: string): string {
   const p = h.split(".");
   return p.length <= 2 ? h : p.slice(-2).join(".");
+}
+
+/** X handles linked anywhere on the page (footer, header, cards). */
+export function collectSocials(): PageSocials {
+  const handles = new Set<string>();
+  let count = 0;
+  for (const a of Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href]"))) {
+    const h = hostOf(a.href);
+    if (!h) continue;
+    if (/(^|\.)(x\.com|twitter\.com)$/.test(h)) {
+      count++;
+      const m = a.href.match(/(?:x\.com|twitter\.com)\/@?([A-Za-z0-9_]{1,15})(?:[/?#]|$)/i);
+      if (m && !/^(intent|share|home|search|i|hashtag|login|signup)$/i.test(m[1])) handles.add(m[1]);
+    } else if (/(^|\.)(discord\.(gg|com)|t\.me|telegram\.org)$/.test(h)) count++;
+  }
+  return { xHandles: [...handles].slice(0, 10), count };
 }
 
 export function collect(): PageSnapshot {
@@ -105,8 +121,24 @@ export function collect(): PageSnapshot {
     iframes: document.querySelectorAll("iframe").length,
     drainerMarkers: [...markers].slice(0, 20),
     providerEvents: [],
+    socials: collectSocials(),
   };
 }
+
+// Report social links shortly after load (and once more after SPAs render), so the background can
+// check whether the page links to a real project's X account while sitting on a different domain.
+let lastSent = "";
+function sendSocials() {
+  try {
+    const s = collectSocials();
+    const key = s.xHandles.join(",");
+    if (!s.xHandles.length || key === lastSent) return;
+    lastSent = key;
+    chrome.runtime.sendMessage({ type: "w3pg:socials", socials: s }).catch(() => undefined);
+  } catch { /* ignore */ }
+}
+setTimeout(sendSocials, 800);
+setTimeout(sendSocials, 4000);
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "w3pg:collect") {

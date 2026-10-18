@@ -260,13 +260,31 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
     at: Date.now(),
   };
   await env.W3PG_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 });
+
+  // Auto-list: the model is highly confident AND the extension's own heuristics already found the page suspicious.
+  // Goes to the "auto" set (block-level in the extension) and to the moderation queue so a human can still pull it.
+  if (result.verdict === "dangerous" && result.confidence >= 0.9 && payload.localScore >= 35) {
+    const domain = (payload.registrable || payload.host).toLowerCase();
+    const list = await communityList(env);
+    if (!list.domains.includes(domain) && !list.auto.includes(domain)) {
+      list.auto.push(domain);
+      list.updatedAt = Date.now();
+      await env.W3PG_KV.put("community:list", JSON.stringify(list));
+      const id = crypto.randomUUID();
+      const report: Report = { id, url: payload.url, host: payload.host, registrable: domain, score: payload.localScore, signals: [`AI: ${result.verdict} ${Math.round(result.confidence * 100)}%`, ...payload.signals.slice(0, 10)], note: `[auto] ${result.summary}`, at: Date.now(), status: "auto", ipHash: ipKey.slice(0, 16) };
+      await env.W3PG_KV.put(`report:${id}`, JSON.stringify(report), { expirationTtl: 365 * 86400 });
+      const idx = JSON.parse((await env.W3PG_KV.get("reports:pending")) ?? "[]") as string[];
+      idx.unshift(id);
+      await env.W3PG_KV.put("reports:pending", JSON.stringify(idx.slice(0, 2000)));
+    }
+  }
   return json(result);
 }
 
 // ---------------------------------------------------------------------------
 // /v1/report + moderation
 // ---------------------------------------------------------------------------
-interface Report { id: string; url: string; host: string; registrable: string; score: number; signals: string[]; note: string; at: number; status: "pending" | "approved" | "rejected"; ipHash: string }
+interface Report { id: string; url: string; host: string; registrable: string; score: number; signals: string[]; note: string; at: number; status: "pending" | "approved" | "rejected" | "auto"; ipHash: string }
 
 async function handleReport(req: Request, env: Env): Promise<Response> {
   if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
@@ -297,8 +315,11 @@ async function handleReport(req: Request, env: Env): Promise<Response> {
   return json({ ok: true, id });
 }
 
-async function communityList(env: Env): Promise<{ updatedAt: number; domains: string[] }> {
-  return JSON.parse((await env.W3PG_KV.get("community:list")) ?? '{"updatedAt":0,"domains":[]}');
+/** domains = human-approved (block); auto = AI-confirmed on a locally suspicious page (block, revocable by a moderator). */
+async function communityList(env: Env): Promise<{ updatedAt: number; domains: string[]; auto: string[] }> {
+  const l = JSON.parse((await env.W3PG_KV.get("community:list")) ?? '{"updatedAt":0,"domains":[],"auto":[]}');
+  if (!Array.isArray(l.auto)) l.auto = [];
+  return l;
 }
 
 function adminAuthed(req: Request, env: Env): boolean {
@@ -315,7 +336,7 @@ async function handleAdmin(req: Request, env: Env): Promise<Response> {
     const r = await env.W3PG_KV.get(`report:${id}`);
     if (r) reports.push(JSON.parse(r));
   }
-  const pending = reports.filter((r) => r.status === "pending");
+  const pending = reports.filter((r) => r.status === "pending" || r.status === "auto");
   const community = await communityList(env);
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
   const rows = pending.map((r) => `
@@ -324,16 +345,16 @@ async function handleAdmin(req: Request, env: Env): Promise<Response> {
       <td>${r.score}</td>
       <td><small>${r.signals.map(esc).join("<br>")}</small></td>
       <td>${esc(r.note)}</td>
-      <td>${new Date(r.at).toISOString().slice(0, 16).replace("T", " ")}</td>
+      <td>${new Date(r.at).toISOString().slice(0, 16).replace("T", " ")}<br><b>${r.status === "auto" ? "AUTO-LISTED" : "pending"}</b></td>
       <td>
-        <button onclick="decide('${r.id}','approve')">Approve</button>
-        <button onclick="decide('${r.id}','reject')">Reject</button>
+        <button onclick="decide('${r.id}','approve')">${r.status === "auto" ? "Confirm" : "Approve"}</button>
+        <button onclick="decide('${r.id}','reject')">${r.status === "auto" ? "Remove" : "Reject"}</button>
       </td>
     </tr>`).join("");
   const html = `<!doctype html><meta charset="utf-8"><title>W3PG moderation</title>
   <style>body{font:14px system-ui;margin:24px;background:#111;color:#eee}table{border-collapse:collapse;width:100%}td,th{border:1px solid #333;padding:8px;vertical-align:top}button{margin-right:6px}code{color:#ffd27a}</style>
   <h1>Pending reports (${pending.length})</h1>
-  <p>Community blocklist: ${community.domains.length} domains, updated ${community.updatedAt ? new Date(community.updatedAt).toISOString() : "never"}</p>
+  <p>Community blocklist: ${community.domains.length} approved + ${community.auto.length} auto-listed, updated ${community.updatedAt ? new Date(community.updatedAt).toISOString() : "never"}</p>
   <table><tr><th>Site</th><th>Score</th><th>Signals</th><th>Note</th><th>At</th><th></th></tr>${rows || "<tr><td colspan=6>nothing pending</td></tr>"}</table>
   <script>
     const token = new URLSearchParams(location.search).get("token");
@@ -356,13 +377,18 @@ async function handleDecide(req: Request, env: Env): Promise<Response> {
   await env.W3PG_KV.put(`report:${report.id}`, JSON.stringify(report), { expirationTtl: 365 * 86400 });
   const idx = (JSON.parse((await env.W3PG_KV.get("reports:pending")) ?? "[]") as string[]).filter((x) => x !== report.id);
   await env.W3PG_KV.put("reports:pending", JSON.stringify(idx));
+  const list = await communityList(env);
+  const domain = report.registrable || report.host;
   if (report.status === "approved") {
-    const list = await communityList(env);
-    const domain = report.registrable || report.host;
     if (!list.domains.includes(domain)) list.domains.push(domain);
-    list.updatedAt = Date.now();
-    await env.W3PG_KV.put("community:list", JSON.stringify(list));
+    list.auto = list.auto.filter((d) => d !== domain);
+  } else {
+    // rejecting (or removing an auto entry) takes it out of both sets
+    list.domains = list.domains.filter((d) => d !== domain);
+    list.auto = list.auto.filter((d) => d !== domain);
   }
+  list.updatedAt = Date.now();
+  await env.W3PG_KV.put("community:list", JSON.stringify(list));
   return json({ ok: true, status: report.status });
 }
 

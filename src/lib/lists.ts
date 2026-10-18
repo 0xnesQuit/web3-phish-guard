@@ -32,9 +32,22 @@ async function loadJson<T>(file: string): Promise<T | null> {
   return loadBundled<T>(file);
 }
 
+let handleMap: Map<string, Brand> | null = null;
+/** X handle (lowercase, no @) -> brand, for "the page links to the project's real X account but is not the project's site". */
+export function brandByHandle(brands: Brand[]): Map<string, Brand> {
+  if (handleMap && handleMap.size) return handleMap;
+  handleMap = new Map();
+  for (const b of brands) {
+    const h = (b.x ?? "").toLowerCase().replace(/^@/, "");
+    if (h && !handleMap.has(h)) handleMap.set(h, b);
+  }
+  return handleMap;
+}
+
 /** Drop the in-memory cache so the next evaluation re-reads storage (after a remote refresh). */
 export function invalidateStaticData(): void {
   cache = null;
+  handleMap = null;
 }
 
 export async function remoteDataStatus(): Promise<{ updatedAt: number; files: number }> {

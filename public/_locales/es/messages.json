@@ -143,6 +143,18 @@
   "verdict_safe": {
     "message": "Seguro"
   },
+  "opt_warn_heading": {
+    "message": "Dónde mostrar los avisos de \"sospechoso\""
+  },
+  "opt_warn_page": {
+    "message": "Banda amarilla en la página y en el icono"
+  },
+  "opt_warn_popup": {
+    "message": "Solo en el icono y el popup (sin banda en la página)"
+  },
+  "opt_warn_note": {
+    "message": "Las páginas peligrosas (70+) siempre abren el aviso a pantalla completa."
+  },
   "opt_api_heading": {
     "message": "Servidor de análisis profundo y denuncias"
   },
@@ -235,6 +247,9 @@
   },
   "sig_brand_subdomain": {
     "message": "\"$1\" es solo un subdominio; el sitio real es $2"
+  },
+  "sig_page_official_x": {
+    "message": "La página enlaza a $1, la cuenta real de X de $2, cuyo sitio es $3, no este"
   },
   "sig_brand_typo": {
     "message": "Imitación de \"$1\" con una letra cambiada"

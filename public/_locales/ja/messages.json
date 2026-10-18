@@ -143,6 +143,18 @@
   "verdict_safe": {
     "message": "安全"
   },
+  "opt_warn_heading": {
+    "message": "「疑わしい」警告の表示場所"
+  },
+  "opt_warn_page": {
+    "message": "ページ上の黄色いバナーとアイコン"
+  },
+  "opt_warn_popup": {
+    "message": "アイコンとポップアップのみ（バナーなし）"
+  },
+  "opt_warn_note": {
+    "message": "危険なページ（70 点以上）は常に全画面警告を表示します。"
+  },
   "opt_api_heading": {
     "message": "詳細スキャン・報告サーバー"
   },
@@ -235,6 +247,9 @@
   },
   "sig_brand_subdomain": {
     "message": "「$1」はサブドメインに過ぎず、実際のサイトは $2"
+  },
+  "sig_page_official_x": {
+    "message": "ページは $2 の本物の X アカウント $1 にリンクしているが、そのサイトは $3 であってここではない"
   },
   "sig_brand_typo": {
     "message": "「$1」の一文字違いの偽装"

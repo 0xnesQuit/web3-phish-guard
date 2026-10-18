@@ -143,6 +143,18 @@
   "verdict_safe": {
     "message": "Safe"
   },
+  "opt_warn_heading": {
+    "message": "Where to show \"suspicious\" warnings"
+  },
+  "opt_warn_page": {
+    "message": "Yellow banner on the page and in the extension icon"
+  },
+  "opt_warn_popup": {
+    "message": "Only in the extension icon and popup (no banner on the page)"
+  },
+  "opt_warn_note": {
+    "message": "Dangerous pages (score 70+) always open the full-page warning regardless of this setting."
+  },
   "opt_api_heading": {
     "message": "Deep scan & reports server"
   },
@@ -235,6 +247,9 @@
   },
   "sig_brand_subdomain": {
     "message": "\"$1\" is only a subdomain label; the real site is $2"
+  },
+  "sig_page_official_x": {
+    "message": "Page links to $1, the real X account of $2, whose site is $3, not this one"
   },
   "sig_brand_typo": {
     "message": "One-letter imitation of \"$1\""

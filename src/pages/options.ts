@@ -4,7 +4,11 @@ const $ = (id: string) => document.getElementById(id)!;
 
 async function main() {
   localizePage();
-  const s = (await chrome.runtime.sendMessage({ type: "w3pg:getSettings" })) as { xquikKey: string; apiBase: string };
+  const s = (await chrome.runtime.sendMessage({ type: "w3pg:getSettings" })) as { xquikKey: string; apiBase: string; warnDisplay: "page" | "popup" };
+  ($(s.warnDisplay === "popup" ? "warn-popup" : "warn-page") as HTMLInputElement).checked = true;
+  for (const id of ["warn-page", "warn-popup"]) {
+    $(id).onchange = async () => { await chrome.runtime.sendMessage({ type: "w3pg:setSettings", warnDisplay: ($(id) as HTMLInputElement).value }); };
+  }
   ($("key") as HTMLInputElement).value = s.xquikKey ?? "";
   ($("apibase") as HTMLInputElement).value = s.apiBase ?? "";
   $("saveapi").onclick = async () => {

@@ -1,6 +1,6 @@
 import { parseHost } from "./lib/hostname";
 import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
-import { loadStaticData, refreshRemoteData, remoteDataStatus } from "./lib/lists";
+import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, attackedBrandHit, listStatus } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
@@ -9,7 +9,7 @@ import { resolveBrand, resolvePoster, getApiKey, setApiKey } from "./lib/xquik";
 import { scanExternalScripts, goPlus, askApi, sendReport, getApiBase, setApiBase } from "./lib/deepscan";
 import { signalText } from "./lib/i18n";
 import type { XIntel } from "./lib/types";
-import type { DeepReport, OriginContext, PageSnapshot, ProviderEvent, Signal, Verdict } from "./lib/types";
+import type { DeepReport, OriginContext, PageSnapshot, PageSocials, ProviderEvent, Signal, Verdict } from "./lib/types";
 
 const WARNING_PAGE = chrome.runtime.getURL("warning.html");
 
@@ -50,7 +50,7 @@ async function ensureReady() {
 // ---------------------------------------------------------------------------
 // evaluation
 // ---------------------------------------------------------------------------
-async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext; x?: XIntel } = {}): Promise<Verdict | null> {
+async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext; x?: XIntel; socials?: PageSocials } = {}): Promise<Verdict | null> {
   if (!/^https?:/.test(url)) return null;
   const { brands, lists } = await ensureReady();
   const p = parseHost(url, [...lists.freeHostsStrong, ...lists.freeHostsWeak]);
@@ -69,7 +69,17 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
     ageDays: extra.ageDays,
     origin: extra.origin,
     x: extra.x,
+    socials: extra.socials,
+    handleIndex: extra.socials ? brandByHandle(brands) : undefined,
   });
+}
+
+async function getTabSocials(tabId: number): Promise<PageSocials | undefined> {
+  return (await chrome.storage.session.get(`soc:${tabId}`))[`soc:${tabId}`] as PageSocials | undefined;
+}
+
+async function warnDisplay(): Promise<"page" | "popup"> {
+  return (((await chrome.storage.local.get("warnDisplay")).warnDisplay as string | undefined) === "popup" ? "popup" : "page");
 }
 
 /** Ask X (via Xquik) about the brand token and the poster; null when no key / nothing to ask. */
@@ -90,6 +100,7 @@ async function xIntelFor(v: Verdict, origin?: OriginContext): Promise<XIntel | u
 
 /** Full pipeline for one navigation: local score -> RDAP age -> X resolver, re-applying when the band changes. */
 async function evaluateAndApply(tabId: number, url: string, origin?: OriginContext): Promise<void> {
+  await chrome.storage.session.remove([`soc:${tabId}`, `pev:${tabId}`]);
   let v = await evaluate(url, { origin });
   if (!v) {
     await clearTab(tabId);
@@ -186,11 +197,10 @@ async function deepScan(tabId: number, language: string): Promise<DeepReport | {
     const v2 = await evaluate(tab.url, { ageDays, origin });
     if (v2) v = v2;
   }
+  const socials = snapshot.socials ?? (await getTabSocials(tabId));
   const x = v.xToken ? await xIntelFor(v, origin) : undefined;
-  if (x) {
-    const v3 = await evaluate(tab.url, { ageDays, origin, x });
-    if (v3) v = v3;
-  }
+  const v3 = await evaluate(tab.url, { ageDays, origin, x, socials });
+  if (v3) v = v3;
   const ai = await askApi(snapshot, { verdict: v, origin, x, providerEvents: pev, language }, { markers, goplus: gp });
   const report: DeepReport = { host: v.host, at: Date.now(), local: { score: v.score, band: v.band, signals: v.signals }, page: snapshot, markers, goplus: gp, ai };
   await chrome.storage.session.set({ [cacheKey]: report });
@@ -215,7 +225,7 @@ async function applyVerdict(tabId: number, v: Verdict) {
     await chrome.tabs.update(tabId, { url: target }).catch(() => undefined);
     return;
   }
-  if (v.band === "warn") {
+  if (v.band === "warn" && (await warnDisplay()) === "page") {
     chrome.tabs.sendMessage(tabId, { type: "w3pg:overlay", verdict: v }).catch(() => undefined);
   }
 }
@@ -257,6 +267,15 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => void clearTab(tabId));
+
+// The overlay content script may load after the verdict was decided; nudge it once the page is complete.
+chrome.webNavigation.onCompleted.addListener(async (d) => {
+  if (d.frameId !== 0) return;
+  const v = await getTabVerdict(d.tabId);
+  if (v && v.band === "warn" && (await warnDisplay()) === "page") {
+    chrome.tabs.sendMessage(d.tabId, { type: "w3pg:overlay", verdict: v }).catch(() => undefined);
+  }
+});
 
 // ---------------------------------------------------------------------------
 // messages from content scripts / pages
@@ -312,6 +331,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse(v);
         return;
       }
+      case "w3pg:socials": {
+        const tabId = sender.tab?.id;
+        if (tabId === undefined || sender.frameId !== 0 || !sender.url) return;
+        const socials = msg.socials as PageSocials;
+        await chrome.storage.session.set({ [`soc:${tabId}`]: socials });
+        const prev = await getTabVerdict(tabId);
+        if (prev?.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted")) return;
+        const origin = await getTabOrigin(tabId);
+        const v = await evaluate(sender.url, { ageDays: prev?.ageDays, origin, socials });
+        if (v && (!prev || v.score !== prev.score)) {
+          // keep provider signals already accumulated on this tab
+          const extra = (prev?.signals ?? []).filter((s) => s.id.startsWith("provider-"));
+          const merged = extra.length ? { ...v, signals: [...v.signals, ...extra] } : v;
+          const total = Math.max(0, Math.min(100, merged.signals.reduce((s, x) => s + x.weight, 0)));
+          await applyVerdict(tabId, { ...merged, score: total, band: bandOf(total) });
+        }
+        return;
+      }
       case "w3pg:referrer": {
         // Fallback when no redirector hop was seen (e.g. Discord opens links directly).
         const tabId = sender.tab?.id;
@@ -352,12 +389,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:getSettings": {
-        sendResponse({ xquikKey: await getApiKey(), apiBase: await getApiBase() });
+        sendResponse({ xquikKey: await getApiKey(), apiBase: await getApiBase(), warnDisplay: await warnDisplay() });
         return;
       }
       case "w3pg:setSettings": {
         if (typeof msg.xquikKey === "string") await setApiKey(msg.xquikKey);
         if (typeof msg.apiBase === "string") await setApiBase(msg.apiBase);
+        if (msg.warnDisplay === "page" || msg.warnDisplay === "popup") await chrome.storage.local.set({ warnDisplay: msg.warnDisplay });
         sendResponse(true);
         return;
       }

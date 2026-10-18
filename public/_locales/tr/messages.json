@@ -143,6 +143,18 @@
   "verdict_safe": {
     "message": "Güvenli"
   },
+  "opt_warn_heading": {
+    "message": "\"Şüpheli\" uyarıları nerede gösterilsin"
+  },
+  "opt_warn_page": {
+    "message": "Sayfanın üstünde sarı şerit ve uzantı ikonunda"
+  },
+  "opt_warn_popup": {
+    "message": "Sadece uzantı ikonunda ve popup'ta (sayfada şerit yok)"
+  },
+  "opt_warn_note": {
+    "message": "Tehlikeli sayfalar (70+ puan) bu ayardan bağımsız olarak her zaman tam sayfa uyarı açar."
+  },
   "opt_api_heading": {
     "message": "Derin tarama ve bildirim sunucusu"
   },
@@ -235,6 +247,9 @@
   },
   "sig_brand_subdomain": {
     "message": "\"$1\" sadece alt alan adı; gerçek site $2"
+  },
+  "sig_page_official_x": {
+    "message": "Sayfa $2 projesinin gerçek X hesabına ($1) link veriyor; projenin sitesi $3, bu değil"
   },
   "sig_brand_typo": {
     "message": "\"$1\" adının bir harf farklı taklidi"

@@ -78,6 +78,12 @@ export interface OriginContext {
   at: number;
 }
 
+/** Social links found on the page itself (footer / header), collected at load time. */
+export interface PageSocials {
+  xHandles: string[];
+  count: number;
+}
+
 /** What the optional X resolver learned (brand token -> official account, poster profile). */
 export interface XIntel {
   token: string;
@@ -103,6 +109,7 @@ export interface PageSnapshot {
   iframes: number;
   drainerMarkers: string[];
   providerEvents: string[];
+  socials?: PageSocials;
 }
 
 export interface DeepReport {

@@ -1,4 +1,4 @@
-import type { Band, Brand, OriginContext, ParsedHost, Signal, SignalLists, Verdict, XIntel } from "./types";
+import type { Band, Brand, OriginContext, PageSocials, ParsedHost, Signal, SignalLists, Verdict, XIntel } from "./types";
 import { isUnderDomain, levenshtein, tokenize } from "./hostname";
 
 export const BLOCK_THRESHOLD = 70;
@@ -23,6 +23,10 @@ export interface ScoreContext {
   origin?: OriginContext;
   /** optional X resolver result for the brand token in this hostname */
   x?: XIntel;
+  /** X handles linked from the page itself */
+  socials?: PageSocials;
+  /** lowercase X handle -> brand (from lists.brandByHandle) */
+  handleIndex?: Map<string, Brand>;
 }
 
 const SOURCE_LABEL: Record<OriginContext["source"], string> = {
@@ -141,8 +145,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   if (ctx.blocklistHit) {
     // MetaMask and ScamSniffer entries are reviewed; PhishDestroy is broader and noisier, so alone it only warns
     // and becomes a block when any local heuristic agrees (the combination is added further down).
-    const reviewed = ctx.blocklistHit !== "phishdestroy";
-    signals.push({ id: "blocklist", weight: reviewed ? 100 : 50, key: "sig_blocklist", sub: [ctx.blocklistHit] });
+    const weight = ctx.blocklistHit === "phishdestroy" ? 50 : ctx.blocklistHit === "community-auto" ? 70 : 100;
+    signals.push({ id: "blocklist", weight, key: "sig_blocklist", sub: [ctx.blocklistHit] });
   }
 
   if (ctx.siblingHit && !ctx.blocklistHit) {
@@ -271,6 +275,21 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     const disp = o.display?.toLowerCase();
     if (disp && disp !== p.host && !isUnderDomain(p.host, disp) && !isUnderDomain(disp, p.registrable)) {
       signals.push({ id: "display-mismatch", weight: 40, key: "sig_display_mismatch", sub: [o.display!] });
+    }
+  }
+
+  // ---- page links to a real project's X account while living elsewhere --------------
+  // Clones paste the victim project's official X/Discord links in the footer to look legitimate.
+  // Only on hosts that already look like bait (aggregators and news sites link to many projects).
+  if (ctx.socials?.xHandles.length && ctx.handleIndex && (hasAction || p.freeHost || fresh || brandFlagged || attackedFlagged || !!o)) {
+    for (const h of ctx.socials.xHandles.slice(0, 8)) {
+      const b = ctx.handleIndex.get(h.toLowerCase());
+      if (!b || !b.domains.length) continue;
+      if (b.domains.some((d) => isUnderDomain(p.host, d))) continue; // it is the project's own site
+      signals.push({ id: "page-official-x", weight: 35, key: "sig_page_official_x", sub: ["@" + h, b.name, b.domains[0]] });
+      if (!matchedBrand) matchedBrand = b;
+      brandFlagged = true;
+      break;
     }
   }
 
