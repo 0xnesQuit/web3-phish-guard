@@ -45,7 +45,11 @@ async function main() {
       box.innerHTML = `<div class="spin">${esc(t("popup_scanning"))}</div>`;
       const r = (await chrome.runtime.sendMessage({ type: "w3pg:deepScan", tabId, language: chrome.i18n.getUILanguage().split("-")[0] })) as DeepReport | { error: string };
       btn.disabled = false;
-      if ("error" in r && !("ai" in r)) { box.innerHTML = `<div>${esc(t("popup_scan_failed"))} (${esc(r.error)})</div>`; return; }
+      if ("error" in r && !("ai" in r)) {
+        const limited = ["host_cooldown", "rate_limited", "host_capacity_reached", "daily_capacity_reached"].includes(r.error);
+        box.innerHTML = `<div>${esc(limited ? t("popup_scan_limited") : t("popup_scan_failed"))}${limited ? "" : ` (${esc(r.error)})`}</div>`;
+        return;
+      }
       renderDeep(r as DeepReport);
     };
     $("reportbtn").onclick = () => { ($("reportbox") as HTMLElement).hidden = false; $("note").focus(); };

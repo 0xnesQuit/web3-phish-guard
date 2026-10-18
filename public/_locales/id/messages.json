@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "Memindai halaman, skrip, dan registri…"
   },
+  "popup_scan_limited": {
+    "message": "Situs ini baru saja dipindai atau batas harian tercapai. Coba lagi nanti."
+  },
   "popup_scan_failed": {
     "message": "Pemindaian gagal"
   },

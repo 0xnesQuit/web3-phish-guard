@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "ページ・スクリプト・登録情報をスキャン中…"
   },
+  "popup_scan_limited": {
+    "message": "このサイトは最近スキャン済みか、本日の上限に達しました。後でもう一度お試しください。"
+  },
   "popup_scan_failed": {
     "message": "スキャン失敗"
   },

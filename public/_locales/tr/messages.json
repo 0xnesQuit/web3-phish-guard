@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "Sayfa, scriptler ve kayıtlar taranıyor…"
   },
+  "popup_scan_limited": {
+    "message": "Bu site kısa süre önce tarandı ya da günlük tarama sınırına ulaştınız. Daha sonra tekrar deneyin."
+  },
   "popup_scan_failed": {
     "message": "Tarama başarısız"
   },

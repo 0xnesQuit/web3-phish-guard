@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "正在扫描页面、脚本和注册信息…"
   },
+  "popup_scan_limited": {
+    "message": "该站点最近已扫描或已达今日上限，请稍后再试。"
+  },
   "popup_scan_failed": {
     "message": "扫描失败"
   },

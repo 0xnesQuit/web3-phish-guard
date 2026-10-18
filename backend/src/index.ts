@@ -40,6 +40,9 @@ export interface Env {
   SCANS_PER_IP_PER_DAY: string;
   REPORTS_PER_IP_PER_DAY: string;
   SCANS_GLOBAL_PER_DAY: string;
+  SCANS_PER_HOST_PER_DAY: string;
+  SCAN_HOST_COOLDOWN_MIN: string;
+  SCAN_BURST?: RateLimit; // Cloudflare rate-limit binding: per-IP burst (atomic, edge-local)
   MODEL: string;
   LISTS_BASE: string;
 }
@@ -348,10 +351,21 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   const cached = await env.W3PG_KV.get(cacheKey);
   if (cached) return json({ ...JSON.parse(cached), cached: true });
 
-  // rate limits: valid, uncached requests only; the caller's own bucket first, then the shared daily budget
+  // rate limits: valid, uncached requests only. Order: burst (atomic, per IP per minute) -> the caller's own
+  // daily bucket -> one scan of the same host per caller per cooldown window -> per-host daily cap (one site
+  // cannot soak up the budget) -> the shared daily budget. All of them protect the Anthropic key, which is
+  // only ever used through the fixed verdict prompt below.
   const ik = await ipKey(req, env);
+  const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+  // The binding is permissive and eventually consistent (counters sync asynchronously per machine), so it only
+  // brakes real floods; the KV counters below are the accounting, and the Anthropic console spend limit the backstop.
+  if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: ipRaw })).success) return json({ error: "rate_limited" }, 429);
   if (!(await allow(env, `scan:${ik}`, Number(env.SCANS_PER_IP_PER_DAY) || 20))) return json({ error: "rate_limited" }, 429);
+  const hostKey = `scanhost:${ik}:${await sha256(payload.host)}`;
+  if (await env.W3PG_KV.get(hostKey)) return json({ error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 }, 429);
+  if (!(await allow(env, `scan:host:${await sha256(payload.host)}`, Number(env.SCANS_PER_HOST_PER_DAY) || 30))) return json({ error: "host_capacity_reached" }, 429);
   if (!(await allow(env, "scan:global", Number(env.SCANS_GLOBAL_PER_DAY) || 3000))) return json({ error: "daily_capacity_reached" }, 429);
+  await env.W3PG_KV.put(hostKey, "1", { expirationTtl: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60) });
 
   // server-side facts
   const data = await serverData(env);

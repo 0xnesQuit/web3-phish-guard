@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "Đang quét trang, script và đăng ký…"
   },
+  "popup_scan_limited": {
+    "message": "Trang này vừa được quét hoặc đã đạt giới hạn hôm nay. Thử lại sau."
+  },
   "popup_scan_failed": {
     "message": "Quét thất bại"
   },

@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "Seite, Skripte und Register werden geprüft…"
   },
+  "popup_scan_limited": {
+    "message": "Diese Seite wurde kürzlich gescannt oder das Tageslimit ist erreicht. Später erneut versuchen."
+  },
   "popup_scan_failed": {
     "message": "Scan fehlgeschlagen"
   },

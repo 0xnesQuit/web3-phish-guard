@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "페이지, 스크립트, 등록 정보 검사 중…"
   },
+  "popup_scan_limited": {
+    "message": "이 사이트는 최근 검사되었거나 오늘 한도에 도달했습니다. 나중에 다시 시도하세요."
+  },
   "popup_scan_failed": {
     "message": "검사 실패"
   },

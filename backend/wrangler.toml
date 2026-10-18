@@ -14,7 +14,9 @@ id = "ec53745c0a244239beb2757d80663075"
 ALLOWED_ORIGINS = ""
 SCANS_PER_IP_PER_DAY = "20"
 REPORTS_PER_IP_PER_DAY = "10"
-SCANS_GLOBAL_PER_DAY = "3000"
+SCANS_GLOBAL_PER_DAY = "1500"
+SCANS_PER_HOST_PER_DAY = "30"   # one site cannot soak up the daily budget
+SCAN_HOST_COOLDOWN_MIN = "30"   # a caller may re-scan the same host only after this many minutes
 MODEL = "claude-haiku-5-5"
 LISTS_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data"
 
@@ -22,3 +24,10 @@ LISTS_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists
 #   npx wrangler secret put ANTHROPIC_API_KEY
 #   npx wrangler secret put XQUIK_API_KEY       (X account lookups; optional, the feature is skipped without it)
 #   npx wrangler secret put ADMIN_TOKEN        (long random string for the /admin panel)
+
+# Per-IP flood brake for /v1/scan: 3 scans per minute per machine. Permissive and eventually consistent by design
+# (Cloudflare docs), so it stops floods, not careful abuse; the KV daily/per-host counters do the accounting.
+[[ratelimits]]
+name = "SCAN_BURST"
+namespace_id = "1001"
+simple = { limit = 3, period = 60 }

@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "Scanning page, scripts and registries…"
   },
+  "popup_scan_limited": {
+    "message": "This site was scanned recently or you reached today's scan limit. Try again later."
+  },
   "popup_scan_failed": {
     "message": "Scan failed"
   },

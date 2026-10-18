@@ -113,6 +113,9 @@
   "popup_scanning": {
     "message": "Analyse de la page, des scripts et des registres…"
   },
+  "popup_scan_limited": {
+    "message": "Ce site a été analysé récemment ou la limite quotidienne est atteinte. Réessayez plus tard."
+  },
   "popup_scan_failed": {
     "message": "Analyse échouée"
   },
