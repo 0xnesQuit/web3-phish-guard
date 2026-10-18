@@ -317,9 +317,12 @@ describe("deceptive link text", () => {
     expect(run("https://app.uniswap.org/", { origin: { source: "x", at: 0, display: "uniswap.org" } }).signals.some((s) => s.id === "display-mismatch")).toBe(false);
     expect(run("https://uniswap.org/", { origin: { source: "x", at: 0, display: "app.uniswap.org" } }).signals.some((s) => s.id === "display-mismatch")).toBe(false);
   });
-  it("mismatch alone on a plain domain is a warning, not a block", () => {
-    const v = run("https://some-blog.com/", { origin: { source: "x", at: 0, display: "jup.ag" } });
+  it("mismatch alone on a plain domain is a warning; borrowing a known brand's domain is a block", () => {
+    const v = run("https://some-blog.com/", { origin: { source: "x", at: 0, display: "someone-else.net" } });
     expect(v.band).toBe("warn");
+    const branded = run("https://some-blog.com/", { origin: { source: "x", at: 0, display: "jup.ag" } });
+    expect(branded.signals.some((s) => s.id === "display-brand-mismatch")).toBe(true);
+    expect(branded.band).toBe("block");
   });
 });
 
