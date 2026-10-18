@@ -5,8 +5,8 @@ import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blockl
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener } from "./lib/origin";
-import { resolveBrand, resolvePoster, getApiKey, setApiKey } from "./lib/xquik";
-import { scanExternalScripts, goPlus, askApi, sendReport, getApiBase, setApiBase } from "./lib/deepscan";
+import { resolveBrand, resolvePoster } from "./lib/xquik";
+import { scanExternalScripts, goPlus, askApi, sendReport } from "./lib/deepscan";
 import { signalText } from "./lib/i18n";
 import type { XIntel } from "./lib/types";
 import type { DeepReport, OriginContext, PageSnapshot, PageSocials, ProviderEvent, Signal, Verdict } from "./lib/types";
@@ -86,7 +86,6 @@ async function warnDisplay(): Promise<"page" | "popup"> {
 /** Ask X (via Xquik) about the brand token and the poster; null when no key / nothing to ask. */
 async function xIntelFor(v: Verdict, origin?: OriginContext): Promise<XIntel | undefined> {
   if (!v.xToken) return undefined;
-  if (!(await getApiKey())) return undefined;
   const brand = await resolveBrand(v.xToken);
   const posterHandle = origin?.poster;
   const poster = posterHandle ? await resolvePoster(posterHandle) : null;
@@ -343,7 +342,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (prev?.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted")) return;
         // With an Xquik key, verify the first linked account (1 credit, cached a day): a real 5k+ account whose
         // bio links elsewhere means this page borrowed someone else's social proof.
-        if (socials.xHandles.length && prev && prev.score >= 10 && (await getApiKey())) {
+        if (socials.xHandles.length && prev && prev.score >= 10) {
           const acc = await resolvePoster(socials.xHandles[0]);
           if (acc && acc.followers >= 5000) socials.verified = { handle: acc.handle, name: acc.name, followers: acc.followers, domains: acc.domains };
         }
@@ -399,12 +398,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:getSettings": {
-        sendResponse({ xquikKey: await getApiKey(), apiBase: await getApiBase(), warnDisplay: await warnDisplay() });
+        sendResponse({ warnDisplay: await warnDisplay() });
         return;
       }
       case "w3pg:setSettings": {
-        if (typeof msg.xquikKey === "string") await setApiKey(msg.xquikKey);
-        if (typeof msg.apiBase === "string") await setApiBase(msg.apiBase);
         if (msg.warnDisplay === "page" || msg.warnDisplay === "popup") await chrome.storage.local.set({ warnDisplay: msg.warnDisplay });
         sendResponse(true);
         return;
@@ -428,11 +425,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
         if (!v) { sendResponse({ ok: false, error: "no_verdict" }); return; }
         sendResponse(await sendReport(v, String(msg.note ?? "").slice(0, 1000)));
-        return;
-      }
-      case "w3pg:testXquik": {
-        const r = await resolveBrand(String(msg.token || "uniswap"));
-        sendResponse(r);
         return;
       }
       case "w3pg:refreshNow": {

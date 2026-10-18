@@ -13,7 +13,7 @@ Every page you open is evaluated **locally in your browser**: the hostname is ch
 1. **List updates** (automatic, every 12 hours): the extension downloads updated phishing and brand lists from GitHub (`raw.githubusercontent.com`). These requests contain no information about your browsing.
 2. **Domain age lookup** (automatic, only for suspicious pages): when the local score is in the "undecided" range, the extension asks the domain registry's public RDAP service for the registration date of the **domain name only** (for example `example.xyz`). No path, query string, or page content is sent.
 3. **Link shortener resolution** (automatic, only on x.com): shortened links (t.co, tr.ee, bit.ly…) seen in your timeline are resolved to find their real destination so they can be scored before you click.
-4. **X account check** (optional, only if you enter your own Xquik API key in the settings): for a suspicious page, the extension sends the project name or X handle to Xquik to find the project's official account. Never the page URL.
+4. **X account check** (automatic, only for suspicious pages): the extension sends the project name found in the hostname, or an X handle linked from the page, to our server, which looks up the account through the Xquik API. Never the page URL.
 5. **Deep scan** (only when you press the "Deep scan" button): a snapshot of the current page (title, a text sample, script file names, link domains, wallet-related buttons) together with the extension's findings is sent to our server, which asks an AI model (Anthropic Claude) for a verdict. The server keeps the result cached for one hour keyed by a hash; it does not store the page text. Our server also asks the free GoPlus Security API whether the domain is a known phishing site.
 6. **Reports** (only when you press "Report this site"): the page URL, the extension's score and your optional note are sent to our server, where a human reviews them. Approved domains are added to a public blocklist. We store a truncated hash of your IP address for abuse prevention; it is deleted with the report after 90 days.
 
@@ -26,7 +26,6 @@ Every page you open is evaluated **locally in your browser**: the hostname is ch
 ## Your controls
 
 - Deep scan and reporting are manual actions; nothing is sent until you press the button.
-- The X account check is off unless you add your own key, and can be cleared in the settings.
 - You can mark any domain as trusted or remove it again in the settings.
 - Uninstalling the extension removes all locally stored data.
 

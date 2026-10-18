@@ -7,16 +7,8 @@
 import type { DeepReport, PageSnapshot, Verdict, OriginContext, XIntel } from "./types";
 import { signalText } from "./i18n";
 
-export const DEFAULT_API_BASE = "https://web3-phish-guard-api.w3pg.workers.dev";
-
-export async function getApiBase(): Promise<string> {
-  const v = (await chrome.storage.local.get("apiBase")).apiBase as string | undefined;
-  return (v && v.trim().replace(/\/$/, "")) || DEFAULT_API_BASE;
-}
-
-export async function setApiBase(v: string): Promise<void> {
-  await chrome.storage.local.set({ apiBase: v.trim().replace(/\/$/, "") });
-}
+/** The only server the extension talks to for deep scans, reports and X lookups. Not user-configurable. */
+export const API_BASE = "https://web3-phish-guard-api.w3pg.workers.dev";
 
 const SCRIPT_MARKERS: RegExp[] = [/secureproxy\.php/i, /ping_proxy/i, /rotatingURL/i, /createPrizeTxs/i, /claimSolana/i, /\bdrainer\b/i, /inferno/i, /angel[_-]?drainer/i, /setApprovalForAll[\s\S]{0,300}(permit|transferFrom)/i, /eth_signTypedData_v4[\s\S]{0,300}Permit/i, /signAllTransactions[\s\S]{0,200}SystemProgram\.transfer/i];
 
@@ -63,7 +55,7 @@ export interface DeepContext {
 }
 
 export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { markers: string[]; goplus?: { phishing?: boolean } }): Promise<DeepReport["ai"]> {
-  const base = await getApiBase();
+  const base = API_BASE;
   const v = ctx.verdict;
   const body = {
     url: v.url,
@@ -96,7 +88,7 @@ export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { 
 }
 
 export async function sendReport(v: Verdict, note: string): Promise<{ ok: boolean; error?: string }> {
-  const base = await getApiBase();
+  const base = API_BASE;
   try {
     const res = await fetch(`${base}/v1/report`, {
       method: "POST",

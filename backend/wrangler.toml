@@ -19,4 +19,5 @@ MODEL = "claude-haiku-5-5"
 
 # Secrets (never in this file):
 #   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put XQUIK_API_KEY       (X account lookups; optional, the feature is skipped without it)
 #   npx wrangler secret put ADMIN_TOKEN        (long random string for the /admin panel)

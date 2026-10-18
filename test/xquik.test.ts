@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickOfficial, toAccount, domainsFromLinkPage, registrableOf } from "../src/lib/xquik";
+import { pickOfficial, toAccount, domainsFromLinkPage, registrableOf } from "../src/lib/xquik-core";
 
 // Canned from a live Xquik search on 2026-10-17 (trimmed).
 const AXIS = [

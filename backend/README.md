@@ -8,6 +8,7 @@ Uzantının "Derin tara" ve "Bu siteyi bildir" özelliklerinin arkasındaki kü�
 |---|---|
 | `POST /v1/scan` | Uzantının gönderdiği sayfa özeti + bulgular → Claude Haiku 5.5 ile karar (`dangerous / suspicious / likely_safe / safe`, gerekçe, tavsiye). 1 saat önbellek. |
 | `POST /v1/report` | Kullanıcı bildirimi → bekleyen kuyruk (KV). |
+| `GET /v1/x/brand?token=…`, `GET /v1/x/user?handle=…` | Xquik ile X hesabı çözümleme (anahtar burada; sonuçlar KV'de 7 gün / 1 gün önbellek, IP başına 80/gün). |
 | `GET /v1/community.json` | Onaylanmış topluluk blocklist'i (lists reposu günde bir çeker). |
 | `GET /admin?token=…` | Moderasyon paneli: bekleyenleri onayla / reddet. |
 | `POST /admin/decide` | Panelin kullandığı karar ucu. |
@@ -30,12 +31,13 @@ npm install
 npx wrangler login                       # Cloudflare hesabına tarayıcıdan giriş
 npx wrangler kv namespace create W3PG_KV # çıkan id'yi wrangler.toml içindeki REPLACE_WITH_KV_ID yerine yaz
 npx wrangler secret put ANTHROPIC_API_KEY
+npx wrangler secret put XQUIK_API_KEY    # X hesabı sorguları (isteğe bağlı)
 npx wrangler secret put ADMIN_TOKEN      # uzun rastgele bir dize; /admin?token=… ile girilir
 npx wrangler deploy                      # https://web3-phish-guard-api.<hesap>.workers.dev
 ```
 
 Sonra:
-1. Uzantı → Ayarlar → "Sunucu adresi" alanına Worker URL'sini yaz (varsayılan değer `src/lib/deepscan.ts` içindeki `DEFAULT_API_BASE`; kendi URL'inle değiştirip build al).
+1. Uzantıdaki sunucu adresi `src/lib/deepscan.ts` içindeki `API_BASE` sabitidir; kendi Worker URL'inle değiştirip build al.
 2. Lists reposunda `API_BASE` değişkeni: `gh variable set API_BASE --repo 0xnesQuit/web3-phish-guard-lists --body "https://…workers.dev"`. Günlük Action onaylanan bildirimleri `data/community-blocklist.json` olarak yayınlar; uzantı bunu MetaMask listesiyle aynı güvende (engelleme) kullanır.
 3. Moderasyon: `https://…workers.dev/admin?token=<ADMIN_TOKEN>`.
 

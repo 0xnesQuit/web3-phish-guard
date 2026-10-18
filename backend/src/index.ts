@@ -15,10 +15,12 @@
  *  - per-IP and global daily caps bound the spend; payload size is capped; optional extension-origin allowlist
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { resolveBrandRaw, resolveUserRaw } from "../../src/lib/xquik-core";
 
 export interface Env {
   W3PG_KV: KVNamespace;
   ANTHROPIC_API_KEY: string;
+  XQUIK_API_KEY: string;
   ADMIN_TOKEN: string;
   ALLOWED_ORIGINS: string;
   SCANS_PER_IP_PER_DAY: string;
@@ -393,6 +395,42 @@ async function handleDecide(req: Request, env: Env): Promise<Response> {
 }
 
 // ---------------------------------------------------------------------------
+// /v1/x/*  (Xquik key stays here; the extension only ever sends a brand token or a handle)
+// ---------------------------------------------------------------------------
+function xquikFetcher(env: Env) {
+  return async (path: string): Promise<unknown> => {
+    if (!env.XQUIK_API_KEY) return null;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 10_000);
+      const res = await fetch("https://xquik.com/api/v1" + path, { headers: { "x-api-key": env.XQUIK_API_KEY, accept: "application/json" }, signal: ctrl.signal });
+      clearTimeout(t);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+}
+
+async function handleX(req: Request, env: Env, kind: "brand" | "user"): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  const url = new URL(req.url);
+  const q = (url.searchParams.get(kind === "brand" ? "token" : "handle") ?? "").trim().toLowerCase().replace(/^@/, "");
+  if (!/^[a-z0-9_.-]{2,40}$/.test(q)) return json({ error: "bad_query" }, 400);
+  const cacheKey = `x:${kind}:${q}`;
+  const cached = await env.W3PG_KV.get(cacheKey);
+  if (cached) return json(JSON.parse(cached), 200, { "cache-control": "public, max-age=3600" });
+  const ipKey = await sha256(clientIp(req));
+  if (!(await allow(env, `x:${ipKey}`, 80))) return json({ error: "rate_limited" }, 429);
+  const fetcher = xquikFetcher(env);
+  const result = kind === "brand" ? await resolveBrandRaw(q, fetcher) : await resolveUserRaw(q, fetcher);
+  if (!result) return json({ error: "not_found" }, 404);
+  await env.W3PG_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: kind === "brand" ? 7 * 86400 : 86400 });
+  return json(result, 200, { "cache-control": "public, max-age=3600" });
+}
+
+// ---------------------------------------------------------------------------
 // router
 // ---------------------------------------------------------------------------
 export default {
@@ -407,6 +445,8 @@ export default {
     };
     if (req.method === "POST" && url.pathname === "/v1/scan") return wrap(() => handleScan(req, env));
     if (req.method === "POST" && url.pathname === "/v1/report") return wrap(() => handleReport(req, env));
+    if (req.method === "GET" && url.pathname === "/v1/x/brand") return wrap(() => handleX(req, env, "brand"));
+    if (req.method === "GET" && url.pathname === "/v1/x/user") return wrap(() => handleX(req, env, "user"));
     if (req.method === "GET" && url.pathname === "/v1/community.json") return wrap(async () => json(await communityList(env), 200, { "cache-control": "public, max-age=300" }));
     if (req.method === "GET" && url.pathname === "/admin") return handleAdmin(req, env);
     if (req.method === "POST" && url.pathname === "/admin/decide") return handleDecide(req, env);
