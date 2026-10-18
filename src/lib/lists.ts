@@ -10,7 +10,33 @@ let cache: { brands: Brand[]; lists: SignalLists } | null = null;
 export const DATA_FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json"] as const;
 export const REMOTE_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data";
 
-interface RemoteManifest { updatedAt: number; files: Record<string, { bytes: number; sha256?: string }> }
+interface RemoteManifest { updatedAt: number; files: Record<string, { bytes: number; sha256?: string }>; sig?: string }
+
+/** Public half of the key the lists repo's Action signs manifests with (ECDSA P-256). */
+const LISTS_PUBLIC_JWK: JsonWebKey = {"kty": "EC", "x": "BrgP2NFya33GKjoBAwOEs4IgRFIhwYP4b166fk82ciw", "y": "gPwAuGROUY7YXYcllu51OH39hODbNA8KcVcupMJfsEM", "crv": "P-256"};
+/** A remote trusted list may only grow this much beyond the bundled one; anything larger is treated as tampering. */
+const TRUSTED_GROWTH_LIMIT = 50;
+
+async function sha256Hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function canonicalManifest(m: RemoteManifest): string {
+  const files = Object.fromEntries(Object.keys(m.files).sort().map((k) => [k, { bytes: m.files[k].bytes, sha256: m.files[k].sha256 }]));
+  return JSON.stringify({ updatedAt: m.updatedAt, files });
+}
+
+export async function verifyManifest(m: RemoteManifest): Promise<boolean> {
+  if (!m.sig) return false;
+  try {
+    const key = await crypto.subtle.importKey("jwk", LISTS_PUBLIC_JWK, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    const sig = Uint8Array.from(atob(m.sig), (c) => c.charCodeAt(0));
+    return await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, key, sig, new TextEncoder().encode(canonicalManifest(m)));
+  } catch {
+    return false;
+  }
+}
 
 async function loadBundled<T>(file: string): Promise<T | null> {
   try {
@@ -75,15 +101,27 @@ export async function refreshRemoteData(force = false): Promise<{ updated: boole
   const manifest = (await res.json()) as RemoteManifest;
   const have = ((await chrome.storage.local.get("data:updatedAt"))["data:updatedAt"] as number | undefined) ?? 0;
   if (!force && manifest.updatedAt <= have) return { updated: false, files: 0 };
+  // Supply-chain gate: the manifest must carry a valid signature from the lists repo's key, and every file must
+  // match the hash the signed manifest names. A compromised repo or CDN cannot hand the extension a new allowlist.
+  if (!(await verifyManifest(manifest))) throw new Error("manifest signature invalid or missing");
   const updates: Record<string, unknown> = {};
   let n = 0;
   for (const file of DATA_FILES) {
-    if (!manifest.files[file]) continue;
+    const entry = manifest.files[file];
+    if (!entry?.sha256) continue;
     try {
       const r = await fetch(`${REMOTE_BASE}/${file}`, { cache: "no-store" });
       if (!r.ok) continue;
-      const json = await r.json();
+      const text = await r.text();
+      if ((await sha256Hex(text)) !== entry.sha256) { console.warn(`[w3pg] ${file}: hash mismatch, skipped`); continue; }
+      const json = JSON.parse(text);
       if (json === null || typeof json !== "object") continue;
+      if (file === "trusted.json") {
+        const bundled = flattenTrusted(await loadBundled<Record<string, string[] | string>>(file));
+        const remote = flattenTrusted(json as Record<string, string[] | string>);
+        const added = remote.filter((d) => !bundled.includes(d)).length;
+        if (added > TRUSTED_GROWTH_LIMIT) { console.warn(`[w3pg] trusted.json grew by ${added} entries, kept bundled copy`); continue; }
+      }
       updates["data:" + file] = json;
       n++;
     } catch {

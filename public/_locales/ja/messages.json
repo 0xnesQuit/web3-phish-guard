@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "ページは $2 の本物の X アカウント $1 にリンクしているが、そのサイトは $3 であってここではない"
   },
+  "sig_idn_homograph": {
+    "message": "他の文字体系の似た文字で「$1」を綴っている（IDN ホモグラフ攻撃）"
+  },
   "sig_brand_typo": {
     "message": "「$1」の一文字違いの偽装"
   },

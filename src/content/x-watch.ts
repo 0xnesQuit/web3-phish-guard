@@ -96,24 +96,35 @@ function badge(a: HTMLAnchorElement, v: HostVerdict) {
 let queue = new Set<HTMLAnchorElement>();
 let timer: number | undefined;
 
+const seen = new WeakSet<HTMLAnchorElement>();
 function scan(root: ParentNode = document) {
   const anchors = root.querySelectorAll<HTMLAnchorElement>(`a[href]:not([${BADGE_ATTR}])`);
   for (const a of anchors) {
-    if (isExternalLink(a) && (textHost(a) || hrefHost(a) !== "t.co")) queue.add(a);
+    if (seen.has(a)) continue;
+    if (!(isExternalLink(a) && (textHost(a) || hrefHost(a) !== "t.co"))) continue;
+    seen.add(a);
+    if (io) io.observe(a); else queue.add(a);
   }
-  if (queue.size && timer === undefined) timer = window.setTimeout(flush, 300);
+  if (!io && queue.size && timer === undefined) timer = window.setTimeout(flush, 300);
 }
 
 async function flush() {
   timer = undefined;
   const batch = [...queue];
   queue = new Set();
-  for (const a of batch) {
-    if (a.hasAttribute(BADGE_ATTR)) continue;
+  // up to 4 lookups in flight: one slow redirect resolution must not stall the rest of the timeline
+  let cursor = 0;
+  const worker = async () => { while (cursor < batch.length) await scoreOne(batch[cursor++]); };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+}
+
+async function scoreOne(a: HTMLAnchorElement) {
+  {
+    if (a.hasAttribute(BADGE_ATTR)) return;
     const display = textHost(a);
     const target = hrefHost(a);
-    if (!target) continue;
-    if (!display && target === "t.co") continue; // card links without a visible domain: nothing to judge yet
+    if (!target) return;
+    if (!display && target === "t.co") return; // card links without a visible domain: nothing to judge yet
     const key = `${a.href}|${display ?? ""}`;
     let v = verdictCache.get(key);
     if (!v) {
@@ -123,14 +134,25 @@ async function flush() {
       try {
         r = (await chrome.runtime.sendMessage({ type: "w3pg:scoreLink", href: a.href, ctx })) as (Omit<HostVerdict, "host"> & { host?: string }) | null;
       } catch { r = null; }
-      if (!r) continue;
+      if (!r) return;
       v = { ...r, host: (r as { host?: string }).host ?? target };
       if (v.band !== "none") console.debug("[w3pg]", v.host, v.score, v.signals.map(signalText));
+      if (verdictCache.size > 500) verdictCache.delete(verdictCache.keys().next().value as string);
       verdictCache.set(key, v);
     }
     badge(a, v);
   }
 }
+
+// Only links that scroll into view are looked up (a timeline holds hundreds of links the user never sees).
+const io = typeof IntersectionObserver === "function" ? new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    if (!e.isIntersecting) continue;
+    io?.unobserve(e.target);
+    queue.add(e.target as HTMLAnchorElement);
+  }
+  if (queue.size && timer === undefined) timer = window.setTimeout(flush, 200);
+}, { rootMargin: "200px" }) : null;
 
 const mo = new MutationObserver((muts) => {
   for (const m of muts) for (const n of m.addedNodes) if (n instanceof Element) scan(n);

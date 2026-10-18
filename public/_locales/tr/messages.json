@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "Sayfa $2 projesinin gerçek X hesabına ($1) link veriyor; projenin sitesi $3, bu değil"
   },
+  "sig_idn_homograph": {
+    "message": "Başka bir alfabeden benzer harflerle \"$1\" yazılmış (IDN homograf saldırısı)"
+  },
   "sig_brand_typo": {
     "message": "\"$1\" adının bir harf farklı taklidi"
   },

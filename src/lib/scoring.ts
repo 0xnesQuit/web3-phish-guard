@@ -1,5 +1,23 @@
 import type { Band, Brand, OriginContext, PageSocials, ParsedHost, Signal, SignalLists, Verdict, XIntel } from "./types";
 import { isUnderDomain, levenshtein, tokenize } from "./hostname";
+import { homographHost } from "./idn";
+
+/** token -> generated-tier brand, built once per brands array (the array is replaced, never mutated). */
+const generatedIndexCache = new WeakMap<Brand[], Map<string, Brand>>();
+function generatedIndex(brands: Brand[]): Map<string, Brand> {
+  let m = generatedIndexCache.get(brands);
+  if (m) return m;
+  m = new Map();
+  for (const b of brands) {
+    if (b.tier !== "generated") continue;
+    for (const t of b.tokens) {
+      const k = t.toLowerCase();
+      if (k.length >= 5 && !GENERIC.has(k) && !m.has(k)) m.set(k, b);
+    }
+  }
+  generatedIndexCache.set(brands, m);
+  return m;
+}
 
 export const BLOCK_THRESHOLD = 70;
 export const WARN_THRESHOLD = 35;
@@ -32,7 +50,7 @@ export interface ScoreContext {
 }
 
 const SOURCE_LABEL: Record<OriginContext["source"], string> = {
-  x: "X (Twitter)", discord: "Discord", telegram: "Telegram", reddit: "Reddit", youtube: "YouTube", other: "social media",
+  x: "X (Twitter)", discord: "Discord", telegram: "Telegram", reddit: "Reddit", youtube: "YouTube", ads: "a search ad", other: "social media",
 };
 
 /** Hostname tokens that are too generic to count as a brand on their own */
@@ -104,15 +122,38 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       break;
     }
   }
+  // IDN homograph: "metаmask.io" with a Cyrillic а decodes to the brand's skeleton
+  let homograph: string | null = null;
   if (!brandOfficial) {
+    const skel = homographHost(p.host);
+    if (skel && skel !== p.host) {
+      const skelJoined = skel.split(".").slice(0, -1).join("").replace(/[^a-z0-9]/g, "");
+      for (const b of ctx.brands) {
+        if (b.tier === "generated") continue;
+        for (const t of b.tokens) {
+          const tok = t.toLowerCase();
+          if (tok.length >= 5 && !GENERIC.has(tok) && skelJoined.includes(tok)) { homograph = b.name; matchedBrand = b; brandSignalKind = "typo"; break; }
+        }
+        if (homograph) break;
+      }
+    }
+  }
+  if (!brandOfficial && !homograph) {
+    // auto-imported brands: O(1) whole-token lookup (plain or affix-stripped); the curated few hundred use the loop below
+    const gi = generatedIndex(ctx.brands);
+    for (const tk of [...tokens, ...strippedTokens]) {
+      const b = gi.get(tk);
+      if (b) { matchedBrand = b; brandSignalKind = b.domains.length ? "impersonation" : "unverified"; break; }
+    }
+  }
+  if (!brandOfficial && !matchedBrand) {
     outer: for (const b of ctx.brands) {
+      if (b.tier === "generated") continue;
       for (const t of b.tokens) {
         const tok = t.toLowerCase();
         const generic = GENERIC.has(tok) || tok.length < 5;
         // Curated brands: substring match in the whole hostname (catches pancakeswapclaim6754).
-        // Auto-imported brands: whole-token match only ("yieldfi" must not match "yieldfields").
-        // Auto-imported: whole token, or whole token after stripping clone affixes ("papertradefnd" -> "papertrade").
-        const substringOk = b.tier !== "generated" ? joined.includes(tok) : tokens.includes(tok) || strippedTokens.includes(tok);
+        const substringOk = joined.includes(tok);
         if (!generic && substringOk) {
           matchedBrand = b;
           brandSignalKind = b.domains.length ? "impersonation" : "unverified";
@@ -125,7 +166,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
           break outer;
         }
         // typosquat: one edit away from a distinctive *curated* brand token (unlswap, metamsk)
-        if (b.tier !== "generated" && tok.length >= 6 && tokens.some((x) => x !== tok && Math.abs(x.length - tok.length) <= 1 && levenshtein(x, tok) === 1)) {
+        if (tok.length >= 6 && tokens.some((x) => x !== tok && Math.abs(x.length - tok.length) <= 1 && levenshtein(x, tok) === 1)) {
           matchedBrand = b;
           brandSignalKind = "typo";
           break outer;
@@ -197,6 +238,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       // a bait word is required: a free host alone is where hobby projects live ("my-portfolio.netlify.app")
       if (hasAction) signals.push({ id: "brand-impersonation-weak", weight: 30, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
       else brandFlagged = false;
+    } else if (brandSignalKind === "typo" && homograph) {
+      signals.push({ id: "idn-homograph", weight: 45, key: "sig_idn_homograph", sub: [matchedBrand.name] });
     } else if (brandSignalKind === "typo") {
       signals.push({ id: "brand-typo", weight: 35, key: "sig_brand_typo", sub: [matchedBrand.name] });
     } else if (hasAction || p.freeHost) {
@@ -255,7 +298,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // Only ever raises the score: hijacked official accounts post scam links too.
   const o = ctx.origin;
   if (o) {
-    signals.push({ id: "origin-social", weight: 10, key: "sig_origin_social", sub: [SOURCE_LABEL[o.source]] });
+    // a search-ad click is only meaningful next to a brand or bait word (brand-keyword malvertising)
+    if (o.source !== "ads" || hasAction || matchedBrand || ctx.attacked) {
+      signals.push({ id: "origin-social", weight: 10, key: "sig_origin_social", sub: [SOURCE_LABEL[o.source]] });
+    }
     if (o.shortener && (hasAction || attackedFlagged || brandFlagged || fresh || p.freeHost)) {
       signals.push({ id: "shortener", weight: 10, key: "sig_shortener", sub: [o.shortener] });
     }

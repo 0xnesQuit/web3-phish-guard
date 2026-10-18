@@ -16,7 +16,14 @@ export function sourceFromHost(host: string): OriginContext["source"] | null {
   if (h === "t.me" || h === "web.telegram.org" || h.endsWith(".telegram.org")) return "telegram";
   if (h === "reddit.com" || h.endsWith(".reddit.com") || h === "out.reddit.com") return "reddit";
   if (h === "youtube.com" || h.endsWith(".youtube.com") || h === "youtu.be") return "youtube";
+  if (isAdHop(h)) return "ads";
   return null;
+}
+
+/** Click-tracking hops of search ads: the page after them was reached through an ad for some keyword. */
+export function isAdHop(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === "www.googleadservices.com" || h === "googleadservices.com" || h.endsWith(".doubleclick.net") || h === "doubleclick.net" || h === "bing.com" && false || h === "www.bing.com" && false || h.endsWith(".adsrvr.org") || h === "clickserve.dartsearch.net" || h === "ad.doubleclick.net";
 }
 
 export async function setTabOrigin(tabId: number, o: OriginContext): Promise<void> {

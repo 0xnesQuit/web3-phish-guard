@@ -4,7 +4,13 @@
  * Run after the brand scripts: node scripts/publish-lists.mjs [outDir]   (default: lists/)
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { createHash, createPrivateKey, sign } from "node:crypto";
+
+/** Canonical bytes that get signed: the manifest without `sig`, keys in a fixed order. */
+export function canonicalManifest(m) {
+  const files = Object.fromEntries(Object.keys(m.files).sort().map((k) => [k, { bytes: m.files[k].bytes, sha256: m.files[k].sha256 }]));
+  return JSON.stringify({ updatedAt: m.updatedAt, files });
+}
 
 const FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "community-blocklist.json"];
 const OUT = process.argv[2] || "lists";
@@ -27,8 +33,18 @@ for (const f of FILES) {
   if (prev.files?.[f]?.sha256 !== sha256) { writeFileSync(`${OUT}/${f}`, buf); changed = true; console.log(`  update ${f} (${files[f].bytes} bytes)`); }
   else console.log(`  same   ${f}`);
 }
-if (changed || !existsSync(`${OUT}/manifest.json`)) {
-  writeFileSync(`${OUT}/manifest.json`, JSON.stringify({ updatedAt: Date.now(), files }, null, 2) + "\n");
+const keyPem = process.env.LISTS_SIGNING_KEY;
+if (changed || !existsSync(`${OUT}/manifest.json`) || (keyPem && !prev.sig)) {
+  const manifest = { updatedAt: Date.now(), files };
+  if (keyPem) {
+    // ECDSA P-256 / SHA-256, raw r||s so WebCrypto in the extension can verify it directly
+    const sig = sign("sha256", Buffer.from(canonicalManifest(manifest)), { key: createPrivateKey(keyPem), dsaEncoding: "ieee-p1363" });
+    manifest.sig = sig.toString("base64");
+    console.log("manifest signed");
+  } else {
+    console.log("LISTS_SIGNING_KEY not set: manifest published unsigned (the extension will keep its bundled copy)");
+  }
+  writeFileSync(`${OUT}/manifest.json`, JSON.stringify(manifest, null, 2) + "\n");
   console.log("manifest updated");
 } else {
   console.log("nothing changed");

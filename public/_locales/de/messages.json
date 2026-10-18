@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "Seite verlinkt $1, das echte X-Konto von $2, dessen Seite $3 ist, nicht diese"
   },
+  "sig_idn_homograph": {
+    "message": "Ähnliche Buchstaben eines anderen Alphabets ergeben \"$1\" (IDN-Homograph-Angriff)"
+  },
   "sig_brand_typo": {
     "message": "Ein-Buchstaben-Imitation von \"$1\""
   },

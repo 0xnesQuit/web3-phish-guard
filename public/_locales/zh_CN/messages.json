@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "页面链接到 $2 的真实 X 账号 $1，其官网是 $3，而非此站"
   },
+  "sig_idn_homograph": {
+    "message": "用其他字母表的相似字符拼出“$1”（IDN 同形攻击）"
+  },
   "sig_brand_typo": {
     "message": "与“$1”仅一字之差的仿冒"
   },

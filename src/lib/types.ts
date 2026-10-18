@@ -63,7 +63,7 @@ export interface ParsedHost {
 
 /** Where the navigation came from, when a social platform was the referrer. */
 export interface OriginContext {
-  source: "x" | "discord" | "telegram" | "reddit" | "youtube" | "other";
+  source: "x" | "discord" | "telegram" | "reddit" | "youtube" | "ads" | "other";
   /** handle of the account whose post carried the link (without @) */
   poster?: string;
   posterVerified?: boolean;

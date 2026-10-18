@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "Page links to $1, the real X account of $2, whose site is $3, not this one"
   },
+  "sig_idn_homograph": {
+    "message": "Look-alike letters from another alphabet spell \"$1\" (IDN homograph attack)"
+  },
   "sig_brand_typo": {
     "message": "One-letter imitation of \"$1\""
   },

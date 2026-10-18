@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "페이지가 $2의 실제 X 계정 $1에 연결됨; 해당 사이트는 $3이며 이 사이트가 아님"
   },
+  "sig_idn_homograph": {
+    "message": "다른 문자 체계의 비슷한 글자로 \"$1\"을(를) 표기함 (IDN 동형 공격)"
+  },
   "sig_brand_typo": {
     "message": "\"$1\"의 한 글자 변형 모방"
   },

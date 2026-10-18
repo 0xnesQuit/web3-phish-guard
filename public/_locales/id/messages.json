@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "Halaman menautkan $1, akun X asli $2, yang situsnya $3, bukan yang ini"
   },
+  "sig_idn_homograph": {
+    "message": "Huruf mirip dari alfabet lain membentuk \"$1\" (serangan homograf IDN)"
+  },
   "sig_brand_typo": {
     "message": "Tiruan \"$1\" dengan satu huruf berbeda"
   },

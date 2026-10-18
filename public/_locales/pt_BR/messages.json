@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "A página aponta para $1, a conta real de $2 no X, cujo site é $3, não este"
   },
+  "sig_idn_homograph": {
+    "message": "Letras parecidas de outro alfabeto formam \"$1\" (ataque homógrafo IDN)"
+  },
   "sig_brand_typo": {
     "message": "Imitação de \"$1\" com uma letra trocada"
   },

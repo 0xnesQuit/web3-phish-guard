@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "Trang liên kết tới $1, tài khoản X thật của $2, có trang web là $3 chứ không phải trang này"
   },
+  "sig_idn_homograph": {
+    "message": "Chữ giống nhau từ bảng chữ cái khác ghép thành \"$1\" (tấn công homograph IDN)"
+  },
   "sig_brand_typo": {
     "message": "Giả mạo \"$1\" chỉ khác một ký tự"
   },

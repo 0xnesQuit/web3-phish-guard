@@ -4,7 +4,7 @@ import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle, bra
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, attackedBrandHit, listStatus, newestDomains } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning } from "./lib/state";
-import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener } from "./lib/origin";
+import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener, isAdHop } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
 import { scanExternalScripts, askApi, sendReport } from "./lib/deepscan";
 import { buildRules, applyRules, addBypassRule } from "./lib/dnr";
@@ -327,6 +327,11 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
     let host = "";
     try { host = new URL(d.url).hostname; } catch { /* ignore */ }
     const src = host ? sourceFromHost(host) : null;
+    if (src === "ads" || isAdHop(host)) {
+      await setTabOrigin(d.tabId, { source: "ads", at: Date.now() });
+      await resetTab(d.tabId);
+      return;
+    }
     if (src && (host === "t.co" || host === "out.reddit.com")) {
       const pending = await takePendingClick();
       await setTabOrigin(d.tabId, { source: src, at: Date.now(), ...(pending ?? {}) });

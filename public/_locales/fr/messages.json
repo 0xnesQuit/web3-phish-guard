@@ -263,6 +263,9 @@
   "sig_page_official_x": {
     "message": "La page renvoie vers $1, le vrai compte X de $2, dont le site est $3, pas celui-ci"
   },
+  "sig_idn_homograph": {
+    "message": "Des lettres semblables d'un autre alphabet forment « $1 » (attaque homographe IDN)"
+  },
   "sig_brand_typo": {
     "message": "Imitation de « $1 » à une lettre près"
   },

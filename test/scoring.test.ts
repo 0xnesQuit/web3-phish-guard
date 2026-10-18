@@ -482,6 +482,25 @@ describe("review fixes: hijacked accounts and generated officials", () => {
   });
 });
 
+describe("IDN homograph and ad origin", () => {
+  it("Cyrillic metamask look-alike is caught", () => {
+    const v = run(`https://${new URL("https://metаmask.io/").hostname}/`);
+    expect(v.signals.some((s) => s.id === "idn-homograph")).toBe(true);
+    expect(v.band).not.toBe("none");
+    expect(run("https://xn--mnchen-3ya.de/").signals.some((s) => s.id === "idn-homograph")).toBe(false);
+  });
+  it("an ad click alone adds nothing; with a brand it does", () => {
+    expect(run("https://some-shop.com/", { origin: { source: "ads", at: 0 } }).score).toBe(0);
+    expect(run("https://metamask-wallet-download.com/", { origin: { source: "ads", at: 0 } }).signals.some((s) => s.id === "origin-social")).toBe(true);
+  });
+  it("generated-brand index behaves like the loop did", () => {
+    const gen: Brand[] = [{ name: "Kamino Lend", tokens: ["kamino"], domains: ["kamino.com"] }];
+    const merged = mergeBrands(brands, gen);
+    const v = score("https://kamino-airdrop.xyz/", parseHost("https://kamino-airdrop.xyz/", freeHosts)!, { brands: merged, lists });
+    expect(v.signals.some((s) => s.id === "brand-impersonation-weak")).toBe(true);
+  });
+});
+
 describe("blocklist helpers", () => {
   it("extractDomains handles plain arrays and nested configs", () => {
     expect(extractDomains(["a.com", "https://b.com/x"], ["blocklist"])).toEqual(["a.com", "b.com"]);
