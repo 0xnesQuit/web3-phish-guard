@@ -24,9 +24,10 @@ const DRAINER_MARKERS: RegExp[] = [
   /setApprovalForAll[\s\S]{0,200}permit/i, /permit2[\s\S]{0,200}transferFrom/i,
 ];
 
-const SEED_RE = /(seed|mnemonic|recovery|secret)\s*(phrase|words?)|private\s*key|12\s*words|24\s*words|kurtarma|gizli\s*anahtar/i;
-const COUNTDOWN_RE = /\b\d{1,2}\s*:\s*\d{2}\s*:\s*\d{2}\b|\b(\d+\s*(h|hours?|saat)\s*\d+\s*(m|min|dakika))\b|ends? in|time left|kalan süre|expires in/i;
-const WALLET_BTN_RE = /connect\s*wallet|cüzdan\s*bağla|claim|mint|airdrop|verify\s*wallet|check\s*eligibility|sync\s*wallet|validate|migrate|restore/i;
+// en / tr / de / es / fr / pt / ru / hi / zh / ja / ko / vi / id
+const SEED_RE = /(seed|mnemonic|recovery|secret)\s*(phrase|words?)|private\s*key|12\s*words|24\s*words|kurtarma|gizli\s*anahtar|wiederherstellungsphrase|privater\s*schlüssel|frase\s*(semilla|de\s*recuperaci[oó]n)|clave\s*privada|phrase\s*(de\s*r[eé]cup[eé]ration|secr[eè]te)|cl[eé]\s*priv[eé]e|frase\s*de\s*recupera[cç][aã]o|chave\s*privada|сид[- ]?фраз|приватн\w*\s*ключ|секретн\w*\s*фраз|रिकवरी\s*फ्रेज|निजी\s*कुंजी|助记词|私钥|助記詞|シードフレーズ|リカバリーフレーズ|秘密鍵|복구\s*구문|시드\s*구문|개인\s*키|cụm\s*từ\s*khôi\s*phục|khóa\s*riêng|frasa\s*pemulihan|kunci\s*privat/i;
+const COUNTDOWN_RE = /\b\d{1,2}\s*:\s*\d{2}\s*:\s*\d{2}\b|\b(\d+\s*(h|hours?|saat|std|horas?|heures?|часов?|घंटे|小时|時間|시간|giờ|jam)\s*\d+\s*(m|min|dakika|minuten|minutos?|minutes?|минут|मिनट|分钟|分|분|phút|menit))\b|ends? in|time left|kalan süre|endet in|termina en|se termine dans|termina em|осталось|समाप्त|剩余|残り|남은 시간|còn lại|berakhir dalam|expires in/i;
+const WALLET_BTN_RE = /connect\s*wallet|cüzdan\s*bağla|claim|mint|airdrop|verify\s*wallet|check\s*eligibility|sync\s*wallet|validate|migrate|restore|wallet\s*verbinden|conectar\s*(billetera|wallet)|reclamar|connecter\s*(le\s*)?portefeuille|r[eé]clamer|conectar\s*carteira|resgatar|подключить\s*кошел[её]к|получить|вывести|वॉलेट\s*कनेक्ट|दावा|连接钱包|领取|铸造|ウォレット(を)?接続|請求|受け取る|지갑\s*연결|받기|클레임|kết nối ví|nhận|hubungkan\s*dompet|klaim/i;
 
 function hostOf(u: string): string | null {
   try { return new URL(u, location.href).hostname.toLowerCase(); } catch { return null; }

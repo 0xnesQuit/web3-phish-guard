@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "Je fais confiance à ce site (ajouter à la liste autorisée)"
   },
+  "popup_allow_confirm": {
+    "message": "Cette page a fait des demandes de portefeuille risquées. Cliquez encore pour lui faire confiance quand même."
+  },
   "popup_added": {
     "message": "Ajouté. Rechargez la page."
   },

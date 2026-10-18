@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "Confío en este sitio (añadir a la lista de permitidos)"
   },
+  "popup_allow_confirm": {
+    "message": "Esta página hizo solicitudes de billetera peligrosas. Haz clic de nuevo para confiar igualmente."
+  },
   "popup_added": {
     "message": "Añadido. Recarga la página."
   },

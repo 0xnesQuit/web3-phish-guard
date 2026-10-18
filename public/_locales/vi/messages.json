@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "Tôi tin trang này (thêm vào danh sách cho phép)"
   },
+  "popup_allow_confirm": {
+    "message": "Trang này đã gửi yêu cầu ví nguy hiểm. Nhấp lần nữa để vẫn tin tưởng."
+  },
   "popup_added": {
     "message": "Đã thêm. Tải lại trang."
   },

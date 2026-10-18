@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "Confio neste site (adicionar à lista permitida)"
   },
+  "popup_allow_confirm": {
+    "message": "Esta página fez solicitações de carteira arriscadas. Clique de novo para confiar mesmo assim."
+  },
   "popup_added": {
     "message": "Adicionado. Recarregue a página."
   },

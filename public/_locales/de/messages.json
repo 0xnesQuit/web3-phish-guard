@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "Ich vertraue dieser Seite (zur Allowlist hinzufügen)"
   },
+  "popup_allow_confirm": {
+    "message": "Diese Seite hat riskante Wallet-Anfragen gestellt. Erneut klicken, um ihr trotzdem zu vertrauen."
+  },
   "popup_added": {
     "message": "Hinzugefügt. Seite neu laden."
   },

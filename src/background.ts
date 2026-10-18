@@ -6,7 +6,7 @@ import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener, isAdHop } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
-import { scanExternalScripts, askApi, sendReport } from "./lib/deepscan";
+import { scanExternalScripts, askApi, sendReport, API_BASE } from "./lib/deepscan";
 import { buildRules, applyRules, addBypassRule } from "./lib/dnr";
 import type { XIntel } from "./lib/types";
 import type { DeepReport, OriginContext, PageSnapshot, PageSocials, ProviderEvent, Signal, Verdict } from "./lib/types";
@@ -180,12 +180,21 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
   }
 }
 
-/** Follow a short-link to its final URL. Cached (bounded); only the redirect target is kept. */
+/** Follow a short-link to its final URL. Resolved by the API (our IP, not the user's); local fetch only as a fallback. */
 const redirectCache = new Map<string, string>();
 async function resolveRedirect(url: string): Promise<string | null> {
   const hit = redirectCache.get(url);
   if (hit !== undefined) return hit || null;
   if (redirectCache.size > 500) redirectCache.delete(redirectCache.keys().next().value as string);
+  try {
+    const r = await fetch(`${API_BASE}/v1/resolve?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) });
+    if (r.ok) {
+      const j = (await r.json()) as { url?: string | null };
+      redirectCache.set(url, j.url ?? "");
+      return j.url ?? null;
+    }
+    if (r.status === 400 || r.status === 429) { redirectCache.set(url, ""); return null; }
+  } catch { /* API unreachable: resolve locally */ }
   try {
     const ctrl = new AbortController();
     const tmr = setTimeout(() => ctrl.abort(), 6000);

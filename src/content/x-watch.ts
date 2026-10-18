@@ -63,7 +63,7 @@ function contextOf(article: HTMLElement | null): Ctx {
     ctx.posterVerified = !!userName.querySelector('svg[data-testid="icon-verified"]');
   }
   const head = (article.innerText || "").slice(0, 300);
-  ctx.isReply = /replying to|yanıt olarak|antwort an|en réponse à|respondiendo a/i.test(head);
+  ctx.isReply = /replying to|yanıt olarak|antwort an|en réponse à|respondiendo a|em resposta a|в ответ|के जवाब में|回复|返信先|답글|đang trả lời|membalas/i.test(head);
   return ctx;
 }
 

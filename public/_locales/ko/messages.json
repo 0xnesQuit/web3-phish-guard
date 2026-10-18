@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "이 사이트를 신뢰합니다 (허용 목록에 추가)"
   },
+  "popup_allow_confirm": {
+    "message": "이 페이지는 위험한 지갑 요청을 했습니다. 그래도 신뢰하려면 다시 클릭하세요."
+  },
   "popup_added": {
     "message": "추가됨. 페이지를 새로고침하세요."
   },

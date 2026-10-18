@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "Saya percaya situs ini (tambahkan ke daftar izin)"
   },
+  "popup_allow_confirm": {
+    "message": "Halaman ini membuat permintaan dompet berisiko. Klik lagi untuk tetap mempercayainya."
+  },
   "popup_added": {
     "message": "Ditambahkan. Muat ulang halaman."
   },

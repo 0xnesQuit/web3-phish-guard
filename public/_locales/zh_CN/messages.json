@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "我信任此网站（加入白名单）"
   },
+  "popup_allow_confirm": {
+    "message": "此页面发出过危险的钱包请求。再次点击以仍然信任它。"
+  },
   "popup_added": {
     "message": "已添加。请刷新页面。"
   },

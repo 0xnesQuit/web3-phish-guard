@@ -9,6 +9,7 @@ Uzantının "Derin tara" ve "Bu siteyi bildir" özelliklerinin arkasındaki kü�
 | `POST /v1/scan` | Uzantının gönderdiği sayfa özeti + bulgular → Claude Haiku 5.5 ile karar (`dangerous / suspicious / likely_safe / safe`, gerekçe, tavsiye). 1 saat önbellek. |
 | `POST /v1/report` | Kullanıcı bildirimi → bekleyen kuyruk (KV). |
 | `GET /v1/x/brand?token=…`, `GET /v1/x/user?handle=…` | Xquik ile X hesabı çözümleme (anahtar burada; sonuçlar KV'de 7 gün / 1 gün önbellek, IP başına 80/gün). |
+| `GET /v1/resolve?url=…` | X zaman akışındaki kısa linkleri (t.co, tr.ee, bit.ly…) bizim IP'mizden çözer; kullanıcının IP'si tıklamadan önce hedefe hiç gitmez. Sonuç KV'de 1 gün önbellek, IP başına 300/gün. |
 | `GET /v1/community.json` | Onaylanmış topluluk blocklist'i (lists reposu günde bir çeker). |
 | `GET /admin?token=…` | Moderasyon paneli: bekleyenleri onayla / reddet. |
 | `POST /admin/decide` | Panelin kullandığı karar ucu. |

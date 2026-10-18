@@ -21,7 +21,10 @@ async function main() {
     if (v.band !== "none") {
       const btn = $("allow") as HTMLButtonElement;
       btn.hidden = false;
+      const risky = v.signals.some((s) => s.id.startsWith("provider-") || s.id === "blocklist");
+      let armed = !risky;
       btn.onclick = async () => {
+        if (!armed) { armed = true; btn.textContent = t("popup_allow_confirm"); return; }
         await chrome.runtime.sendMessage({ type: "w3pg:allow", registrable: v.registrable });
         btn.textContent = t("popup_added");
         btn.disabled = true;

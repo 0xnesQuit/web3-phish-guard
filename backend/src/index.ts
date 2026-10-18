@@ -599,6 +599,40 @@ async function handleX(req: Request, env: Env, kind: "brand" | "user"): Promise<
 }
 
 // ---------------------------------------------------------------------------
+// /v1/resolve  (short-link expansion for the X timeline badges, from our IP instead of the user's)
+// ---------------------------------------------------------------------------
+const SHORTENERS = new Set(["t.co", "tr.ee", "bit.ly", "bitly.com", "tinyurl.com", "cutt.ly", "t.ly", "rb.gy", "shorturl.at", "is.gd", "v.gd", "rebrand.ly", "short.io", "tiny.cc", "lnkd.in", "buff.ly", "ow.ly", "s.id", "qrco.de", "dub.sh", "bl.ink", "shorte.st", "clck.ru", "goo.su", "u.to", "linkly.co", "snip.ly", "tiny.one", "urlz.fr", "shrtco.de", "go.link"]);
+async function handleResolve(req: Request, env: Env): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  const target = new URL(req.url).searchParams.get("url") ?? "";
+  let u: URL;
+  try { u = new URL(target); } catch { return json({ error: "bad_url" }, 400); }
+  if (!/^https?:$/.test(u.protocol) || !SHORTENERS.has(u.hostname.toLowerCase())) return json({ error: "not_a_shortener" }, 400);
+  const cacheKey = `resolve:${await sha256(u.href)}`;
+  const cached = await env.W3PG_KV.get(cacheKey);
+  if (cached) return json({ url: cached || null }, 200, { "cache-control": "public, max-age=3600" });
+  const ik = await ipKey(req, env);
+  if (!(await allow(env, `resolve:${ik}`, 300))) return json({ error: "rate_limited" }, 429);
+  let finalUrl = "", err = "";
+  // Some shorteners (tr.ee) answer 405/406 to non-browser clients; look like a browser.
+  const headers = { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", accept: "text/html,application/xhtml+xml,*/*;q=0.8", "accept-language": "en-US,en;q=0.8" };
+  try {
+    let res = await fetch(u.href, { method: "HEAD", headers, redirect: "follow", signal: AbortSignal.timeout(6000) });
+    const stuck = (r: Response) => SHORTENERS.has(new URL(r.url).hostname.toLowerCase());
+    if (stuck(res)) res = await fetch(u.href, { method: "GET", headers, redirect: "follow", signal: AbortSignal.timeout(6000) });
+    err = `status=${res.status} url=${res.url} redirected=${res.redirected}`;
+    if (!stuck(res)) finalUrl = res.url;
+    else if (res.ok) {
+      const body = (await res.text()).slice(0, 20000);
+      const m = body.match(/(?:http-equiv="refresh"[^>]*url=|window\.location(?:\.href)?\s*=\s*["'])(https?:[^"'>\s]+)/i);
+      if (m) finalUrl = m[1];
+    }
+  } catch (e) { err = String((e as Error)?.message ?? e); }
+  if (finalUrl) await env.W3PG_KV.put(cacheKey, finalUrl, { expirationTtl: 86400 });
+  return json({ url: finalUrl || null, ...(err && new URL(req.url).searchParams.has("debug") ? { err } : {}) }, 200, { "cache-control": finalUrl ? "public, max-age=3600" : "no-store" });
+}
+
+// ---------------------------------------------------------------------------
 // router
 // ---------------------------------------------------------------------------
 export default {
@@ -615,6 +649,7 @@ export default {
     if (req.method === "POST" && url.pathname === "/v1/report") return wrap(() => handleReport(req, env));
     if (req.method === "GET" && url.pathname === "/v1/x/brand") return wrap(() => handleX(req, env, "brand"));
     if (req.method === "GET" && url.pathname === "/v1/x/user") return wrap(() => handleX(req, env, "user"));
+    if (req.method === "GET" && url.pathname === "/v1/resolve") return wrap(() => handleResolve(req, env));
     if (req.method === "GET" && url.pathname === "/v1/community.json") return wrap(async () => json(await communityList(env), 200, { "cache-control": "public, max-age=300" }));
     if (req.method === "GET" && url.pathname === "/admin") return new Response(ADMIN_SHELL, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     if (req.method === "GET" && url.pathname === "/admin/data") return handleAdminData(req, env);

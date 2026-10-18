@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "I trust this site (add to allowlist)"
   },
+  "popup_allow_confirm": {
+    "message": "This page made risky wallet requests. Click again to trust it anyway."
+  },
   "popup_added": {
     "message": "Added. Reload the page."
   },

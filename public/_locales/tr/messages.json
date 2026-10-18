@@ -47,6 +47,9 @@
   "popup_allow": {
     "message": "Bu siteye güveniyorum (güvenilir listeye ekle)"
   },
+  "popup_allow_confirm": {
+    "message": "Bu sayfa riskli cüzdan istekleri yaptı. Yine de güvenmek için tekrar tıklayın."
+  },
   "popup_added": {
     "message": "Eklendi. Sayfayı yenileyin."
   },
