@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "Sem resultado. Verifique a chave e seus créditos."
   },
+  "opt_lists_heading": {
+    "message": "Listas"
+  },
+  "opt_refresh_lists": {
+    "message": "Atualizar listas agora"
+  },
   "opt_trusted_heading": {
     "message": "Domínios marcados como confiáveis"
   },

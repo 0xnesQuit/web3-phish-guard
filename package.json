@@ -10,6 +10,7 @@
     "build:all": "npm run build && node scripts/build.mjs --firefox",
     "lint:firefox": "web-ext lint --source-dir dist-firefox",
     "package": "node scripts/package.mjs",
+    "sync:lists": "node scripts/sync-lists.mjs",
     "watch": "node scripts/build.mjs --watch",
     "test": "vitest run",
     "brands": "node scripts/build-brands.mjs",

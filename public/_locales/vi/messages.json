@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "Không có kết quả. Kiểm tra khóa và tín dụng."
   },
+  "opt_lists_heading": {
+    "message": "Danh sách"
+  },
+  "opt_refresh_lists": {
+    "message": "Làm mới danh sách ngay"
+  },
   "opt_trusted_heading": {
     "message": "Tên miền bạn đánh dấu tin cậy"
   },

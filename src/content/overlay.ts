@@ -39,6 +39,7 @@ function esc(s: string) {
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === "w3pg:overlay" && msg.verdict) render(msg.verdict as Verdict);
+  if (msg?.type === "w3pg:clear") { document.getElementById(ID)?.remove(); shownScore = -1; }
 });
 
 // If the verdict was decided before this script loaded, ask for it; ask again later for slow pages / SPAs.
@@ -46,6 +47,7 @@ let shownScore = -1;
 function pull() {
   chrome.runtime.sendMessage({ type: "w3pg:getVerdict" }).then((v: Verdict | undefined) => {
     if (v && v.band === "warn" && v.score !== shownScore) { shownScore = v.score; render(v); }
+    else if (v && v.band !== "warn") { document.getElementById(ID)?.remove(); shownScore = -1; }
   }).catch(() => undefined);
 }
 pull();

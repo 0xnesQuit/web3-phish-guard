@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "結果なし。キーとクレジットを確認してください。"
   },
+  "opt_lists_heading": {
+    "message": "リスト"
+  },
+  "opt_refresh_lists": {
+    "message": "今すぐリストを更新"
+  },
   "opt_trusted_heading": {
     "message": "信頼済みにしたドメイン"
   },

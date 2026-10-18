@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "결과 없음. 키와 크레딧을 확인하세요."
   },
+  "opt_lists_heading": {
+    "message": "목록"
+  },
+  "opt_refresh_lists": {
+    "message": "지금 목록 새로고침"
+  },
   "opt_trusted_heading": {
     "message": "신뢰로 표시한 도메인"
   },

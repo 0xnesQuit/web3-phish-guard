@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "No result. Check the key and your credits."
   },
+  "opt_lists_heading": {
+    "message": "Lists"
+  },
+  "opt_refresh_lists": {
+    "message": "Refresh lists now"
+  },
   "opt_trusted_heading": {
     "message": "Domains you marked as trusted"
   },

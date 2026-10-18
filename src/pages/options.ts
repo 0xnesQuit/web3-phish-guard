@@ -33,6 +33,15 @@ async function main() {
     pre.textContent = r?.official ? JSON.stringify(r, null, 2) : t("opt_test_fail");
   };
 
+  $("refreshlists").onclick = async () => {
+    const b = $("refreshlists") as HTMLButtonElement;
+    b.disabled = true;
+    $("listsstatus").textContent = "…";
+    const st = (await chrome.runtime.sendMessage({ type: "w3pg:refreshNow" })) as Record<string, { count: number }>;
+    $("listsstatus").textContent = Object.entries(st).map(([k, v]) => `${k}: ${v.count}`).join(" · ");
+    b.disabled = false;
+  };
+
   await renderTrusted();
 }
 

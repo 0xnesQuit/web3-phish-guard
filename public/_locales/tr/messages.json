@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "Sonuç yok. Anahtarı ve kredinizi kontrol edin."
   },
+  "opt_lists_heading": {
+    "message": "Listeler"
+  },
+  "opt_refresh_lists": {
+    "message": "Listeleri şimdi yenile"
+  },
   "opt_trusted_heading": {
     "message": "Güvenilir işaretlediğiniz domainler"
   },

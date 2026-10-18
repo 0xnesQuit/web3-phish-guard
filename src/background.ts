@@ -227,6 +227,9 @@ async function applyVerdict(tabId: number, v: Verdict) {
   }
   if (v.band === "warn" && (await warnDisplay()) === "page") {
     chrome.tabs.sendMessage(tabId, { type: "w3pg:overlay", verdict: v }).catch(() => undefined);
+  } else if (v.band === "none") {
+    // a later pass (domain age, X resolution) cleared the page: take the banner down
+    chrome.tabs.sendMessage(tabId, { type: "w3pg:clear" }).catch(() => undefined);
   }
 }
 

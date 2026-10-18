@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "Нет результата. Проверьте ключ и кредиты."
   },
+  "opt_lists_heading": {
+    "message": "Списки"
+  },
+  "opt_refresh_lists": {
+    "message": "Обновить списки сейчас"
+  },
   "opt_trusted_heading": {
     "message": "Домены, отмеченные как доверенные"
   },

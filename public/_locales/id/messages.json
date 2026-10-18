@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "Tidak ada hasil. Periksa kunci dan kredit Anda."
   },
+  "opt_lists_heading": {
+    "message": "Daftar"
+  },
+  "opt_refresh_lists": {
+    "message": "Segarkan daftar sekarang"
+  },
   "opt_trusted_heading": {
     "message": "Domain yang Anda tandai dipercaya"
   },

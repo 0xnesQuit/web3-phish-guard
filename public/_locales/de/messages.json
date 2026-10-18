@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "Kein Ergebnis. Schlüssel und Guthaben prüfen."
   },
+  "opt_lists_heading": {
+    "message": "Listen"
+  },
+  "opt_refresh_lists": {
+    "message": "Listen jetzt aktualisieren"
+  },
   "opt_trusted_heading": {
     "message": "Als vertrauenswürdig markierte Domains"
   },

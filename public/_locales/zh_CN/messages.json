@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "无结果。请检查密钥和积分。"
   },
+  "opt_lists_heading": {
+    "message": "列表"
+  },
+  "opt_refresh_lists": {
+    "message": "立即刷新列表"
+  },
   "opt_trusted_heading": {
     "message": "您标记为可信的域名"
   },

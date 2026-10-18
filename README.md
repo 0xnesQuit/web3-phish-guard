@@ -32,7 +32,7 @@ Popup'taki **Derin tara** butonu, sadece kullanıcı isteyince çalışan pahal�
 
 Marka ve sinyal listeleri uzantının içinde gömülü gelir (ilk kurulumda sıfır gecikme) ve 12 saatte bir public `web3-phish-guard-lists` reposundan (`https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/`) tazelenir (`src/lib/lists.ts`, `refreshRemoteData`). Önce `manifest.json` çekilir; yalnızca yeni bir yayın varsa dosyalar indirilip `chrome.storage.local`'a yazılır ve gömülü kopyanın önüne geçer. İndirilen şey yalnızca JSON veridir.
 
-Üretim o repoda çalışır: günlük GitHub Action DefiLlama, CoinMarketCap (`CMC_API_KEY` secret) ve OpenSea (`OPENSEA_API_KEY` secret) scriptlerini çalıştırıp `data/` altına commit eder. Public repoda Actions ücretsizdir; kod bu repoda private kalır. Scriptlerin kaynağı bu repodaki `scripts/` klasörüdür, değişince oraya da kopyalanmalıdır. Elle tetikleme: lists reposunda Actions → "Refresh lists" → Run workflow.
+Elle bakılan dosyalar (`brands.seed.json`, `action-words.json`, `free-hosts.json`, `tlds.json`, `trusted.json`) değişince `npm run sync:lists` ile public repoya itilmelidir; aksi halde uzantı gömülü kopyayı değil eski uzak kopyayı kullanır. Üretim o repoda çalışır: günlük GitHub Action DefiLlama, CoinMarketCap (`CMC_API_KEY` secret) ve OpenSea (`OPENSEA_API_KEY` secret) scriptlerini çalıştırıp `data/` altına commit eder. Public repoda Actions ücretsizdir; kod bu repoda private kalır. Scriptlerin kaynağı bu repodaki `scripts/` klasörüdür, değişince oraya da kopyalanmalıdır. Elle tetikleme: lists reposunda Actions → "Refresh lists" → Run workflow.
 
 ## Diller
 

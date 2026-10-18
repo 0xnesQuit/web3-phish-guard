@@ -188,6 +188,12 @@
   "opt_test_fail": {
     "message": "कोई परिणाम नहीं। कुंजी और क्रेडिट जाँचें।"
   },
+  "opt_lists_heading": {
+    "message": "सूचियाँ"
+  },
+  "opt_refresh_lists": {
+    "message": "सूचियाँ अभी ताज़ा करें"
+  },
   "opt_trusted_heading": {
     "message": "विश्वसनीय चिह्नित डोमेन"
   },
