@@ -2,6 +2,7 @@
   "name": "web3-phish-guard",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Chrome/Brave MV3 extension that warns about Web3 phishing pages (fake mint / airdrop claim sites) before they hit blocklists.",
   "type": "module",
   "scripts": {
