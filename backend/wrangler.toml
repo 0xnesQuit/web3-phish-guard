@@ -16,6 +16,7 @@ SCANS_PER_IP_PER_DAY = "20"
 REPORTS_PER_IP_PER_DAY = "10"
 SCANS_GLOBAL_PER_DAY = "3000"
 MODEL = "claude-haiku-5-5"
+LISTS_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data"
 
 # Secrets (never in this file):
 #   npx wrangler secret put ANTHROPIC_API_KEY
