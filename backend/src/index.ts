@@ -7,6 +7,8 @@
  *  GET  /v1/community.json   approved + auto-listed community blocklist (public; pulled daily into the lists repo)
  *  GET  /admin          moderation panel (token via x-admin-token header; the page asks for it once)
  *  POST /admin/decide   approve / reject / remove
+ *  POST /admin/add      add domains found by hand (one per line / URL / comma separated)
+ *  GET  /admin/export   approved + auto domains since ?since=<ms> as JSON (for upstream submissions)
  *
  * Trust model:
  *  - nothing the client sends decides anything on its own. The worker recomputes the hostname score with the same
@@ -503,6 +505,8 @@ const ADMIN_SHELL = `<!doctype html><meta charset="utf-8"><title>W3PG moderation
     document.getElementById("login").style.display="none";
     document.getElementById("app").innerHTML = await r.text();
   }
+  async function add(){ const r = await api("/admin/add", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ domains: document.getElementById("add").value, note: document.getElementById("addnote").value }) }); const j = await r.json().catch(()=>({})); if(r.ok){ document.getElementById("add").value=""; alert("added: "+(j.added||[]).join(", ")+(j.skipped&&j.skipped.length?"
+skipped: "+j.skipped.join(", "):"")); load(); } else alert("failed: "+r.status+" "+(j.error||"")); }
   async function decide(id, action){ const r = await api("/admin/decide", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id, action}) }); if(r.ok) load(); else alert("failed: "+r.status); }
   load();
 </script>`;
@@ -530,12 +534,60 @@ async function handleAdminData(req: Request, env: Env): Promise<Response> {
         <button onclick="decide('${r.id}','reject')">${r.status === "auto" ? "Remove" : "Reject"}</button>
       </td>
     </tr>`).join("");
-  const html = `<p>Community blocklist: ${community.domains.length} approved + ${community.auto.length} auto-listed, updated ${community.updatedAt ? new Date(community.updatedAt).toISOString() : "never"}</p>
+  const html = `<h2>Add domains by hand</h2>
+  <p><textarea id="add" rows="4" style="width:100%;font:inherit;padding:6px" placeholder="one per line, URLs are fine: https://claim-foo.xyz/airdrop"></textarea><br>
+  <input id="addnote" placeholder="note (where you found it, e.g. x.com/… tweet)"> <button onclick="add()">Add to blocklist</button></p>
+  <p>Community blocklist: ${community.domains.length} approved + ${community.auto.length} auto-listed, updated ${community.updatedAt ? new Date(community.updatedAt).toISOString() : "never"}</p>
   <h2>Pending (${pending.length})</h2>
   <table><tr><th>Domain</th><th>Score</th><th>Signals</th><th>Note</th><th>At</th><th></th></tr>${rows || "<tr><td colspan=6>nothing pending</td></tr>"}</table>
   <h2>Auto-listed</h2><p><code>${community.auto.map(esc).join("</code> <code>") || "–"}</code></p>
   <h2>Approved</h2><p><code>${community.domains.map(esc).join("</code> <code>") || "–"}</code></p>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+
+/** Hand-curated additions from the panel: each line may be a URL or a bare host; trusted and already-listed domains are skipped. */
+async function handleAdminAdd(req: Request, env: Env): Promise<Response> {
+  if (!adminAuthed(req, env)) return json({ error: "unauthorized" }, 401);
+  const body = (await req.json().catch(() => null)) as { domains?: string; note?: string } | null;
+  if (!body || typeof body.domains !== "string") return json({ error: "bad_payload" }, 400);
+  const data = await serverData(env);
+  const list = await communityList(env);
+  const added: string[] = [], skipped: string[] = [];
+  for (const rawLine of body.domains.split(/[\s,]+/).slice(0, 200)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    let host = "";
+    try { host = new URL(/^https?:\/\//i.test(line) ? line : "https://" + line).hostname.toLowerCase(); } catch { skipped.push(line); continue; }
+    if (!/^[a-z0-9.-]+\.[a-z0-9-]+$/.test(host)) { skipped.push(line); continue; }
+    if (data.lists.trusted.some((d) => host === d || host.endsWith("." + d))) { skipped.push(host + " (trusted)"); continue; }
+    const domain = registrableOf(host, data.freeHosts) ?? host;
+    if (list.domains.includes(domain)) { skipped.push(domain + " (already listed)"); continue; }
+    list.domains.push(domain);
+    list.auto = list.auto.filter((d) => d !== domain);
+    added.push(domain);
+    const report: Report = { id: crypto.randomUUID(), url: /^https?:\/\//i.test(line) ? line.replace(/\?.*$/, "?…") : "https://" + host + "/", host, registrable: domain, score: 100, signals: ["manual"], note: str(body.note, 1000), at: Date.now(), status: "approved", ipHash: "admin" };
+    await env.W3PG_KV.put(`report:${report.id}`, JSON.stringify(report), { expirationTtl: 365 * 86400 });
+    await env.W3PG_KV.put(`approved:${domain}`, report.id, { expirationTtl: 365 * 86400 });
+  }
+  if (added.length) { list.updatedAt = Date.now(); await env.W3PG_KV.put("community:list", JSON.stringify(list)); }
+  return json({ ok: true, added, skipped });
+}
+
+/** Everything approved since ?since (ms), newest first: domain, first-seen URL, note, signals. For hand-made upstream PRs. */
+async function handleAdminExport(req: Request, env: Env): Promise<Response> {
+  if (!adminAuthed(req, env)) return json({ error: "unauthorized" }, 401);
+  const since = Number(new URL(req.url).searchParams.get("since")) || 0;
+  const list = await communityList(env);
+  const out: Array<{ domain: string; url?: string; note?: string; signals?: string[]; at?: number; kind: "approved" | "auto" }> = [];
+  for (const domain of list.domains) {
+    const id = await env.W3PG_KV.get(`approved:${domain}`);
+    const r = id ? ((await env.W3PG_KV.get(`report:${id}`)) ?? null) : null;
+    const rep = r ? (JSON.parse(r) as Report) : null;
+    if (rep && rep.at < since) continue;
+    out.push({ domain, url: rep?.url, note: rep?.note, signals: rep?.signals, at: rep?.at, kind: "approved" });
+  }
+  for (const domain of list.auto) out.push({ domain, kind: "auto" });
+  return json({ updatedAt: list.updatedAt, count: out.length, items: out });
 }
 
 async function handleDecide(req: Request, env: Env): Promise<Response> {
@@ -554,6 +606,7 @@ async function handleDecide(req: Request, env: Env): Promise<Response> {
   const domain = report.registrable || report.host;
   if (report.status === "approved") {
     if (!list.domains.includes(domain)) list.domains.push(domain);
+    await env.W3PG_KV.put(`approved:${domain}`, report.id, { expirationTtl: 365 * 86400 });
     list.auto = list.auto.filter((d) => d !== domain);
   } else {
     list.domains = list.domains.filter((d) => d !== domain);
@@ -669,6 +722,8 @@ export default {
       return json({ d, base, bootstrapServices: boot?.services?.length ?? 0, status, ct, events, cached: await env.W3PG_KV.get(`rdap:${d}`) });
     }
     if (req.method === "POST" && url.pathname === "/admin/decide") return handleDecide(req, env);
+    if (req.method === "POST" && url.pathname === "/admin/add") return handleAdminAdd(req, env);
+    if (req.method === "GET" && url.pathname === "/admin/export") return handleAdminExport(req, env);
     if (req.method === "GET" && url.pathname === "/") return json({ ok: true, service: "web3-phish-guard-api" });
     return json({ error: "not_found" }, 404);
   },
