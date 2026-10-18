@@ -8,6 +8,16 @@ compatibility_flags = ["nodejs_compat"]
 binding = "W3PG_KV"
 id = "ec53745c0a244239beb2757d80663075"
 
+# Everything that must change atomically (budgets, cooldowns, the community list, the moderation queue) lives in one
+# SQLite-backed Durable Object; KV stays the cache / bulk store.
+[[durable_objects.bindings]]
+name = "STATE"
+class_name = "W3pgState"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["W3pgState"]
+
 [vars]
 # Comma-separated extension origins allowed to call /v1/scan and /v1/report.
 # Leave empty while testing unpacked builds (their ids differ per machine); set once published.

@@ -30,9 +30,12 @@ import { parseHost } from "../../src/lib/hostname";
 import { mergeBrands, brandsFromTrusted, flattenTrusted } from "../../src/lib/lists";
 import { serverForTld, parseRegistration } from "../../src/lib/rdap";
 import type { Brand, SignalLists, Verdict } from "../../src/lib/types";
+import { W3pgState, type CommunityList } from "./state";
+export { W3pgState };
 
 export interface Env {
   W3PG_KV: KVNamespace;
+  STATE: DurableObjectNamespace<W3pgState>;
   ANTHROPIC_API_KEY: string;
   XQUIK_API_KEY: string;
   ADMIN_TOKEN: string;
@@ -105,25 +108,14 @@ function dayKey(): string {
 }
 
 /** Fixed-window daily counter in KV. Returns false when the limit is exceeded. */
-async function allow(env: Env, key: string, limit: number): Promise<boolean> {
-  const k = `rl:${dayKey()}:${key}`;
-  const cur = Number((await env.W3PG_KV.get(k)) ?? "0");
-  if (cur >= limit) return false;
-  await env.W3PG_KV.put(k, String(cur + 1), { expirationTtl: 2 * 86400 });
-  return true;
-}
+/** The single Durable Object that owns counters, cooldowns, the community list and the moderation queue. */
+const state = (env: Env) => env.STATE.get(env.STATE.idFromName("main"));
 
-/** Shared daily budgets are hit by everyone at once; spread the counter over shards so no single KV key takes more than ~1 write/s. */
-const SHARDS = 16;
-async function allowShared(env: Env, key: string, limit: number): Promise<boolean> {
-  const base = `rl:${dayKey()}:${key}`;
-  const vals = await Promise.all(Array.from({ length: SHARDS }, (_, i) => env.W3PG_KV.get(`${base}:${i}`)));
-  const total = vals.reduce((n, v) => n + Number(v ?? "0"), 0);
-  if (total >= limit) return false;
-  const i = Math.floor(Math.random() * SHARDS);
-  await env.W3PG_KV.put(`${base}:${i}`, String(Number(vals[i] ?? "0") + 1), { expirationTtl: 2 * 86400 });
-  return true;
+/** Atomic daily budget check (one Durable Object transaction; no KV read-modify-write race). */
+async function allow(env: Env, key: string, limit: number): Promise<boolean> {
+  return state(env).incr(`${dayKey()}:${key}`, limit, 2 * 86400);
 }
+const allowShared = allow;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
@@ -424,12 +416,12 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   // The binding is permissive and eventually consistent (counters sync asynchronously per machine), so it only
   // brakes real floods; the KV counters below are the accounting, and the Anthropic console spend limit the backstop.
   if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: ipRaw })).success) return json({ error: "rate_limited" }, 429);
-  if (!(await allow(env, `scan:${ik}`, Number(env.SCANS_PER_IP_PER_DAY) || 20))) return json({ error: "rate_limited" }, 429);
-  const hostKey = `scanhost:${ik}:${await sha256(payload.host)}`;
-  if (await env.W3PG_KV.get(hostKey)) return json({ error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 }, 429);
-  if (!(await allow(env, `scan:host:${await sha256(payload.host)}`, Number(env.SCANS_PER_HOST_PER_DAY) || 30))) return json({ error: "host_capacity_reached" }, 429);
-  if (!(await allowShared(env, "scan:global", Number(env.SCANS_GLOBAL_PER_DAY) || 3000))) return json({ error: "daily_capacity_reached" }, 429);
-  await env.W3PG_KV.put(hostKey, "1", { expirationTtl: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60) });
+  const admission = await state(env).admitScan({
+    ip: ik, host: await sha256(payload.host),
+    ipLimit: Number(env.SCANS_PER_IP_PER_DAY) || 20, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: Number(env.SCANS_GLOBAL_PER_DAY) || 1500,
+    cooldownSec: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60),
+  });
+  if (!admission.ok) return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429);
 
   // server-side facts
   const data = await serverData(env);
@@ -507,9 +499,7 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   if (result.verdict === "dangerous" && result.confidence >= 0.9 && serverOnly && serverOnly.score >= 35 && (young || serverOnly.score >= 70) && registrable && !official && !(await neverBlock(env, registrable, data))) {
     const list = await communityList(env);
     if (!list.domains.includes(registrable) && !list.auto.includes(registrable) && (await verifyPageEvidence(payload))) {
-      list.auto.push(registrable);
-      list.updatedAt = Date.now();
-      await env.W3PG_KV.put("community:list", JSON.stringify(list));
+      await updateCommunity(env, (l) => { if (!l.domains.includes(registrable) && !l.auto.includes(registrable)) l.auto.push(registrable); });
       await enqueueReport(env, {
         id: crypto.randomUUID(), url: payload.url.replace(/[?#].*$/, ""), host: payload.host, registrable, score: serverOnly.score,
         signals: [`AI: dangerous ${Math.round(result.confidence * 100)}%`, `server: ${serverOnly.score}/100`, ...serverOnly.signals.filter((s) => s.weight > 0).map((s) => s.key)],
@@ -527,10 +517,19 @@ interface Report { id: string; url: string; host: string; registrable: string; s
 
 async function enqueueReport(env: Env, report: Report): Promise<void> {
   await env.W3PG_KV.put(`report:${report.id}`, JSON.stringify(report), { expirationTtl: 90 * 86400 });
-  const idx = JSON.parse((await env.W3PG_KV.get("reports:pending")) ?? "[]") as string[];
-  if (idx.length >= 2000) idx.length = 1999; // queue full: the oldest waiting report gives way (it stays readable by id)
-  idx.unshift(report.id);
-  await env.W3PG_KV.put("reports:pending", JSON.stringify(idx));
+  await pendingQueue(env); // seeds from the old KV index once
+  await state(env).queuePush(report.id, 2000);
+}
+
+/** The moderation queue (newest first), migrated from the KV index on first use. */
+async function pendingQueue(env: Env): Promise<string[]> {
+  const st = state(env);
+  let idx = await st.queueList();
+  if (!idx.length) {
+    const legacy = JSON.parse((await env.W3PG_KV.get("reports:pending")) ?? "[]") as string[];
+    if (legacy.length) { await st.queueSeed(legacy); await env.W3PG_KV.delete("reports:pending"); idx = await st.queueList(); }
+  }
+  return idx;
 }
 
 async function handleReport(req: Request, env: Env): Promise<Response> {
@@ -564,12 +563,29 @@ async function handleReport(req: Request, env: Env): Promise<Response> {
   return json({ ok: true, id: report.id });
 }
 
-/** domains = human-approved (block); auto = AI-confirmed on a server-suspicious page (block at 70, revocable). */
-async function communityList(env: Env): Promise<{ updatedAt: number; domains: string[]; auto: string[] }> {
-  const l = JSON.parse((await env.W3PG_KV.get("community:list")) ?? '{"updatedAt":0,"domains":[],"auto":[]}');
-  if (!Array.isArray(l.auto)) l.auto = [];
-  if (!Array.isArray(l.domains)) l.domains = [];
+/** domains = human-approved (block); auto = AI-confirmed on a server-suspicious page (warn only, revocable). Lives in the Durable Object; migrated from KV once. */
+async function communityList(env: Env): Promise<CommunityList> {
+  const st = state(env);
+  let l = (await st.getList()) as CommunityList | null;
+  if (!l) {
+    const legacy = JSON.parse((await env.W3PG_KV.get("community:list")) ?? '{"updatedAt":0,"domains":[],"auto":[]}') as CommunityList;
+    const seeded = await st.setList({ updatedAt: legacy.updatedAt ?? 0, domains: Array.isArray(legacy.domains) ? legacy.domains : [], auto: Array.isArray(legacy.auto) ? legacy.auto : [] }, 0);
+    l = seeded.list as CommunityList;
+  }
   return l;
+}
+
+/** Read-modify-write with optimistic versioning: a decision made from a stale copy is retried on the fresh one, never lost. */
+async function updateCommunity(env: Env, mutate: (l: CommunityList) => void): Promise<CommunityList> {
+  const st = state(env);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const cur = await communityList(env);
+    const next: CommunityList = { updatedAt: Date.now(), domains: [...cur.domains], auto: [...cur.auto] };
+    mutate(next);
+    const r = await st.setList(next, cur.v ?? 0);
+    if (r.ok) return r.list as CommunityList;
+  }
+  throw new Error("community list update conflict");
 }
 
 function adminAuthed(req: Request, env: Env): boolean {
@@ -599,7 +615,7 @@ const ADMIN_SHELL = `<!doctype html><meta charset="utf-8"><title>W3PG moderation
 
 async function handleAdminData(req: Request, env: Env): Promise<Response> {
   if (!adminAuthed(req, env)) return new Response("unauthorized", { status: 401 });
-  const ids = JSON.parse((await env.W3PG_KV.get("reports:pending")) ?? "[]") as string[];
+  const ids = await pendingQueue(env);
   const reports: Report[] = [];
   for (const id of ids.slice(0, 200)) {
     const r = await env.W3PG_KV.get(`report:${id}`);
@@ -639,6 +655,7 @@ async function handleAdminAdd(req: Request, env: Env): Promise<Response> {
   const data = await serverData(env);
   const list = await communityList(env);
   const added: string[] = [], skipped: string[] = [];
+  const toAdd: string[] = [];
   for (const rawLine of body.domains.split(/[\s,]+/).slice(0, 200)) {
     const line = rawLine.trim();
     if (!line) continue;
@@ -648,15 +665,14 @@ async function handleAdminAdd(req: Request, env: Env): Promise<Response> {
     if (data.lists.trusted.some((d) => host === d || host.endsWith("." + d))) { skipped.push(host + " (trusted)"); continue; }
     const domain = registrableOf(host, data.freeHosts) ?? host;
     if (await neverBlock(env, domain, data)) { skipped.push(domain + " (never-block)"); continue; }
-    if (list.domains.includes(domain)) { skipped.push(domain + " (already listed)"); continue; }
-    list.domains.push(domain);
-    list.auto = list.auto.filter((d) => d !== domain);
+    if (list.domains.includes(domain) || toAdd.includes(domain)) { skipped.push(domain + " (already listed)"); continue; }
+    toAdd.push(domain);
     added.push(domain);
     const report: Report = { id: crypto.randomUUID(), url: /^https?:\/\//i.test(line) ? line.replace(/\?.*$/, "?…") : "https://" + host + "/", host, registrable: domain, score: 100, signals: ["manual"], note: str(body.note, 1000), at: Date.now(), status: "approved", ipHash: "admin" };
     await env.W3PG_KV.put(`report:${report.id}`, JSON.stringify(report), { expirationTtl: 365 * 86400 });
     await env.W3PG_KV.put(`approved:${domain}`, report.id, { expirationTtl: 365 * 86400 });
   }
-  if (added.length) { list.updatedAt = Date.now(); await env.W3PG_KV.put("community:list", JSON.stringify(list)); }
+  if (toAdd.length) await updateCommunity(env, (l) => { for (const d of toAdd) { if (!l.domains.includes(d)) l.domains.push(d); l.auto = l.auto.filter((x) => x !== d); } });
   return json({ ok: true, added, skipped });
 }
 
@@ -686,22 +702,16 @@ async function handleDecide(req: Request, env: Env): Promise<Response> {
   const report = JSON.parse(raw) as Report;
   report.status = body.action === "approve" ? "approved" : "rejected";
   await env.W3PG_KV.put(`report:${report.id}`, JSON.stringify(report), { expirationTtl: 365 * 86400 });
-  const idx = (JSON.parse((await env.W3PG_KV.get("reports:pending")) ?? "[]") as string[]).filter((x) => x !== report.id);
-  await env.W3PG_KV.put("reports:pending", JSON.stringify(idx));
+  await pendingQueue(env);
+  await state(env).queueRemove(report.id);
   await env.W3PG_KV.delete(`reportdom:${report.registrable}`);
-  const list = await communityList(env);
   const domain = report.registrable || report.host;
   if (report.status === "approved" && (await neverBlock(env, domain, await serverData(env)))) return json({ error: "never_block_domain" }, 400);
-  if (report.status === "approved") {
-    if (!list.domains.includes(domain)) list.domains.push(domain);
-    await env.W3PG_KV.put(`approved:${domain}`, report.id, { expirationTtl: 365 * 86400 });
-    list.auto = list.auto.filter((d) => d !== domain);
-  } else {
-    list.domains = list.domains.filter((d) => d !== domain);
-    list.auto = list.auto.filter((d) => d !== domain);
-  }
-  list.updatedAt = Date.now();
-  await env.W3PG_KV.put("community:list", JSON.stringify(list));
+  if (report.status === "approved") await env.W3PG_KV.put(`approved:${domain}`, report.id, { expirationTtl: 365 * 86400 });
+  await updateCommunity(env, (l) => {
+    if (report.status === "approved") { if (!l.domains.includes(domain)) l.domains.push(domain); l.auto = l.auto.filter((d) => d !== domain); }
+    else { l.domains = l.domains.filter((d) => d !== domain); l.auto = l.auto.filter((d) => d !== domain); }
+  });
   return json({ ok: true, status: report.status });
 }
 
@@ -791,7 +801,7 @@ export default {
     if (req.method === "GET" && url.pathname === "/v1/x/brand") return wrap(() => handleX(req, env, "brand"));
     if (req.method === "GET" && url.pathname === "/v1/x/user") return wrap(() => handleX(req, env, "user"));
     if (req.method === "GET" && url.pathname === "/v1/resolve") return wrap(() => handleResolve(req, env));
-    if (req.method === "GET" && url.pathname === "/v1/community.json") return wrap(async () => json(await communityList(env), 200, { "cache-control": "public, max-age=300" }));
+    if (req.method === "GET" && url.pathname === "/v1/community.json") return wrap(async () => { const l = await communityList(env); return json({ updatedAt: l.updatedAt, domains: l.domains, auto: l.auto }, 200, { "cache-control": "public, max-age=300" }); });
     if (req.method === "GET" && url.pathname === "/admin") return new Response(ADMIN_SHELL, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     if (req.method === "GET" && url.pathname === "/admin/data") return handleAdminData(req, env);
     if (req.method === "GET" && url.pathname === "/admin/age") {

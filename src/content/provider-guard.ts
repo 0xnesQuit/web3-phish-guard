@@ -265,7 +265,7 @@ import { decodeTx, decodeSendCalls, decodeTypedData, looksPoisoned, CLICKFIX_RE,
     } catch { /* ignore */ }
   });
 
-  // ---- Solana wallets (legacy window.solana API; Wallet Standard is not covered) ----
+  // ---- Solana wallets (legacy window.solana API) ----
   const SOL_METHODS = ["signTransaction", "signAllTransactions", "signAndSendTransaction", "signAndSendAllTransactions", "signMessage"];
   const wrapSolana = () => {
     const s = (window as any).solana ?? (window as any).phantom?.solana;
@@ -293,6 +293,46 @@ import { decodeTx, decodeSendCalls, decodeTypedData, looksPoisoned, CLICKFIX_RE,
   wrapSolana();
   let sn = 0;
   const siv = setInterval(() => { wrapSolana(); if (++sn > 20) clearInterval(siv); }, 500);
+
+  // ---- Wallet Standard (window.navigator.wallets / "wallet-standard:register-wallet") ----
+  // Modern Solana (and some multichain) wallets do not expose window.solana at all: they announce a wallet object
+  // whose `features` carry the signing methods. Every registration path funnels through a callback that receives
+  // { register }; we call that callback ourselves with a register() that patches the signing features in place,
+  // so the same wallet object the dapp later receives is already guarded.
+  const SIGNING_FEATURE = /^(solana|sui|aptos|standard|experimental):(signTransaction|signAndSendTransaction|signAllTransactions|signMessage|signIn|signTransactionBlock|signAndExecuteTransactionBlock|signAndSubmitTransaction)$/;
+  const wrapStandardWallet = (w: any) => {
+    if (!w || typeof w !== "object" || wrappedProviders.has(w)) return;
+    wrappedProviders.add(w);
+    const name = String(w.name ?? "wallet");
+    const features = w.features;
+    if (!features || typeof features !== "object") return;
+    for (const key of Object.keys(features)) {
+      if (!SIGNING_FEATURE.test(key)) continue;
+      const feat = features[key];
+      if (!feat || typeof feat !== "object") continue;
+      const method = key.split(":")[1];
+      for (const o of owners(feat, method)) {
+        patch(o, method, (orig) => function (this: unknown, ...inputs: any[]) {
+          const many = inputs.length > 1 || (/All/.test(method) && Array.isArray(inputs[0]) && inputs[0].length > 1);
+          post({ kind: "risky-tx", method: key, detail: many ? "solana_batch" : "solana", param: name, msSinceLoad: Date.now() - loadedAt, hadGesture: hadGesture() });
+          return orig.apply(this ?? feat, inputs);
+        });
+      }
+    }
+  };
+  const standardApi = { register: (...wallets: any[]) => { for (const w of wallets) wrapStandardWallet(w); return () => undefined; } };
+  window.addEventListener("wallet-standard:register-wallet", (e: any) => {
+    try { if (typeof e?.detail === "function") e.detail(standardApi); } catch { /* ignore */ }
+  }, true);
+  try {
+    const nav = window.navigator as any;
+    const existing = Array.isArray(nav.wallets) ? nav.wallets : [];
+    for (const cb of existing) { try { if (typeof cb === "function") cb(standardApi); } catch { /* ignore */ } }
+    const guardedPush = (...cbs: any[]) => { for (const cb of cbs) { try { if (typeof cb === "function") cb(standardApi); } catch { /* ignore */ } } return existing.push(...cbs); };
+    const arr: any = existing;
+    arr.push = guardedPush;
+    Object.defineProperty(nav, "wallets", { configurable: true, get: () => arr, set: (v) => { if (Array.isArray(v)) { for (const cb of v) { try { if (typeof cb === "function") cb(standardApi); } catch { /* ignore */ } } arr.length = 0; arr.push(...v); } } });
+  } catch { /* navigator.wallets not configurable here */ }
 
   // ---- clipboard: ClickFix commands and address swapping ----
   function inspectCopy(text: string) {
