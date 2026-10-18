@@ -114,7 +114,7 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
     if (ageDays !== undefined) {
       const v2 = await evaluate(url, { ageDays, origin });
       if (v2) {
-        if (v2.band !== v.band) await applyVerdict(tabId, v2); else await setTabVerdict(tabId, v2);
+        await applyVerdict(tabId, v2);
         v = v2;
       }
     }
@@ -124,7 +124,7 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
     if (x) {
       const v3 = await evaluate(url, { ageDays, origin, x });
       if (v3) {
-        if (v3.band !== v.band) await applyVerdict(tabId, v3); else await setTabVerdict(tabId, v3);
+        await applyVerdict(tabId, v3);
       }
     }
   }

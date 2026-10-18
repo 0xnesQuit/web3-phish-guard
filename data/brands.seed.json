@@ -16,6 +16,7 @@
       "metamask"
     ],
     "domains": [
+      "metamask.com",
       "metamask.io"
     ],
     "x": "MetaMask"
@@ -415,7 +416,8 @@
       "ledger"
     ],
     "domains": [
-      "ledger.com"
+      "ledger.com",
+      "ledger.fr"
     ],
     "x": "Ledger"
   },
@@ -435,8 +437,9 @@
       "coinbase"
     ],
     "domains": [
+      "cb.id",
       "coinbase.com",
-      "cb.id"
+      "coinbase.io"
     ],
     "x": "coinbase"
   },
@@ -447,6 +450,11 @@
     ],
     "domains": [
       "binance.com",
+      "binance.info",
+      "binance.je",
+      "binance.kr",
+      "binance.me",
+      "binance.tr",
       "binance.us"
     ],
     "x": "binance"
@@ -692,7 +700,8 @@
       "kraken"
     ],
     "domains": [
-      "kraken.com"
+      "kraken.com",
+      "kraken.exchange"
     ],
     "x": "krakenfx"
   },
@@ -703,6 +712,8 @@
       "okxweb3"
     ],
     "domains": [
+      "okcoin.com",
+      "okx.cab",
       "okx.com"
     ],
     "x": "okx"
@@ -713,7 +724,13 @@
       "bybit"
     ],
     "domains": [
-      "bybit.com"
+      "bybit-tr.com",
+      "bybit.com",
+      "bybit.com.ar",
+      "bybit.eu",
+      "bybit.kz",
+      "bybit.nl",
+      "bybitglobal.com"
     ],
     "x": "Bybit_Official"
   },

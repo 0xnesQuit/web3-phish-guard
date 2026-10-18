@@ -431,6 +431,29 @@ describe("page links the victim's real X account", () => {
   });
 });
 
+describe("field reports round 3", () => {
+  it("bybitglobal.com (6 years old) is brand sprawl, not a clone", () => {
+    const v = run("https://www.bybitglobal.com/", { origin: { source: "x", at: 0 } });
+    expect(v.band).toBe("none"); // official alt domain now
+    const unknownOld = score("https://www.bybit-promo-portal.com/", parseHost("https://www.bybit-promo-portal.com/", freeHosts)!, { brands, lists, ageDays: 6 * 365, origin: { source: "x", at: 0 }, x: { token: "bybit", confidence: 0.9, official: { handle: "bybit_official", domains: ["bybit.com"], followers: 1_000_000 } } });
+    expect(unknownOld.signals.some((s) => s.id === "x-domain-mismatch")).toBe(false);
+    expect(unknownOld.band).toBe("none");
+  });
+  it("a young Bybit clone still blocks", () => {
+    const v = run("https://bybit-rewards.xyz/", { ageDays: 4, origin: { source: "x", at: 0 } });
+    expect(v.band).toBe("block");
+  });
+  it("claim-evm-airdrop.netlify.app?token=0x... blocks: uppercase hex address and bait-only free host", () => {
+    const v = run("https://claim-evm-airdrop.netlify.app/?token=0xEaF0193CF1E68922004037470C317Cee0F977777", { origin: { source: "x", at: 0 } });
+    expect(v.signals.some((s) => s.id === "address-in-url")).toBe(true);
+    expect(v.band).toBe("block");
+    expect(run("https://claim-evm-airdrop.netlify.app/").band).toBe("block");
+  });
+  it("a free-host hobby page with one bait word is not blocked by the combination", () => {
+    expect(run("https://my-claims-tracker.netlify.app/").band).not.toBe("block");
+  });
+});
+
 describe("blocklist helpers", () => {
   it("extractDomains handles plain arrays and nested configs", () => {
     expect(extractDomains(["a.com", "https://b.com/x"], ["blocklist"])).toEqual(["a.com", "b.com"]);

@@ -155,6 +155,9 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // deferred: the attacked-brand signal needs hasAction / freeHost / fresh, computed below
 
   const fresh = ctx.ageDays !== undefined && ctx.ageDays < 30;
+  // Phishing domains live days, not years (avg 8.6 days; re-registrations get a new registration date).
+  // A registrable domain older than a year that carries a brand name is brand sprawl (bybitglobal.com), not a clone.
+  const old = ctx.ageDays !== undefined && ctx.ageDays > 365;
 
   // ---- hostname heuristics ---------------------------------------------------
   const strongActions = tokens.filter((t) => ctx.lists.actionStrong.includes(t));
@@ -182,7 +185,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   if (matchedBrand && brandSignalKind && brandSignalKind !== "official") {
     brandFlagged = true;
     if (brandSignalKind === "impersonation" && matchedBrand.tier !== "generated") {
-      signals.push({ id: "brand-impersonation", weight: 40, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
+      signals.push({ id: "brand-impersonation", weight: old ? 10 : 40, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
     } else if (brandSignalKind === "impersonation") {
       // auto-imported brand: names are often common words and domains drift (kamino.finance vs kamino.com),
       // so it only counts alongside an action word or free hosting
@@ -239,7 +242,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   }
 
   // token / wallet address in the URL of a bait page ("?life=<pump.fun mint>", "/claim/0xabc...")
-  if ((hasAction || p.freeHost || matchedBrand) && /(0x[0-9a-f]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})/.test(url.split("://")[1]?.slice(p.host.length) ?? "")) {
+  if ((hasAction || p.freeHost || matchedBrand) && /(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})/.test(url.split("://")[1]?.slice(p.host.length) ?? "")) {
     signals.push({ id: "address-in-url", weight: 10, key: "sig_address_in_url" });
   }
 
@@ -304,11 +307,11 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       // the project's own X account links to exactly this domain: treat like an official domain
       signals.push({ id: "x-domain-match", weight: -100, key: "sig_x_domain_match", sub: ["@" + off.handle] });
       xCleared = true;
-    } else if (!hostMatches && off.domains.length && (brandFlagged || hasAction || fresh)) {
+    } else if (!hostMatches && off.domains.length && (brandFlagged || hasAction || fresh) && !old) {
       signals.push({ id: "x-domain-mismatch", weight: 25, key: "sig_x_domain_mismatch", sub: ["@" + off.handle, off.domains[0]] });
     }
     const poster = o?.poster?.toLowerCase().replace(/^@/, "");
-    if (poster && poster !== off.handle.toLowerCase() && !hostMatches && (brandFlagged || hasAction || fresh)) {
+    if (poster && poster !== off.handle.toLowerCase() && !hostMatches && (brandFlagged || hasAction || fresh) && !old) {
       if (!signals.some((s) => s.id === "poster-mismatch")) {
         signals.push({ id: "poster-mismatch", weight: 30, key: "sig_poster_mismatch", sub: ["@" + poster, "@" + off.handle] });
       }
@@ -332,11 +335,13 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   const v = done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
 
-  // Combination rule from the research: brand + action word + (free host | fresh domain) is near-certain.
-  if (matchedBrand && hasAction && (p.freeHost || (ctx.ageDays !== undefined && ctx.ageDays < 30))) {
+  // Combination rules from the research: brand + action word + (free host | fresh domain) is near-certain,
+  // and so is a free host whose label is nothing but bait words (claim-evm-airdrop.netlify.app).
+  const strongBait = new Set(strongActions).size >= 2;
+  if ((matchedBrand && hasAction && (p.freeHost || fresh)) || (p.freeHost && strongBait && ctx.lists.freeHostsStrong.includes(p.freeHost))) {
     if (v.score < BLOCK_THRESHOLD) {
       signals.push({ id: "combo", weight: BLOCK_THRESHOLD - v.score, key: "sig_combo" });
-      return done({ brand: matchedBrand.name, ageDays: ctx.ageDays });
+      return done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
     }
   }
 
