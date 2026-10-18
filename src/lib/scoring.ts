@@ -54,7 +54,12 @@ const SOURCE_LABEL: Record<OriginContext["source"], string> = {
 };
 
 /** Hostname tokens that are too generic to count as a brand on their own */
-const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "shop", "home", "info", "base", "blast", "scroll", "across", "blur", "eigen", "pudgy", "jupiter", "phantom", "ledger", "linea", "zama", "zora", "tensor", "highlight", "manifold", "optimism"]);
+const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "shop", "home", "info", "base", "blast", "scroll", "across", "blur", "eigen", "pudgy", "jupiter", "linea", "zama", "zora", "tensor", "highlight", "manifold", "optimism"]);
+
+/** ASCII look-alikes drainer kits use in hostnames: rn->m, vv->w, cl->d, 1->l, 0->o */
+export function asciiSkeleton(s: string): string {
+  return s.replace(/rn/g, "m").replace(/vv/g, "w").replace(/cl/g, "d").replace(/1/g, "l").replace(/0/g, "o");
+}
 
 /** "papertradefnd" -> "papertrade", "officialzama" -> "zama": clones glue affixes onto the real name. */
 export function stripCloneAffixes(token: string): string {
@@ -108,6 +113,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   const tokens = tokenize(allLabels);
   const strippedTokens = tokens.map(stripCloneAffixes);
   const joined = allLabels.join("").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const joinedSkeleton = asciiSkeleton(joined);
 
   // ---- brand matching -----------------------------------------------------
   let matchedBrand: Brand | undefined;
@@ -138,14 +144,6 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       }
     }
   }
-  if (!brandOfficial && !homograph) {
-    // auto-imported brands: O(1) whole-token lookup (plain or affix-stripped); the curated few hundred use the loop below
-    const gi = generatedIndex(ctx.brands);
-    for (const tk of [...tokens, ...strippedTokens]) {
-      const b = gi.get(tk);
-      if (b) { matchedBrand = b; brandSignalKind = b.domains.length ? "impersonation" : "unverified"; break; }
-    }
-  }
   if (!brandOfficial && !matchedBrand) {
     outer: for (const b of ctx.brands) {
       if (b.tier === "generated") continue;
@@ -171,7 +169,23 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
           brandSignalKind = "typo";
           break outer;
         }
+        // visual look-alike spelled in ASCII (rnetamask, vvalletconnect, ledqer is covered by levenshtein)
+        if (!generic && tok.length >= 6 && joinedSkeleton !== joined && joinedSkeleton.includes(tok)) {
+          matchedBrand = b;
+          brandSignalKind = "typo";
+          break outer;
+        }
       }
+    }
+  }
+
+  if (!brandOfficial && !matchedBrand) {
+    // auto-imported brands (DefiLlama / CMC / OpenSea): O(1) whole-token lookup, only after the curated list had
+    // its chance, so "MetaMask Wallet" from a token list cannot shadow the curated MetaMask entry.
+    const gi = generatedIndex(ctx.brands);
+    for (const tk of [...tokens, ...strippedTokens]) {
+      const b = gi.get(tk);
+      if (b) { matchedBrand = b; brandSignalKind = b.domains.length ? "impersonation" : "unverified"; break; }
     }
   }
 
@@ -179,7 +193,9 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   if (brandOfficial && matchedBrand && !(matchedBrand.tier === "generated" && reviewedHit)) {
     // An auto-imported "official" domain (DefiLlama/CMC/OpenSea data) does not outrank a reviewed blocklist entry:
     // listed scam projects exist on those platforms. Curated seed/trusted entries still do.
-    signals.push({ id: "brand-official", weight: 0, key: "sig_brand_official", sub: [matchedBrand.name] });
+    // Curated official domains relax the wallet gate; auto-imported ones only clear the heuristics (their data can
+    // name shared hosts or a scam project's own site), so they carry a distinct id the gate does not treat as safe.
+    signals.push({ id: matchedBrand.tier === "generated" ? "brand-official-generated" : "brand-official", weight: 0, key: "sig_brand_official", sub: [matchedBrand.name] });
     return done({ brand: matchedBrand.name });
   }
   if (ctx.allowlistHit) {
@@ -191,7 +207,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   if (ctx.blocklistHit) {
     // MetaMask and ScamSniffer entries are reviewed; PhishDestroy is broader and noisier, so alone it only warns
     // and becomes a block when any local heuristic agrees (the combination is added further down).
-    const weight = ctx.blocklistHit === "phishdestroy" ? 50 : ctx.blocklistHit === "community-auto" ? 70 : 100;
+    // auto = AI-confirmed on a server-suspicious page but not yet seen by a moderator: warn, never block
+    const weight = ctx.blocklistHit === "phishdestroy" ? 50 : ctx.blocklistHit === "community-auto" ? 40 : 100;
     signals.push({ id: "blocklist", weight, key: "sig_blocklist", sub: [ctx.blocklistHit] });
   }
 
@@ -382,7 +399,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       // the project's own X account links to exactly this domain: treat like an official domain
       // Official accounts get hijacked and their bio swapped (ArbitrumDAO 2026): this clears, but never a
       // freshly registered domain, and never below what a reviewed blocklist hit says.
-      if (!fresh && !ctx.blocklistHit) {
+      // "not fresh" must be a known fact: with the registry unreachable an account named after the token, with
+      // bought followers and a bio link, could otherwise clear the page it was made for.
+      const ageKnown = ctx.ageDays !== undefined && ctx.ageDays >= 30;
+      if (ageKnown && !ctx.blocklistHit && xi.confidence >= 0.7) {
         signals.push({ id: "x-domain-match", weight: -45, key: "sig_x_domain_match", sub: ["@" + off.handle] });
         xCleared = true;
       }

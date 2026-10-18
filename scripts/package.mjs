@@ -25,3 +25,23 @@ function zipDir(dir, out) {
 
 zipDir("dist", `packages/web3-phish-guard-chrome-${version}.zip`);
 zipDir("dist-firefox", `packages/web3-phish-guard-firefox-${version}.zip`);
+
+// Source archive for Firefox Add-ons review: everything needed to reproduce the minified bundles byte for byte,
+// including the generated brand data files that git ignores. Build with `npm ci --ignore-scripts && npm run build:all`.
+import { cpSync, rmSync, writeFileSync } from "node:fs";
+const src = "packages/source-tmp";
+rmSync(src, { recursive: true, force: true });
+for (const d of ["src", "public", "scripts", "data", "test"]) cpSync(d, path.join(src, d), { recursive: true });
+for (const f of ["package.json", "package-lock.json", "tsconfig.json", "README.md", "PRIVACY.md", "LICENSE"]) if (existsSync(f)) cpSync(f, path.join(src, f));
+writeFileSync(path.join(src, "BUILD.md"), `# Reproducing the build
+
+Node 22.
+
+    npm ci --ignore-scripts
+    npm run build:all
+
+\`dist/\` is the Chrome package, \`dist-firefox/\` the Firefox package (version ${version}).
+The data files under \`data/\` are the exact copies bundled in this release; \`scripts/build-*.mjs\` regenerate them from DefiLlama / CoinMarketCap / OpenSea.
+`);
+zipDir(src, `packages/web3-phish-guard-source-${version}.zip`);
+rmSync(src, { recursive: true, force: true });

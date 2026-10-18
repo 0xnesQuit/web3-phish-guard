@@ -3,7 +3,7 @@
     "message": "Web3 Phish Guard"
   },
   "ext_description": {
-    "message": "Avisos instantáneos ante páginas falsas de mint de NFT y de reclamo de airdrops. Todo se comprueba localmente."
+    "message": "Avisos instantáneos ante páginas falsas de mint de NFT y de reclamo de airdrops, y una comprobación antes de solicitudes de billetera peligrosas."
   },
   "warning_tab_title": {
     "message": "Aviso: posible sitio de phishing"

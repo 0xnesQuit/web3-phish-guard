@@ -1,41 +1,66 @@
 /**
  * Isolated-world relay (document_start, every frame):
- *  - forwards MAIN-world provider events to the background
- *  - answers MAIN-world "gate" requests: asks the background whether the request should be held, renders the
- *    confirmation modal when it should, and posts the decision back
+ *  - hands the MAIN-world guard a private MessageChannel port before any page script runs
+ *  - forwards the guard's provider events to the background
+ *  - answers the guard's "gate" requests: asks the background whether the request should be held, renders the
+ *    confirmation modal when it should (always in the top frame, so an invisible iframe cannot hide it), and
+ *    sends the decision back over the port
  */
 import { t } from "../lib/i18n";
 
 const TAG = "w3pg";
 
 interface GateDetails { id: string; method: string; kind: string; counterparty?: string; counterpartyEoa?: boolean; unlimited?: boolean; token?: string; poisonedTwin?: string; batch?: string[]; primaryType?: string; deadline?: string; hadGesture: boolean }
+type Decision = { ask: boolean; reason?: string; score?: number };
 
-window.addEventListener("message", (e) => {
-  if (e.source !== window) return;
+// ---- private channel -------------------------------------------------------------------
+const channel = new MessageChannel();
+const port = channel.port1;
+port.onmessage = (e) => {
   const d = e.data;
-  if (!d || d.source !== TAG) return;
-  if (d.event) chrome.runtime.sendMessage({ type: "w3pg:provider", event: d.event }).catch(() => undefined);
-  if (d.gate) handleGate(d.gate as GateDetails);
-});
+  if (!d || typeof d !== "object") return;
+  if (d.type === "event" && d.event) chrome.runtime.sendMessage({ type: "w3pg:provider", event: d.event }).catch(() => undefined);
+  if (d.type === "gate" && d.gate) void handleGate(d.gate as GateDetails);
+};
+try { window.postMessage({ source: TAG + "-ext", type: "port" }, "*", [channel.port2]); } catch { /* ignore */ }
 
 async function handleGate(g: GateDetails) {
-  let decision: { ask: boolean; reason?: string; score?: number } = { ask: false };
+  let decision: Decision = { ask: false };
   try {
     decision = (await chrome.runtime.sendMessage({ type: "w3pg:gate", details: g })) ?? { ask: false };
-  } catch { /* background unavailable: let it through */ }
-  const allow = decision.ask ? await modal(g, decision) : true;
-  window.postMessage({ source: TAG + "-ext", type: "gate-result", id: g.id, allow }, "*");
+  } catch { /* background unavailable: the guard's own fail-closed rule applies */ }
+  port.postMessage({ type: "gate-ack", id: g.id, ask: decision.ask });
+  let allow = true;
+  if (decision.ask) {
+    if (window.top !== window) {
+      // raise the modal in the top frame; fall back to this frame if the top frame cannot be reached
+      try {
+        const r = (await chrome.runtime.sendMessage({ type: "w3pg:gateTop", details: g, decision, frameHost: location.hostname })) as { allow?: boolean } | undefined;
+        allow = typeof r?.allow === "boolean" ? r.allow : await modal(g, decision, location.hostname);
+      } catch { allow = await modal(g, decision, location.hostname); }
+    } else {
+      allow = await modal(g, decision, location.hostname);
+    }
+  }
+  port.postMessage({ type: "gate-result", id: g.id, allow });
   if (!allow) chrome.runtime.sendMessage({ type: "w3pg:gateRejected", details: g }).catch(() => undefined);
 }
+
+// the top frame renders modals for its iframes
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (!msg || msg.type !== "w3pg:showGate" || window.top !== window) return;
+  modal(msg.details as GateDetails, (msg.decision as Decision) ?? { ask: true }, String(msg.frameHost ?? location.hostname)).then((allow) => sendResponse({ allow }));
+  return true;
+});
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
 const short = (a?: string) => (a ? `${a.slice(0, 8)}…${a.slice(-6)}` : "");
 
-function modal(g: GateDetails, d: { reason?: string; score?: number }): Promise<boolean> {
+function modal(g: GateDetails, d: { reason?: string; score?: number }, hostLabel: string): Promise<boolean> {
   return new Promise((resolve) => {
     const host = document.createElement("div");
     host.id = "w3pg-gate";
-    host.style.cssText = "all:initial;position:fixed;inset:0;z-index:2147483647;";
+    host.style.cssText = "all:initial !important;position:fixed !important;inset:0 !important;z-index:2147483647 !important;display:block !important;";
     const root = host.attachShadow({ mode: "closed" });
     const rows: string[] = [];
     const kindText = t(`gate_kind_${g.kind.replace(/-/g, "_")}`) || g.kind;
@@ -72,14 +97,19 @@ function modal(g: GateDetails, d: { reason?: string; score?: number }): Promise<
             <button class="rej" id="rej">${esc(t("gate_reject"))}</button>
             <button class="ok" id="ok">${esc(t("gate_allow"))}</button>
           </div>
-          <div class="host">${esc(location.hostname)}</div>
+          <div class="host">${esc(hostLabel)}</div>
         </div>
       </div>`;
-    const done = (allow: boolean) => { host.remove(); resolve(allow); };
-    root.getElementById("rej")!.addEventListener("click", () => done(false));
-    root.getElementById("ok")!.addEventListener("click", () => done(true));
-    root.addEventListener("keydown", (e) => { if ((e as KeyboardEvent).key === "Escape") done(false); });
-    (document.documentElement || document.body).appendChild(host);
+    let settled = false;
+    const mount = () => (document.documentElement || document.body).appendChild(host);
+    // a page that removes the dialog node gets it straight back; only the user's click settles the request
+    const keep = new MutationObserver(() => { if (!settled && !host.isConnected) mount(); });
+    keep.observe(document.documentElement, { childList: true, subtree: false });
+    const done = (allow: boolean) => { settled = true; keep.disconnect(); host.remove(); resolve(allow); };
+    root.getElementById("rej")!.addEventListener("click", (e) => { if (e.isTrusted) done(false); });
+    root.getElementById("ok")!.addEventListener("click", (e) => { if (e.isTrusted) done(true); });
+    root.addEventListener("keydown", (e) => { if (e.isTrusted && (e as KeyboardEvent).key === "Escape") done(false); });
+    mount();
     setTimeout(() => (root.getElementById("rej") as HTMLButtonElement | null)?.focus(), 0);
   });
 }

@@ -9,7 +9,6 @@
     "unlimitedStorage",
     "alarms",
     "webNavigation",
-    "tabs",
     "declarativeNetRequest"
   ],
   "host_permissions": [
@@ -75,20 +74,20 @@
       ],
       "js": [
         "overlay.js",
-        "page-scan.js",
-        "seed-guard.js"
+        "page-scan.js"
       ],
       "run_at": "document_idle"
-    }
-  ],
-  "web_accessible_resources": [
+    },
     {
-      "resources": [
-        "warning.html"
-      ],
       "matches": [
-        "<all_urls>"
-      ]
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "seed-guard.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "icons": {

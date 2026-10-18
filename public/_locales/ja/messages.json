@@ -3,7 +3,7 @@
     "message": "Web3 Phish Guard"
   },
   "ext_description": {
-    "message": "偽の NFT ミントやエアドロップ請求ページを即座に警告。すべてのチェックはローカルで実行されます。"
+    "message": "偽の NFT ミントやエアドロップ請求ページを即座に警告し、危険なウォレット要求の前に確認します。"
   },
   "warning_tab_title": {
     "message": "警告：フィッシングサイトの可能性"

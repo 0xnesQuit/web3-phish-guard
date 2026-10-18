@@ -3,7 +3,7 @@
     "message": "Web3 Phish Guard"
   },
   "ext_description": {
-    "message": "Cảnh báo tức thì về các trang mint NFT và nhận airdrop giả mạo. Mọi kiểm tra chạy cục bộ."
+    "message": "Cảnh báo tức thì về các trang mint NFT và nhận airdrop giả mạo."
   },
   "warning_tab_title": {
     "message": "Cảnh báo: có thể là trang lừa đảo"

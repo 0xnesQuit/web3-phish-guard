@@ -3,7 +3,7 @@
     "message": "Web3 Phish Guard"
   },
   "ext_description": {
-    "message": "Peringatan instan untuk halaman mint NFT dan klaim airdrop palsu. Semua pemeriksaan berjalan lokal."
+    "message": "Peringatan instan untuk halaman mint NFT dan klaim airdrop palsu."
   },
   "warning_tab_title": {
     "message": "Peringatan: kemungkinan situs phishing"

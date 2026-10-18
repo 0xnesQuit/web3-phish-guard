@@ -3,7 +3,7 @@
     "message": "Web3 Phish Guard"
   },
   "ext_description": {
-    "message": "Sahte NFT mint ve airdrop claim sayfalarına karşı anlık uyarı. Tüm kontroller yerel çalışır."
+    "message": "Sahte NFT mint ve airdrop claim sayfalarına karşı anlık uyarı ve riskli cüzdan isteklerinden önce kontrol."
   },
   "warning_tab_title": {
     "message": "Dikkat: olası phishing sitesi"
@@ -84,7 +84,7 @@
     "message": "⚠️ şüpheli"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · risk $2/100"
+    "message": "Web3 Phish Guard · $1 · risk puanı $2/100"
   },
   "popup_options": {
     "message": "Ayarlar"

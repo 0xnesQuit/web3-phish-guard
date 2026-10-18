@@ -3,7 +3,7 @@
     "message": "Web3 Phish Guard"
   },
   "ext_description": {
-    "message": "Sofortige Warnungen bei gefälschten NFT-Mint- und Airdrop-Claim-Seiten. Alle Prüfungen laufen lokal."
+    "message": "Sofortige Warnungen bei gefälschten NFT-Mint- und Airdrop-Claim-Seiten."
   },
   "warning_tab_title": {
     "message": "Warnung: mögliche Phishing-Seite"

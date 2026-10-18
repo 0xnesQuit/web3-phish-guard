@@ -1,21 +1,23 @@
 # Web3 Phish Guard – Privacy Policy
 
-_Last updated: 2026-10-18_
+_Last updated: 2026-10-19_
 
 Web3 Phish Guard is a browser extension that warns you when a page looks like a crypto phishing site (fake NFT mints, fake airdrop claims, wallet drainers). This policy explains exactly what data the extension processes and where it goes.
 
 ## What stays on your device
 
-Every page you open is evaluated **locally in your browser**: the hostname is checked against phishing lists, brand lists and heuristics that are stored inside the extension. The URLs you visit are never sent to us or to anyone else for this check, and they are not logged.
+Every page you open is evaluated **locally in your browser** first: the hostname is checked against phishing lists, brand lists and heuristics that are stored inside the extension. The full URLs you visit are never sent to us or to anyone else for this check, and they are not logged. Some follow-up checks do contact servers, and each of them is listed below with exactly what leaves the browser.
 
 ## What leaves your device, and when
 
 1. **List updates** (automatic, every 12 hours): the extension downloads updated phishing and brand lists from GitHub (`raw.githubusercontent.com`). These requests contain no information about your browsing.
-2. **Domain age lookup** (automatic, only for suspicious pages): when the local score is in the "undecided" range, the extension asks the domain registry's public RDAP service for the registration date of the **domain name only** (for example `example.xyz`). No path, query string, or page content is sent.
-3. **Link shortener resolution** (automatic, only on x.com): shortened links (t.co, tr.ee, bit.ly…) seen in your timeline are resolved to find their real destination so they can be scored before you click.
+2. **Domain age lookup** (automatic, only for suspicious pages): when the local score is in the "undecided" range, the extension asks the domain registry's public RDAP service (found through IANA's bootstrap file) for the registration date of the **domain name only** (for example `example.xyz`). The registry therefore learns that someone using the extension looked up that domain. No path, query string, or page content is sent.
+3. **Link shortener resolution** (automatic, only on x.com): shortened links (t.co, tr.ee, bit.ly…) that are visible in your timeline are sent to our server, which follows the redirect from its own address and returns the destination so it can be scored before you click. Your browser does not contact the destination. If our server is unreachable the extension resolves the link itself.
 4. **X account check** (automatic, only for suspicious pages): the extension sends the project name found in the hostname, or an X handle linked from the page, to our server, which looks up the account through the Xquik API. Never the page URL.
-5. **Deep scan** (only when you press the "Deep scan" button): a snapshot of the current page (title, a text sample, script file names, link domains, wallet-related buttons) together with the extension's findings is sent to our server, which asks an AI model (Anthropic Claude) for a verdict. The server independently checks the domain's registration age (RDAP), the MetaMask blocklist and the free GoPlus Security API, keeps the result cached for one hour keyed by a hash of the snapshot, and does not store the page text.
-6. **Reports** (only when you press "Report this site"): the page URL, the extension's score and your optional note are sent to our server, where a human reviews them. Approved domains are added to a public blocklist. Reports are stored with the page address but without the query string. For abuse prevention we store a keyed hash of your IP address that changes every day and cannot be reversed; it is deleted with the report after 90 days.
+5. **Deep scan** (only when you press the "Deep scan" button): the page address **without its query string**, a snapshot of the current page (title, a text sample, script file names, link domains, wallet-related buttons) and the extension's findings are sent to our server, which asks an AI model (Anthropic Claude) for a verdict. The server independently checks the domain's registration age (RDAP), the MetaMask blocklist and the free GoPlus Security API, keeps the result cached for one hour keyed by a hash of the snapshot, and does not store the page text. If the server's own checks and the model both find the page dangerous, the server fetches the page itself to confirm, and the domain (with the page path, never a query string) may be added to a "warn-only" community list that a moderator reviews.
+6. **Reports** (only when you press "Report this site"): the page address without its query string, the extension's score and your optional note are sent to our server, where a human reviews them. Approved domains are added to a public blocklist. For abuse prevention the server stores a keyed hash of your IP address that changes every day (IPv6 addresses are first truncated to their /64 prefix); only the holder of the server's secret key could relate it to an address, and it is deleted with the report after 90 days.
+
+In the Chrome Web Store's terms these checks use **web history** (the hostnames of suspicious pages) and, for deep scan only, **website content**. In Firefox's data-collection terms the extension declares **websiteActivity** as required and **websiteContent** (deep scan) as optional.
 
 ## What we never do
 

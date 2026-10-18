@@ -3,7 +3,7 @@
     "message": "Web3 Phish Guard"
   },
   "ext_description": {
-    "message": "가짜 NFT 민팅 및 에어드롭 클레임 페이지를 즉시 경고합니다. 모든 검사는 로컬에서 실행됩니다."
+    "message": "가짜 NFT 민팅 및 에어드롭 클레임 페이지를 즉시 경고합니다."
   },
   "warning_tab_title": {
     "message": "경고: 피싱 사이트일 수 있음"

@@ -22,14 +22,16 @@ if (!existsSync(path.join(dir, ".git"))) {
 }
 
 for (const f of ["brands.seed.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json"]) cpSync(`data/${f}`, path.join(dir, "data", f));
-for (const f of ["build-brands.mjs", "build-cmc-brands.mjs", "build-nft-brands.mjs", "publish-lists.mjs"]) cpSync(`scripts/${f}`, path.join(dir, "scripts", f));
+for (const f of ["build-brands.mjs", "build-cmc-brands.mjs", "build-nft-brands.mjs", "publish-lists.mjs", "shared-hosts.mjs"]) cpSync(`scripts/${f}`, path.join(dir, "scripts", f));
 
-run("node scripts/publish-lists.mjs data");
+// The manifest is signed only by the lists repo's Action (the key never leaves it); an unsigned manifest written
+// here would be rejected by every extension until the next daily run. Push the files, then trigger the Action.
 run("git add -A");
 if (run("git status --porcelain")) {
   run(`git -c user.name=lists-sync -c user.email=lists-sync@users.noreply.github.com commit -q -m "sync curated lists from main repo"`);
   run("git push -q origin main");
   console.log("lists repo updated");
+  try { execSync("gh workflow run refresh.yml -R 0xnesQuit/web3-phish-guard-lists", { stdio: "inherit" }); console.log("refresh workflow triggered (signs and publishes the manifest)"); } catch { console.log("trigger the 'Refresh lists' workflow by hand to publish a signed manifest"); }
 } else {
   console.log("lists repo already up to date");
 }

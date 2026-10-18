@@ -18,7 +18,7 @@ export interface TxIntent {
 }
 
 export interface SignIntent {
-  kind: "permit" | "permit2" | "permit-batch" | "permit-for-all" | "seaport-order" | "blur-order" | "delegation" | "eth_sign" | "other";
+  kind: "permit" | "permit2" | "permit-batch" | "permit-for-all" | "seaport-order" | "blur-order" | "delegation" | "transfer-auth" | "eth_sign" | "other";
   primaryType?: string;
   /** spender/operator/offerer when present */
   counterparty?: string;
@@ -39,9 +39,20 @@ export const SELECTORS: Record<string, string> = {
   "0x42842e0e": "safeTransferFrom",
   "0xb88d4fde": "safeTransferFrom",
   "0xa9059cbb": "transfer",
+  "0xf242432a": "safeTransferFrom",   // ERC-1155 safeTransferFrom(from, to, id, amount, data)
+  "0x2eb2c2d6": "safeBatchTransferFrom", // ERC-1155
   "0xac9650d8": "multicall",
   "0x5ae401dc": "multicall",          // Uniswap v3 router multicall(deadline, data[])
+  "0x1f0464d1": "multicall",          // multicall(bytes32 previousBlockhash, bytes[])
+  "0x82ad56cb": "multicall",          // Multicall3.aggregate3
+  "0x252dba42": "multicall",          // Multicall3.aggregate
+  "0xbce38bd7": "multicall",          // Multicall3.tryAggregate
+  "0x174dea71": "multicall",          // Multicall3.aggregate3Value
+  "0x8d80ff0a": "multicall",          // Safe MultiSend.multiSend(bytes)
+  "0x3593564c": "universal-router",   // Uniswap UniversalRouter.execute(commands, inputs, deadline)
+  "0x24856bc3": "universal-router",   // UniversalRouter.execute(commands, inputs)
 };
+const MULTICALL_SELECTORS = new Set(Object.entries(SELECTORS).filter(([, n]) => n === "multicall").map(([s]) => s));
 
 const word = (data: string, i: number) => data.slice(10 + i * 64, 10 + (i + 1) * 64);
 const addr = (w: string) => ("0x" + w.slice(24)).toLowerCase();
@@ -73,12 +84,26 @@ export function decodeCalldata(data: string | undefined, to?: string): TxIntent 
       return { kind: "transfer", selector: sel, counterparty: addr(word(d, 0)), token: to?.toLowerCase(), amountHex: word(d, 1) };
     case "transferFrom":
     case "safeTransferFrom":
+    case "safeBatchTransferFrom":
       return { kind: "transferFrom", selector: sel, counterparty: addr(word(d, 1)), token: to?.toLowerCase() };
+    case "universal-router": {
+      // commands byte string: 0x0a PERMIT2_PERMIT, 0x0b PERMIT2_TRANSFER_FROM, 0x03 PERMIT2_PERMIT_BATCH, 0x02 PERMIT2_TRANSFER_FROM_BATCH
+      const off = parseInt(word(d, 0), 16) * 2;
+      const len = parseInt(d.slice(10 + off, 10 + off + 64), 16);
+      const cmds = d.slice(10 + off + 64, 10 + off + 64 + len * 2);
+      const inner: TxIntent[] = [];
+      for (let i = 0; i + 2 <= cmds.length; i += 2) {
+        const c = parseInt(cmds.slice(i, i + 2), 16) & 0x3f;
+        if (c === 0x0a || c === 0x03) inner.push({ kind: "permit2", selector: sel, token: to?.toLowerCase() });
+        if (c === 0x0b || c === 0x02) inner.push({ kind: "transferFrom", selector: sel, token: to?.toLowerCase() });
+      }
+      return { kind: "multicall", selector: sel, inner };
+    }
     case "multicall": {
       // scan the blob for nested known selectors: cheap and good enough to spot an approve wrapped in a multicall
       const inner: TxIntent[] = [];
       for (const s of Object.keys(SELECTORS)) {
-        if (s === "0xac9650d8" || s === "0x5ae401dc") continue;
+        if (MULTICALL_SELECTORS.has(s)) continue;
         let i = d.indexOf(s.slice(2), 10);
         while (i !== -1 && inner.length < 8) {
           if (i % 2 === 0) inner.push(decodeCalldata("0x" + d.slice(i), to));
@@ -139,6 +164,8 @@ export function decodeTypedData(raw: unknown): SignIntent {
   if (/^(OrderComponents|Order|BulkOrder|SeaportOrder)$/.test(pt)) return { kind: "seaport-order", primaryType: pt, counterparty: pick("offerer") };
   if (/^(Root|Order|Listing)$/.test(pt) && /blur/i.test(String(td.domain?.name ?? ""))) return { kind: "blur-order", primaryType: pt };
   if (/^Delegation$/.test(pt) || /^(SetDelegate|Delegate)/.test(pt)) return { kind: "delegation", primaryType: pt, counterparty: pick("delegate") };
+  // EIP-3009 (USDC and friends): a signature that lets the relayer move the tokens
+  if (/^(TransferWithAuthorization|ReceiveWithAuthorization|CancelAuthorization)$/.test(pt) && pt !== "CancelAuthorization") return { kind: "transfer-auth", primaryType: pt, counterparty: pick("to"), deadline: String(m.validBefore ?? "") };
   return { kind: "other", primaryType: pt };
 }
 

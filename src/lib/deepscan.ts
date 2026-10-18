@@ -19,7 +19,8 @@ export async function scanExternalScripts(scripts: string[], max = 5): Promise<s
   await Promise.all(picks.map(async (s) => {
     try {
       const host = s.split("/")[0].split(":")[0];
-      if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|169\.254\.|\[)/.test(host) || !/\./.test(host)) return;
+      // never fetch from private networks or single-label / internal names from the extension's own origin
+      if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|169\.254\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|\[)/.test(host) || !/\./.test(host) || /\.(local|internal|lan|home|corp|intranet|localhost|test|example|invalid)$/.test(host) || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return;
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 6000); // covers the whole read, not just the headers
       const res = await fetch("https://" + s, { signal: ctrl.signal, credentials: "omit" });
@@ -61,7 +62,7 @@ export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { 
   const base = API_BASE;
   const v = ctx.verdict;
   const body = {
-    url: v.url,
+    url: v.url.replace(/[?#].*$/, ""), // never the query string: it can carry session tokens or referral ids
     host: v.host,
     registrable: v.registrable,
     localScore: v.score,
@@ -95,7 +96,7 @@ export async function sendReport(v: Verdict, note: string): Promise<{ ok: boolea
     const res = await fetch(`${base}/v1/report`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url: v.url, host: v.host, registrable: v.registrable, score: v.score, signals: v.signals.filter((s) => s.weight > 0).map(signalText), note }),
+      body: JSON.stringify({ url: v.url.replace(/[?#].*$/, ""), host: v.host, registrable: v.registrable, score: v.score, signals: v.signals.filter((s) => s.weight > 0).map(signalText), note }),
     });
     if (!res.ok) return { ok: false, error: ((await res.json().catch(() => ({}))) as { error?: string }).error ?? `http_${res.status}` };
     return { ok: true };

@@ -11,11 +11,14 @@ export const RULE_ALLOW = 1;
 export const RULE_BYPASS_BASE = 100; // 100..999 bypass rules
 export const RULE_BLOCK_BASE = 1000; // 1000.. block chunks
 export const CHUNK = 1500;
+export const RULE_PATH_BASE = 50_000; // 50000.. one rule per host+path entry (MetaMask blocklistPaths)
+export const MAX_PATH_RULES = 2000;
+const FRAMES = ["main_frame", "sub_frame"] as chrome.declarativeNetRequest.ResourceType[];
 
 type Rule = chrome.declarativeNetRequest.Rule;
 
 /** Pure: build the rule set for a list of block domains and an allow set. */
-export function buildRules(block: string[], allow: string[]): Rule[] {
+export function buildRules(block: string[], allow: string[], paths: string[] = []): Rule[] {
   const rules: Rule[] = [];
   const allowSet = new Set(allow);
   const domains = [...new Set(block.filter((d) => d && !allowSet.has(d) && /^[a-z0-9.-]+$/.test(d)))];
@@ -24,15 +27,21 @@ export function buildRules(block: string[], allow: string[]): Rule[] {
       id: RULE_BLOCK_BASE + rules.length,
       priority: 1,
       action: { type: "block" as chrome.declarativeNetRequest.RuleActionType },
-      condition: { requestDomains: domains.slice(i, i + CHUNK), resourceTypes: ["main_frame" as chrome.declarativeNetRequest.ResourceType] },
+      condition: { requestDomains: domains.slice(i, i + CHUNK), resourceTypes: FRAMES },
     });
+  }
+  // host+path entries: "sites.google.com/view/foo" -> urlFilter "||sites.google.com/view/foo" (prefix match on the path)
+  let pid = RULE_PATH_BASE;
+  for (const entry of [...new Set(paths)].slice(-MAX_PATH_RULES)) {
+    if (!/^[a-z0-9.-]+\/[\x21-\x7e]*$/.test(entry) || allowSet.has(entry.split("/")[0])) continue;
+    rules.push({ id: pid++, priority: 1, action: { type: "block" as chrome.declarativeNetRequest.RuleActionType }, condition: { urlFilter: "||" + entry, resourceTypes: FRAMES } });
   }
   if (allow.length) {
     rules.push({
       id: RULE_ALLOW,
       priority: 10,
       action: { type: "allow" as chrome.declarativeNetRequest.RuleActionType },
-      condition: { requestDomains: allow.slice(0, 5000), resourceTypes: ["main_frame" as chrome.declarativeNetRequest.ResourceType] },
+      condition: { requestDomains: allow.slice(0, 5000), resourceTypes: FRAMES },
     });
   }
   return rules;
@@ -43,12 +52,15 @@ export async function applyRules(rules: Rule[]): Promise<void> {
   if (!dnr?.updateSessionRules) return;
   const existing = await dnr.getSessionRules();
   const removeRuleIds = existing.filter((r) => r.id === RULE_ALLOW || r.id >= RULE_BLOCK_BASE).map((r) => r.id);
+  // unchanged rule set (service-worker restart): skip the expensive update
+  if (existing.length === rules.length && existing.every((r, i) => r.id === rules[i]?.id && JSON.stringify(r.condition) === JSON.stringify(rules[i].condition))) return;
   try {
     await dnr.updateSessionRules({ removeRuleIds, addRules: rules });
   } catch (e) {
     // Firefox / older Chrome may reject large rule sets; fall back to fewer chunks rather than none.
     console.warn("[w3pg] DNR rules rejected, retrying with half the chunks", e);
-    try { await dnr.updateSessionRules({ removeRuleIds, addRules: rules.filter((r) => r.id === RULE_ALLOW || r.id < RULE_BLOCK_BASE + Math.ceil((rules.length - 1) / 2)) }); } catch { /* give up: post-commit redirect still works */ }
+    const blockRules = rules.filter((r) => r.id >= RULE_BLOCK_BASE && r.id < RULE_PATH_BASE);
+    try { await dnr.updateSessionRules({ removeRuleIds, addRules: rules.filter((r) => r.id === RULE_ALLOW || (r.id >= RULE_BLOCK_BASE && r.id < RULE_BLOCK_BASE + Math.ceil(blockRules.length / 2))) }); } catch { /* give up: post-commit redirect still works */ }
   }
 }
 
@@ -61,6 +73,6 @@ export async function addBypassRule(host: string): Promise<void> {
   let id = RULE_BYPASS_BASE;
   while (used.has(id) && id < RULE_BLOCK_BASE - 1) id++;
   await dnr.updateSessionRules({
-    addRules: [{ id, priority: 20, action: { type: "allow" as chrome.declarativeNetRequest.RuleActionType }, condition: { requestDomains: [host], resourceTypes: ["main_frame" as chrome.declarativeNetRequest.ResourceType] } }],
+    addRules: [{ id, priority: 20, action: { type: "allow" as chrome.declarativeNetRequest.RuleActionType }, condition: { requestDomains: [host], resourceTypes: FRAMES } }],
   }).catch(() => undefined);
 }

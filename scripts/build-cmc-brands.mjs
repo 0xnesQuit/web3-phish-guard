@@ -16,15 +16,14 @@ const LIMIT = Number(process.argv[2] || 5000);
 const H = { "X-CMC_PRO_API_KEY": key, accept: "application/json" };
 
 const GENERIC = new Set(["yield", "index", "smart", "super", "meta", "world", "space", "star", "moon", "rocket", "baby", "safe", "green", "black", "white", "silver", "pixel", "magic", "dragon", "shiba", "floki", "king", "queen", "pump", "high", "bond", "tokenized", "global", "digital", "first", "united", "alpha", "beta", "omega", "prime", "capital", "ventures", "token", "coin", "protocol", "network", "finance", "chain", "labs", "dao", "swap", "money", "cash", "gold", "dollar", "wrapped", "staked", "bridged", "liquid", "bitcoin", "ethereum", "binance", "pegged", "stable", "usd", "the", "and", "inu", "doge", "pepe", "meme", "ai", "agent", "official"]);
-const freeHosts = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
-const SHARED = new Set([...freeHosts.strong, ...freeHosts.weak, "x.com", "twitter.com", "github.com", "t.me", "medium.com", "youtube.com", "google.com", "discord.gg", "discord.com", "linktr.ee", "notion.site", "gitbook.io", "coinmarketcap.com", "coingecko.com", "pump.fun", "etherscan.io", "bscscan.com", "solscan.io", "dexscreener.com", "uniswap.org", "raydium.io"]);
+import { SHARED_HOSTS as SHARED, isSharedHost } from "./shared-hosts.mjs";
 
 function registrable(url) {
   try {
     const host = new URL(url.startsWith("http") ? url : `https://${url}`).hostname.toLowerCase();
     const d = parse(host, { allowPrivateDomains: true }).domain;
     if (!d) return null;
-    for (const sh of SHARED) if (d === sh || d.endsWith("." + sh)) return null;
+    if (isSharedHost(host) || isSharedHost(d)) return null;
     return d;
   } catch {
     return null;

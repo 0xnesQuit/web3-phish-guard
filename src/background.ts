@@ -1,9 +1,9 @@
 import { parseHost } from "./lib/hostname";
 import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
 import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle, brandByToken } from "./lib/lists";
-import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, attackedBrandHit, listStatus, newestDomains } from "./lib/blocklist";
+import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, blocklistPathHit, allowlistHit, siblingHit, attackedBrandHit, listStatus, newestDomains, newestPaths } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
-import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning } from "./lib/state";
+import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning, consumeWarning } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener, isAdHop } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
 import { scanExternalScripts, askApi, sendReport, API_BASE } from "./lib/deepscan";
@@ -23,12 +23,19 @@ function fromExtension(sender: chrome.runtime.MessageSender): boolean {
 // ---------------------------------------------------------------------------
 // list refresh scheduling
 // ---------------------------------------------------------------------------
-chrome.runtime.onInstalled.addListener(() => {
-  for (const s of SOURCES) chrome.alarms.create(`refresh:${s.id}`, { periodInMinutes: s.every, delayInMinutes: 0.1 });
-  chrome.alarms.create("refresh:metamask-diffs", { periodInMinutes: 5, delayInMinutes: 2 });
-  chrome.alarms.create("refresh:data", { periodInMinutes: 60 * 12, delayInMinutes: 1 });
-  chrome.alarms.create("prune", { periodInMinutes: 60 * 24, delayInMinutes: 30 });
-});
+/** Alarms are not guaranteed to survive a browser restart (Firefox drops them); (re)create any that are missing. */
+async function ensureAlarms(): Promise<void> {
+  const wanted: Array<[string, chrome.alarms.AlarmCreateInfo]> = [
+    ...SOURCES.map((s): [string, chrome.alarms.AlarmCreateInfo] => [`refresh:${s.id}`, { periodInMinutes: s.every, delayInMinutes: 0.1 }]),
+    ["refresh:metamask-diffs", { periodInMinutes: 5, delayInMinutes: 2 }],
+    ["refresh:data", { periodInMinutes: 60 * 12, delayInMinutes: 1 }],
+    ["prune", { periodInMinutes: 60 * 24, delayInMinutes: 30 }],
+  ];
+  const have = new Set((await chrome.alarms.getAll().catch(() => [])).map((a) => a.name));
+  for (const [name, info] of wanted) if (!have.has(name)) chrome.alarms.create(name, info);
+}
+chrome.runtime.onInstalled.addListener(() => void ensureAlarms());
+chrome.runtime.onStartup.addListener(() => void ensureAlarms());
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   const id = alarm.name.replace("refresh:", "");
@@ -59,6 +66,7 @@ async function ensureReady() {
       if (!isWarm()) {
         await warmLists([...data.lists.freeHostsStrong, ...data.lists.freeHostsWeak]);
         await syncDnr();
+        void ensureAlarms();
       }
       return data;
     })().catch((e) => { readyPromise = null; throw e; });
@@ -75,16 +83,16 @@ async function syncDnr(): Promise<void> {
       ...newestDomains("metamask", 40_000),
       ...newestDomains("scamsniffer", 15_000),
       ...newestDomains("community", 10_000),
-      ...newestDomains("community-auto", 10_000),
+      // community-auto is warn-only until a moderator confirms it; it never becomes a network block
     ];
     const allow = [...(await getUserAllow()), ...lists.trusted, ...bypassedHosts];
-    await applyRules(buildRules(block, allow));
+    await applyRules(buildRules(block, allow, newestPaths(2000)));
   } catch (e) {
     console.warn("[w3pg] DNR sync failed", e);
   }
 }
 
-/** rdap:* / x:* cache entries have TTLs but were never deleted; sweep them daily. */
+/** rdap:* / x:* cache entries have TTLs but were never deleted; sweep them daily. Session entries of closed tabs go too. */
 async function pruneCaches(): Promise<void> {
   const all = await chrome.storage.local.get(null);
   const now = Date.now();
@@ -95,11 +103,31 @@ async function pruneCaches(): Promise<void> {
     if ((k.startsWith("rdap:") || k.startsWith("x:")) && typeof at === "number" && now - at > 14 * 86400_000) drop.push(k);
   }
   if (drop.length) await chrome.storage.local.remove(drop);
+  await pruneSession();
+}
+
+/** storage.session has a 10 MB quota; per-tab entries (verdict, deep report, origin, socials, provider log) must not outlive their tab. */
+async function pruneSession(): Promise<void> {
+  try {
+    const all = await chrome.storage.session.get(null);
+    const open = new Set((await chrome.tabs.query({})).map((t) => t.id));
+    const drop: string[] = [];
+    for (const k of Object.keys(all)) {
+      const m = /^(verdict|deep|origin|soc|pev|click|xclick):(\d+)$/.exec(k);
+      if (m && !open.has(Number(m[2]))) drop.push(k);
+      else if (k.startsWith("warn:")) { const w = all[k] as { at?: number } | null; if (typeof w?.at === "number" && Date.now() - w.at > 60 * 60_000) drop.push(k); }
+    }
+    if (drop.length) await chrome.storage.session.remove(drop);
+  } catch { /* ignore */ }
 }
 
 // ---------------------------------------------------------------------------
 // evaluation
 // ---------------------------------------------------------------------------
+function safePath(url: string): string {
+  try { return new URL(url).pathname; } catch { return "/"; }
+}
+
 async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext; x?: XIntel; socials?: PageSocials } = {}): Promise<Verdict | null> {
   if (!/^https?:/.test(url)) return null;
   const { brands, lists } = await ensureReady();
@@ -111,7 +139,7 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
   return score(url, p, {
     brands,
     lists,
-    blocklistHit: blocklistHit(p.host),
+    blocklistHit: blocklistHit(p.host) ?? blocklistPathHit(p.host, safePath(url)),
     siblingHit: siblingHit(p.host),
     attacked: attackedBrandHit(p.host),
     allowlistHit: allowlistHit(p.host),
@@ -161,6 +189,7 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
     await resetTab(tabId);
     return;
   }
+  if (!(await stillOn(tabId, v.host))) return; // the tab moved on while the lists were warming
   await applyVerdict(tabId, v);
   if (v.band === "block") return;
   let ageDays: number | undefined;
@@ -225,13 +254,10 @@ async function deepScan(tabId: number, language: string): Promise<DeepReport | {
     const bss = chrome.runtime.getManifest().browser_specific_settings as { gecko?: { data_collection_permissions?: unknown } } | undefined;
     const perms = chrome.permissions as unknown as { request?: (p: { data_collection?: string[] }) => Promise<boolean>; contains?: (p: { data_collection?: string[] }) => Promise<boolean> };
     if (bss?.gecko?.data_collection_permissions && perms?.request) {
-      const wanted = { data_collection: ["websiteContent", "websiteActivity"] };
+      const wanted = { data_collection: ["websiteContent"] };
+      // the popup asks for it inside its click handler (Firefox requires a user-input handler); here we only verify
       const has = perms.contains ? await perms.contains(wanted).catch(() => false) : false;
-      if (!has) {
-        // request() must run from a user gesture; the popup click is one. A thrown error means "not granted".
-        const ok = await perms.request(wanted).catch(() => false);
-        if (!ok) return { error: "permission_denied" };
-      }
+      if (!has) return { error: "permission_denied" };
     }
   } catch { /* Chrome: no data-collection permissions */ }
   let v = await getTabVerdict(tabId);
@@ -297,14 +323,16 @@ async function showWarning(tabId: number, v: Verdict) {
 
 /** Official extension ids of major wallets on the Chrome Web Store; a listing named like a wallet with another id is a counterfeit. */
 const WALLET_STORE_IDS: Array<[RegExp, string[]]> = [
-  [/metamask/i, ["nkbihfbeogaeaoehlefnkodbefgpgknn"]],
-  [/phantom/i, ["bfnaelmomeimhlpmgjnjophhpkkoljpa"]],
-  [/coinbase/i, ["hnfanknocfeofbddgcijnmhnfnkdnaad"]],
-  [/rabby/i, ["acmacodkjbdgmoleebolmdjonilkdbch"]],
-  [/okx/i, ["mcohilncbfahbmgdjkbpemcciiolgcge"]],
-  [/trust ?wallet/i, ["egjidjbpglichdcondbcbdnbeeppgdph"]],
-  [/keplr/i, ["dmkamcknogkgcdfhhbddcghachkejeap"]],
-  [/backpack/i, ["aflkmfhebedbjioipglgcbcmnbpgliof"]],
+  // the listing title must *be* the wallet (optionally followed by "wallet"), not merely mention it:
+  // "MetaMask Flask" is MetaMask's own, "Rainbow Tables" is not a wallet at all
+  [/^metamask(\s+(wallet|flask|institutional))?$/i, ["nkbihfbeogaeaoehlefnkodbefgpgknn", "ljfoeinjpaedjfecbmggjgebmfmaigon", "nmpcffchpjmjafidpilhicebcckopnfp"]],
+  [/^phantom(\s+wallet)?$/i, ["bfnaelmomeimhlpmgjnjophhpkkoljpa"]],
+  [/^coinbase\s+wallet(\s+extension)?$/i, ["hnfanknocfeofbddgcijnmhnfnkdnaad"]],
+  [/^rabby(\s+wallet)?$/i, ["acmacodkjbdgmoleebolmdjonilkdbch"]],
+  [/^okx\s+wallet$/i, ["mcohilncbfahbmgdjkbpemcciiolgcge"]],
+  [/^trust\s*wallet$/i, ["egjidjbpglichdcondbcbdnbeeppgdph"]],
+  [/^keplr(\s+wallet)?$/i, ["dmkamcknogkgcdfhhbddcghachkejeap"]],
+  [/^backpack(\s+wallet)?$/i, ["aflkmfhebedbjioipglgcbcmnbpgliof"]],
   [/solflare/i, ["bhhhlbepdkbapadjdnnojkbgioiodbic"]],
   [/rainbow/i, ["opfgelmcmbiajamepnmloijbpoleiama"]],
   [/unisat/i, ["ppbibelpcjmhbdihakflkdcoccbgbkpo"]],
@@ -329,6 +357,12 @@ async function resetTab(tabId: number) {
   await clearTab(tabId);
   await chrome.action.setBadgeText({ tabId, text: "" }).catch(() => undefined);
 }
+
+// the Chrome Web Store is a single-page app: a search result opens a listing via pushState, not a navigation
+chrome.webNavigation.onHistoryStateUpdated.addListener(async (d) => {
+  if (d.frameId !== 0 || !d.url.startsWith("https://chromewebstore.google.com/")) return;
+  try { await checkStoreListing(d.tabId, d.url); } catch { /* ignore */ }
+});
 
 chrome.webNavigation.onCommitted.addListener(async (d) => {
   if (d.frameId !== 0) return;
@@ -385,7 +419,10 @@ chrome.webNavigation.onErrorOccurred.addListener(async (d) => {
   } catch { /* ignore */ }
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => void clearTab(tabId));
+chrome.tabs.onRemoved.addListener((tabId) => {
+  void clearTab(tabId);
+  void chrome.storage.session.remove([`deep:${tabId}`, `origin:${tabId}`, `soc:${tabId}`, `pev:${tabId}`]).catch(() => undefined);
+});
 
 // The overlay content script may load after the verdict was decided; nudge it once the page is complete.
 chrome.webNavigation.onCompleted.addListener(async (d) => {
@@ -417,6 +454,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const p = await getWarning(String(msg.nonce));
         if (!p) { sendResponse(false); return; }
         await addBypass(p.host);
+        await consumeWarning(String(msg.nonce)); // a bypass is a one-shot use of the nonce
         bypassedHosts.push(p.host);
         await addBypassRule(p.host);
         sendResponse(true);
@@ -456,8 +494,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!prev) return;
         let frameHost = "";
         try { frameHost = new URL(sender.url).hostname; } catch { /* ignore */ }
-        if (sender.frameId !== 0 && frameHost !== prev.host) return;
-        const safeSite = prev.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted");
+        // a cross-origin iframe is judged by its own host (an embedded drainer is not cleared by a trusted top page);
+        // its events still surface on the tab the user is looking at
+        const frameV = sender.frameId !== 0 && frameHost !== prev.host ? await evaluate(sender.url) : null;
+        const judge = frameV ?? prev;
+        const safeSite = judge.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted");
         const alwaysCounts = ev.kind === "seed-input" || ev.kind === "clickfix" || ev.kind === "clipboard-swap" || ev.kind === "fake-wallet" || ev.detail === "eoa-spender" || ev.detail === "poisoning" || ev.detail === "delegation";
         if (safeSite && !alwaysCounts) return;
         let weight = providerWeight(ev);
@@ -505,8 +546,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "w3pg:gate": {
         const tabId = sender.tab?.id;
         if (tabId === undefined || !sender.url) { sendResponse({ ask: false }); return; }
-        const v = (await getTabVerdict(tabId)) ?? (await evaluate(sender.url));
+        let v = (await getTabVerdict(tabId)) ?? (await evaluate(sender.url));
+        if (sender.frameId !== 0) {
+          let frameHost = "";
+          try { frameHost = new URL(sender.url).hostname; } catch { /* ignore */ }
+          if (v && frameHost && frameHost !== v.host) {
+            const own = await evaluate(sender.url);
+            // the frame's own verdict decides; a "safe" top page never relaxes the gate for a foreign frame
+            if (own) v = own.score >= v.score || own.signals.some((s) => s.id === "trusted" || s.id === "brand-official") ? own : { ...v, signals: v.signals.filter((s) => !["user-allow", "brand-official", "trusted"].includes(s.id)) };
+          }
+        }
         sendResponse(gateDecision(v, (msg.details ?? {}) as Record<string, unknown>));
+        return;
+      }
+      case "w3pg:gateTop": {
+        // an iframe asks the top frame to render its modal
+        const tabId = sender.tab?.id;
+        if (tabId === undefined) { sendResponse({}); return; }
+        try {
+          const r = await chrome.tabs.sendMessage(tabId, { type: "w3pg:showGate", details: msg.details, decision: msg.decision, frameHost: msg.frameHost }, { frameId: 0 });
+          sendResponse(r ?? {});
+        } catch { sendResponse({}); }
         return;
       }
       case "w3pg:gateRejected": {
@@ -650,7 +710,7 @@ function gateDecision(v: Verdict | null, g: Record<string, unknown>): { ask: boo
   if (eoa || poisoned || kind === "delegation-7702" || kind === "eth_sign") return { ask: true, score: v?.score };
   if (safeSite) return { ask: false };
   // unknown or suspicious sites: hold anything that can move assets later without another click
-  const alwaysHold = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation"]);
+  const alwaysHold = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation", "seaport-order", "blur-order", "transfer-auth"]);
   if (alwaysHold.has(kind)) return { ask: true, score: v?.score };
   if (band !== "none") return { ask: true, score: v?.score };
   return { ask: false };

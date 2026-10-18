@@ -16,15 +16,14 @@ if (!key) throw new Error("OPENSEA_API_KEY env var missing (get one at https://d
 const MAX = Number(process.argv[2] || 1000);
 
 const GENERIC = new Set(["official", "collection", "genesis", "pass", "club", "labs", "studio", "world", "nft", "nfts", "the", "and", "by", "mint", "edition", "editions", "season", "origins", "legends", "heroes", "apes", "punks", "cats", "dogs", "birds", "frens", "friends"]);
-const freeHosts = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
-const SHARED = new Set([...freeHosts.strong, ...freeHosts.weak, "x.com", "twitter.com", "github.com", "t.me", "medium.com", "youtube.com", "google.com", "discord.gg", "discord.com", "linktr.ee", "notion.site", "gitbook.io", "opensea.io", "magiceden.io", "blur.io", "zora.co", "manifold.xyz", "highlight.xyz", "mirror.xyz", "paragraph.xyz", "instagram.com", "tiktok.com"]);
+import { SHARED_HOSTS as SHARED, isSharedHost } from "./shared-hosts.mjs";
 
 function registrable(url) {
   try {
     const host = new URL(url.startsWith("http") ? url : `https://${url}`).hostname.toLowerCase();
     const d = parse(host, { allowPrivateDomains: true }).domain;
     if (!d) return null;
-    for (const sh of SHARED) if (d === sh || d.endsWith("." + sh)) return null;
+    if (isSharedHost(host) || isSharedHost(d)) return null;
     return d;
   } catch {
     return null;

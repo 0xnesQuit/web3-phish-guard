@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.stubGlobal("chrome", { runtime: { sendMessage: () => Promise.resolve(), getManifest: () => ({}) }, i18n: { getMessage: (k: string) => k, getUILanguage: () => "en" } });
 vi.stubGlobal("document", { addEventListener: () => undefined, querySelectorAll: () => [] });
-vi.stubGlobal("window", { setTimeout: globalThis.setTimeout.bind(globalThis) });
+vi.stubGlobal("window", { setTimeout: globalThis.setTimeout.bind(globalThis), addEventListener: () => undefined });
 
 const { looksLikeSeed } = await import("../src/content/seed-guard");
 
@@ -19,8 +19,11 @@ describe("seed phrase detection", () => {
     expect(looksLikeSeed("hello")).toBeNull();
   });
   it("private keys", () => {
-    expect(looksLikeSeed("0x" + "a1".repeat(32))).toBe("private-key");
-    expect(looksLikeSeed("4" + "A".repeat(87))).toBe("private-key");
-    expect(looksLikeSeed("0x" + "a".repeat(40))).toBeNull(); // an address is not a key
+    // a 64-hex string is also a transaction hash: only a key when the field asks for one
+    expect(looksLikeSeed("0x" + "a1".repeat(32), true)).toBe("private-key");
+    expect(looksLikeSeed("0x" + "a1".repeat(32))).toBeNull();
+    expect(looksLikeSeed("4" + "A".repeat(87), true)).toBe("private-key");
+    expect(looksLikeSeed("4" + "A".repeat(87))).toBeNull(); // a Solana tx signature pasted into an explorer
+    expect(looksLikeSeed("0x" + "a".repeat(40), true)).toBeNull(); // an address is not a key
   });
 });

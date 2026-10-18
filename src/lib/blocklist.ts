@@ -5,6 +5,9 @@
  * endpoints publishes a stable schema contract for third parties.
  */
 
+import { parse as tldParse } from "tldts";
+import { fetchVerifiedFile } from "./lists";
+
 export interface ListSource {
   id: string;
   url: string;
@@ -37,6 +40,74 @@ interface StoredList {
 
 const mem = new Map<string, Set<string>>();
 let allowMem: Set<string> | null = null;
+/** MetaMask blocklistPaths: host -> path prefixes ("sites.google.com" -> ["/view/robinhood-hold", ...]) */
+let pathMem = new Map<string, string[]>();
+let pathList: string[] = [];
+
+/**
+ * Shared platforms that feeds sometimes list bare (ScamSniffer carries "sites.google.com", "r2.dev"; MetaMask's
+ * blocklistPaths collapse to "sites.google.com" if the path is cut off). A bare entry for one of these must never
+ * block the whole platform. Populated from free-hosts.json at warm time plus this built-in floor.
+ */
+const BUILTIN_SHARED = ["sites.google.com", "docs.google.com", "drive.google.com", "storage.googleapis.com", "firebasestorage.googleapis.com", "github.io", "github.com", "gitlab.io", "pages.dev", "vercel.app", "netlify.app", "web.app", "r2.dev", "workers.dev", "amazonaws.com", "s3.amazonaws.com", "cloudfront.net", "azurewebsites.net", "blob.core.windows.net", "herokuapp.com", "ipfs.io", "dweb.link", "w3s.link", "nftstorage.link", "eth.limo", "eth.link", "mypinata.cloud", "fleek.co", "on-fleek.app", "wixsite.com", "weebly.com", "squarespace.com", "webflow.io", "carrd.co", "linktr.ee", "notion.site", "substack.com", "medium.com", "telegra.ph", "t.me", "x.com", "twitter.com", "youtube.com", "discord.com", "discord.gg", "google.com", "microsoft.com", "apple.com", "cloudflare.com"];
+const sharedHosts = new Set<string>(BUILTIN_SHARED);
+
+/** True when a feed entry names a whole platform rather than a phishing site: a shared host, a public suffix, or a bare TLD. */
+export function isSharedEntry(d: string): boolean {
+  if (!d || !d.includes(".")) return true;
+  if (sharedHosts.has(d)) return true;
+  const r = tldParse(d, { allowPrivateDomains: true });
+  if (!r.domain || r.publicSuffix === d) return true; // "r2.dev", "github.io", "co.uk"
+  return false;
+}
+
+export function setSharedHosts(freeHosts: string[]): void {
+  for (const h of freeHosts) sharedHosts.add(h);
+}
+
+/** Feed entries worth keeping: normalized, not a shared platform. */
+export function ingestDomains(raw: string[]): string[] {
+  const out: string[] = [];
+  for (const d of raw) if (d && !isSharedEntry(d)) out.push(d);
+  return out;
+}
+
+/** "https://sites.google.com/view/Foo/" -> "sites.google.com/view/foo" */
+export function normalizePath(s: string): string {
+  let v = s.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").replace(/[?#].*$/, "").replace(/\/+$/, "");
+  v = v.replace(/^\*\./, "");
+  if (!v.includes("/")) return "";
+  return v;
+}
+
+export function buildPathIndex(paths: Iterable<string>): Map<string, string[]> {
+  const idx = new Map<string, string[]>();
+  for (const e of paths) {
+    const i = e.indexOf("/");
+    if (i <= 0) continue;
+    const host = e.slice(0, i), path = e.slice(i);
+    const arr = idx.get(host) ?? [];
+    arr.push(path);
+    idx.set(host, arr);
+  }
+  return idx;
+}
+
+/** Path-level hit: the page lives at or under a listed host+path prefix (segment boundary). */
+export function pathHit(idx: Map<string, string[]>, host: string, pathname: string): boolean {
+  const list = idx.get(host.toLowerCase());
+  if (!list?.length) return false;
+  const path = pathname.toLowerCase().replace(/\/+$/, "") || "/";
+  return list.some((pre) => path === pre || path.startsWith(pre + "/"));
+}
+
+export function blocklistPathHit(host: string, pathname: string): string | undefined {
+  return pathHit(pathMem, host, pathname) ? "metamask" : undefined;
+}
+
+export function newestPaths(n: number): string[] {
+  return pathList.slice(Math.max(0, pathList.length - n));
+}
 /** set only by warmLists(): a single hotlist diff must not make the worker think every list is loaded */
 let warmed = false;
 /** strongest source first: reviewed lists beat the broad PhishDestroy feed */
@@ -204,6 +275,21 @@ export function extractDomains(json: unknown, keys: string[]): string[] {
   return out.filter(Boolean);
 }
 
+/** Like extractDomains but keeps the path (for MetaMask blocklistPaths). */
+export function extractPaths(json: unknown, keys: string[]): string[] {
+  const out: string[] = [];
+  const walk = (node: unknown, key: string | null, depth: number) => {
+    if (depth > 6 || node === null || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      if (key && keys.includes(key) && node.every((x) => typeof x === "string")) { for (const s of node as string[]) { const v = normalizePath(s); if (v) out.push(v); } }
+      return;
+    }
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) walk(v, k, depth + 1);
+  };
+  walk(json, null, 0);
+  return out;
+}
+
 export function normalizeDomain(s: string): string {
   let d = s.trim().toLowerCase();
   if (d.includes("://")) {
@@ -219,15 +305,21 @@ async function fetchJson(url: string): Promise<unknown> {
 }
 
 export async function refreshSource(src: ListSource): Promise<number> {
-  const json = await fetchJson(src.url);
+  // our own community list is published under the signed manifest: verify it like every other data file
+  const json = src.id === "community" || src.id === "community-auto" ? await fetchVerifiedFile<unknown>("community-blocklist.json") : await fetchJson(src.url);
   let domains: string[];
   let mmLastUpdated: number | undefined;
   if (src.id === "metamask") {
-    domains = extractDomains(json, ["blocklist", "blacklist"]);
+    domains = ingestDomains(extractDomains(json, ["blocklist", "blacklist"]));
     const allow = extractDomains(json, ["allowlist", "whitelist"]);
     await chrome.storage.local.set({ "list:metamask-allow": { domains: allow, updatedAt: Date.now() } satisfies StoredList });
     allowMem = new Set(allow);
     mmLastUpdated = findNumber(json, "lastUpdated");
+    // host+path entries (Google Sites pages and the like) live in their own index; never collapsed to the host
+    const paths = extractPaths(json, ["blocklistPaths"]);
+    await chrome.storage.local.set({ "list:metamask-paths": { domains: paths, updatedAt: Date.now() } satisfies StoredList });
+    pathList = paths;
+    pathMem = buildPathIndex(paths);
   } else if (src.id === "community-auto") {
     domains = extractDomains(json, ["auto"]);
   } else if (src.id === "community") {
@@ -235,6 +327,7 @@ export async function refreshSource(src: ListSource): Promise<number> {
   } else {
     domains = extractDomains(json, ["domains", "blocklist", "blacklist", "list", "data", "active_domains"]);
   }
+  domains = ingestDomains(domains);
   const stored: StoredList = { domains, updatedAt: Date.now(), mmLastUpdated };
   await chrome.storage.local.set({ [`list:${src.id}`]: stored });
   mem.set(src.id, new Set(domains));
@@ -249,19 +342,43 @@ export async function refreshMetaMaskDiffs(): Promise<void> {
   const json = (await fetchJson(MM_DIFFS + stored.mmLastUpdated)) as { data?: unknown[] };
   const entries = Array.isArray(json?.data) ? json.data : [];
   const set = new Set(stored.domains);
-  let last = stored.mmLastUpdated;
-  for (const e of entries as Array<Record<string, unknown>>) {
-    const url = typeof e.url === "string" ? normalizeDomain(e.url) : "";
-    const target = String(e.targetList ?? "");
-    const ts = typeof e.timestamp === "number" ? e.timestamp : 0;
-    if (!url || !target.includes("blocklist")) continue;
-    if (e.isRemoval) set.delete(url); else set.add(url);
-    if (ts > last) last = ts;
-  }
+  const storedPaths = (await chrome.storage.local.get("list:metamask-paths"))["list:metamask-paths"] as StoredList | undefined;
+  const paths = new Set(storedPaths?.domains ?? []);
+  const last = applyMetaMaskDiff(set, paths, entries as Array<Record<string, unknown>>, stored.mmLastUpdated);
   if (!entries.length && last === stored.mmLastUpdated) return; // nothing changed: skip the 3 MB write
   const domains = [...set];
-  await chrome.storage.local.set({ "list:metamask": { domains, updatedAt: Date.now(), mmLastUpdated: last } satisfies StoredList });
+  pathList = [...paths];
+  pathMem = buildPathIndex(pathList);
+  await chrome.storage.local.set({
+    "list:metamask": { domains, updatedAt: Date.now(), mmLastUpdated: last } satisfies StoredList,
+    "list:metamask-paths": { domains: pathList, updatedAt: Date.now() } satisfies StoredList,
+  });
   if (warmed) { mem.set("metamask", set); scheduleIndexRebuild(); }
+}
+
+/**
+ * Pure: apply MetaMask diff entries. Host entries come only from the blocklist target; blocklistPaths entries
+ * keep their path and go to the path set (cutting the path off would list "sites.google.com" itself).
+ */
+export function applyMetaMaskDiff(hosts: Set<string>, paths: Set<string>, entries: Array<Record<string, unknown>>, since: number): number {
+  let last = since;
+  for (const e of entries) {
+    const raw = typeof e.url === "string" ? e.url : "";
+    const target = String(e.targetList ?? "");
+    const ts = typeof e.timestamp === "number" ? e.timestamp : 0;
+    if (!raw) continue;
+    if (target === "eth_phishing_detect_config.blocklist") {
+      const url = normalizeDomain(raw);
+      if (!url) continue;
+      if (e.isRemoval) hosts.delete(url); else if (!isSharedEntry(url)) hosts.add(url);
+    } else if (target === "eth_phishing_detect_config.blocklistPaths") {
+      const v = normalizePath(raw);
+      if (!v) continue;
+      if (e.isRemoval) paths.delete(v); else paths.add(v);
+    } else continue;
+    if (ts > last) last = ts;
+  }
+  return last;
 }
 
 let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
@@ -276,7 +393,7 @@ function scheduleIndexRebuild(): void {
 export function newestDomains(sourceId: string, n: number): string[] {
   const set = mem.get(sourceId);
   if (!set) return [];
-  const arr = [...set];
+  const arr = [...set].filter((d) => !isSharedEntry(d));
   return arr.slice(Math.max(0, arr.length - n));
 }
 
@@ -292,7 +409,8 @@ function findNumber(json: unknown, key: string, depth = 0): number | undefined {
 
 /** Load lists from storage into memory (called on service worker start). */
 export async function warmLists(freeHosts: string[] = []): Promise<void> {
-  const keys = [...SOURCES.map((s) => `list:${s.id}`), "list:metamask-allow"];
+  setSharedHosts(freeHosts);
+  const keys = [...SOURCES.map((s) => `list:${s.id}`), "list:metamask-allow", "list:metamask-paths"];
   const got = await chrome.storage.local.get(keys);
   for (const s of SOURCES) {
     const v = got[`list:${s.id}`] as StoredList | undefined;
@@ -300,6 +418,9 @@ export async function warmLists(freeHosts: string[] = []): Promise<void> {
   }
   const a = got["list:metamask-allow"] as StoredList | undefined;
   allowMem = new Set(a?.domains ?? []);
+  const pm = got["list:metamask-paths"] as StoredList | undefined;
+  pathList = pm?.domains ?? [];
+  pathMem = buildPathIndex(pathList);
   if (freeHosts.length) {
     siblingHosts = freeHosts;
     if (!(await loadIndexes())) rebuildSiblingIndex(freeHosts);
@@ -320,7 +441,8 @@ export async function listStatus(): Promise<Record<string, { count: number; upda
 
 /** Returns the source id whose list contains the host or one of its parent domains. */
 export function blocklistHit(host: string): string | undefined {
-  const parents = parentDomains(host);
+  // lists stored before the shared-platform filter existed may still carry "sites.google.com" itself
+  const parents = parentDomains(host).filter((p) => !isSharedEntry(p));
   for (const id of SOURCE_ORDER) {
     const set = mem.get(id);
     if (!set?.size) continue;

@@ -14,7 +14,7 @@ export async function clearTab(tabId: number): Promise<void> {
 
 export interface WarningPayload { url: string; host: string; score: number; signals: Verdict["signals"]; brandDomain?: string; reviewed?: boolean; tabId: number }
 
-/** Store the warning page's payload under a random nonce; the page fetches it once through the background. */
+/** Store the warning page's payload under a random nonce: readable for 10 minutes (reloads), consumed by a bypass. */
 export async function putWarning(p: WarningPayload): Promise<string> {
   const nonce = crypto.randomUUID();
   await chrome.storage.session.set({ [`warn:${nonce}`]: { ...p, at: Date.now() } });
@@ -23,8 +23,11 @@ export async function putWarning(p: WarningPayload): Promise<string> {
 export async function getWarning(nonce: string): Promise<WarningPayload | undefined> {
   if (!/^[0-9a-f-]{36}$/.test(nonce)) return undefined;
   const p = (await chrome.storage.session.get(`warn:${nonce}`))[`warn:${nonce}`] as (WarningPayload & { at: number }) | undefined;
-  if (!p || Date.now() - p.at > 30 * 60_000) return undefined;
+  if (!p || Date.now() - p.at > 10 * 60_000) return undefined;
   return p;
+}
+export async function consumeWarning(nonce: string): Promise<void> {
+  if (/^[0-9a-f-]{36}$/.test(nonce)) await chrome.storage.session.remove(`warn:${nonce}`).catch(() => undefined);
 }
 
 export async function addBypass(host: string): Promise<void> {

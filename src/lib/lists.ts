@@ -17,6 +17,76 @@ const LISTS_PUBLIC_JWK: JsonWebKey = {"kty": "EC", "x": "BrgP2NFya33GKjoBAwOEs4I
 /** A remote trusted list may only grow this much beyond the bundled one; anything larger is treated as tampering. */
 const TRUSTED_GROWTH_LIMIT = 50;
 
+/**
+ * Every file that can make the extension *quieter* is capped against the bundled copy, so a signed-but-malicious
+ * publish (a stolen signing key, a compromised Action) cannot whitelist the world or strip the word lists:
+ *  - trusted.json: at most 50 new domains
+ *  - brands.seed.json: at most 50 new official domains, at most 50 brands removed
+ *  - free-hosts.json: at most 5 hosts removed
+ *  - action-words.json / tlds.json: at most 20% of the bundled entries removed
+ *  - auto-imported brand files: size may not change by more than half (they churn daily, and their "official"
+ *    status never relaxes the wallet gate nor beats a reviewed blocklist hit)
+ * Returns a reason when the remote copy must be rejected.
+ */
+export function remoteGuard(file: string, bundled: unknown, remote: unknown): string | null {
+  const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : typeof v === "object" && v ? Object.values(v as Record<string, unknown>).flatMap(strs) : typeof v === "string" ? [v] : []);
+  const brands = (v: unknown): Array<{ name?: string; domains?: string[] }> => (Array.isArray(v) ? (v as Array<{ name?: string; domains?: string[] }>) : []);
+  if (file === "trusted.json") {
+    const b = flattenTrusted(bundled as Record<string, string[] | string> | null), r = flattenTrusted(remote as Record<string, string[] | string> | null);
+    const added = r.filter((d) => !b.includes(d)).length;
+    return added > TRUSTED_GROWTH_LIMIT ? `grew by ${added}` : null;
+  }
+  if (file === "brands.seed.json") {
+    const b = brands(bundled), r = brands(remote);
+    const bd = new Set(b.flatMap((x) => x.domains ?? [])), rd = new Set(r.flatMap((x) => x.domains ?? []));
+    const addedDomains = [...rd].filter((d) => !bd.has(d)).length;
+    const bn = new Set(b.map((x) => x.name)), rn = new Set(r.map((x) => x.name));
+    const removedBrands = [...bn].filter((n) => !rn.has(n)).length;
+    if (addedDomains > 50) return `${addedDomains} new official domains`;
+    if (removedBrands > 50) return `${removedBrands} brands removed`;
+    return null;
+  }
+  if (file === "free-hosts.json") {
+    const b = strs(bundled), r = new Set(strs(remote));
+    const removed = b.filter((h) => !r.has(h)).length;
+    return removed > 5 ? `${removed} free hosts removed` : null;
+  }
+  if (file === "action-words.json" || file === "tlds.json") {
+    const b = strs(bundled), r = new Set(strs(remote));
+    const removed = b.filter((h) => !r.has(h)).length;
+    return b.length && removed > b.length * 0.2 ? `${removed} entries removed` : null;
+  }
+  if (file.startsWith("brands.")) {
+    const b = brands(bundled).length, r = brands(remote).length;
+    return b > 0 && (r < b / 2 || r > b * 2) ? `size ${b} -> ${r}` : null;
+  }
+  return null;
+}
+
+let manifestMem: { m: RemoteManifest; at: number } | null = null;
+/** The signed manifest, re-fetched at most every 10 minutes. Throws when missing or not verifiably ours. */
+export async function signedManifest(): Promise<RemoteManifest> {
+  if (manifestMem && Date.now() - manifestMem.at < 10 * 60_000) return manifestMem.m;
+  const res = await fetch(`${REMOTE_BASE}/manifest.json`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`manifest ${res.status}`);
+  const m = (await res.json()) as RemoteManifest;
+  if (!(await verifyManifest(m))) throw new Error("manifest signature invalid or missing");
+  manifestMem = { m, at: Date.now() };
+  return m;
+}
+
+/** Fetch one published file and check it against the signed manifest's hash (used for the community blocklist). */
+export async function fetchVerifiedFile<T>(file: string): Promise<T> {
+  const m = await signedManifest();
+  const entry = m.files[file];
+  if (!entry?.sha256) throw new Error(`${file} not in manifest`);
+  const r = await fetch(`${REMOTE_BASE}/${file}`, { cache: "no-store" });
+  if (!r.ok) throw new Error(`${file} ${r.status}`);
+  const text = await r.text();
+  if ((await sha256Hex(text)) !== entry.sha256) throw new Error(`${file}: hash mismatch`);
+  return JSON.parse(text) as T;
+}
+
 async function sha256Hex(text: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -96,14 +166,13 @@ export async function remoteDataStatus(): Promise<{ updatedAt: number; files: nu
 
 /** Fetch lists/manifest.json; download files only when the manifest is newer than what we hold. */
 export async function refreshRemoteData(force = false): Promise<{ updated: boolean; files: number }> {
-  const res = await fetch(`${REMOTE_BASE}/manifest.json`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`manifest ${res.status}`);
-  const manifest = (await res.json()) as RemoteManifest;
-  const have = ((await chrome.storage.local.get("data:updatedAt"))["data:updatedAt"] as number | undefined) ?? 0;
-  if (!force && manifest.updatedAt <= have) return { updated: false, files: 0 };
   // Supply-chain gate: the manifest must carry a valid signature from the lists repo's key, and every file must
   // match the hash the signed manifest names. A compromised repo or CDN cannot hand the extension a new allowlist.
-  if (!(await verifyManifest(manifest))) throw new Error("manifest signature invalid or missing");
+  manifestMem = null;
+  const manifest = await signedManifest();
+  const have = ((await chrome.storage.local.get("data:updatedAt"))["data:updatedAt"] as number | undefined) ?? 0;
+  if (manifest.updatedAt < have) throw new Error("manifest older than the installed data (rollback refused)");
+  if (!force && manifest.updatedAt === have) return { updated: false, files: 0 };
   const updates: Record<string, unknown> = {};
   let n = 0;
   for (const file of DATA_FILES) {
@@ -116,12 +185,8 @@ export async function refreshRemoteData(force = false): Promise<{ updated: boole
       if ((await sha256Hex(text)) !== entry.sha256) { console.warn(`[w3pg] ${file}: hash mismatch, skipped`); continue; }
       const json = JSON.parse(text);
       if (json === null || typeof json !== "object") continue;
-      if (file === "trusted.json") {
-        const bundled = flattenTrusted(await loadBundled<Record<string, string[] | string>>(file));
-        const remote = flattenTrusted(json as Record<string, string[] | string>);
-        const added = remote.filter((d) => !bundled.includes(d)).length;
-        if (added > TRUSTED_GROWTH_LIMIT) { console.warn(`[w3pg] trusted.json grew by ${added} entries, kept bundled copy`); continue; }
-      }
+      const why = remoteGuard(file, await loadBundled(file), json);
+      if (why) { console.warn(`[w3pg] ${file} rejected (${why}), kept the previous copy`); continue; }
       updates["data:" + file] = json;
       n++;
     } catch {

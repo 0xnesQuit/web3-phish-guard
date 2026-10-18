@@ -17,7 +17,7 @@ async function main() {
     $("host").textContent = v.host;
     badge.textContent = `${t(v.band === "block" ? "popup_blocked" : v.band === "warn" ? "popup_suspicious" : "popup_clean")} · ${v.score}`;
     badge.className = `badge ${v.band === "none" ? "safe" : v.band}`;
-    $("reasons").innerHTML = v.signals.map((s) => `<li>${esc(signalText(s))}${s.weight ? ` <span style="opacity:.5">(+${s.weight})</span>` : ""}</li>`).join("");
+    $("reasons").innerHTML = v.signals.map((s) => `<li>${esc(signalText(s))}${s.weight ? ` <span style="opacity:.5">(${s.weight > 0 ? "+" : ""}${s.weight})</span>` : ""}</li>`).join("");
     if (v.band !== "none") {
       const btn = $("allow") as HTMLButtonElement;
       btn.hidden = false;
@@ -40,6 +40,21 @@ async function main() {
     $("deepscan").onclick = async () => {
       const btn = $("deepscan") as HTMLButtonElement;
       btn.disabled = true;
+      // Firefox 140+: the optional data-collection permission must be requested from a user-input handler, which
+      // this click is; the background cannot do it on our behalf.
+      try {
+        const bss = chrome.runtime.getManifest().browser_specific_settings as { gecko?: { data_collection_permissions?: unknown } } | undefined;
+        const perms = chrome.permissions as unknown as { request?: (p: { data_collection?: string[] }) => Promise<boolean>; contains?: (p: { data_collection?: string[] }) => Promise<boolean> };
+        if (bss?.gecko?.data_collection_permissions && perms?.request) {
+          const wanted = { data_collection: ["websiteContent"] };
+          const has = perms.contains ? await perms.contains(wanted).catch(() => false) : false;
+          if (!has && !(await perms.request(wanted).catch(() => false))) {
+            btn.disabled = false;
+            const box = $("deep"); box.style.display = "block"; box.innerHTML = `<div>${esc(t("popup_scan_failed"))} (permission_denied)</div>`;
+            return;
+          }
+        }
+      } catch { /* Chrome: no data-collection permissions */ }
       const box = $("deep");
       box.style.display = "block";
       box.innerHTML = `<div class="spin">${esc(t("popup_scanning"))}</div>`;

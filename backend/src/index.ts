@@ -36,6 +36,8 @@ export interface Env {
   ANTHROPIC_API_KEY: string;
   XQUIK_API_KEY: string;
   ADMIN_TOKEN: string;
+  /** optional: dedicated key for the IP hash (falls back to a value derived from ADMIN_TOKEN) */
+  IP_HASH_SECRET?: string;
   ALLOWED_ORIGINS: string;
   SCANS_PER_IP_PER_DAY: string;
   REPORTS_PER_IP_PER_DAY: string;
@@ -56,12 +58,17 @@ const LISTS_DEFAULT = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-gu
 const json = (data: unknown, status = 200, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra } });
 
+const EXT_ORIGIN = /^(chrome|moz|safari-web)-extension:\/\/[a-z0-9-]+$/i;
 function cors(req: Request, env: Env): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";
   const allowed = env.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
-  const ok = !allowed.length || allowed.includes(origin);
+  // Only browser-extension origins are ever reflected: an ordinary web page must not be able to make its
+  // visitors' browsers call /v1/scan or /v1/x/* and burn the shared budget. (Firefox extension origins are
+  // random per install, so the allowlist stays optional and the scheme check is the real gate.)
+  const ok = EXT_ORIGIN.test(origin) && (!allowed.length || allowed.includes(origin));
   return {
-    "access-control-allow-origin": ok ? origin || "*" : "null",
+    vary: "origin",
+    "access-control-allow-origin": ok ? origin : "null",
     "access-control-allow-methods": "GET, POST, OPTIONS",
     "access-control-allow-headers": "content-type, x-admin-token",
     "access-control-max-age": "86400",
@@ -69,9 +76,13 @@ function cors(req: Request, env: Env): Record<string, string> {
 }
 
 function originAllowed(req: Request, env: Env): boolean {
+  const origin = req.headers.get("origin") ?? "";
+  // No Origin header = non-browser client (curl, scripts): allowed but rate-limited like everyone else.
+  // A web-page origin is refused outright; an extension origin must also pass the optional allowlist.
+  if (origin && !EXT_ORIGIN.test(origin)) return false;
   const allowed = env.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
-  if (!allowed.length) return true;
-  return allowed.includes(req.headers.get("origin") ?? "");
+  if (!allowed.length || !origin) return true;
+  return allowed.includes(origin);
 }
 
 const enc = new TextEncoder();
@@ -80,9 +91,13 @@ async function sha256(s: string): Promise<string> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 /** Daily-rotating keyed hash of the client IP: unlinkable across days, not reversible without the secret. */
+/** Daily-rotating keyed hash of the client address. IPv6 is bucketed by /64 so one host cannot spread across a prefix. */
 async function ipKey(req: Request, env: Env): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", enc.encode(`${env.ADMIN_TOKEN}|${dayKey()}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(req.headers.get("cf-connecting-ip") ?? "0.0.0.0"));
+  const secret = env.IP_HASH_SECRET || `derived|${env.ADMIN_TOKEN}`;
+  const key = await crypto.subtle.importKey("raw", enc.encode(`${secret}|${dayKey()}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  let ip = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+  if (ip.includes(":")) ip = ip.split(":").slice(0, 4).join(":") + "::/64";
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(ip));
   return [...new Uint8Array(sig)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 function dayKey(): string {
@@ -95,6 +110,18 @@ async function allow(env: Env, key: string, limit: number): Promise<boolean> {
   const cur = Number((await env.W3PG_KV.get(k)) ?? "0");
   if (cur >= limit) return false;
   await env.W3PG_KV.put(k, String(cur + 1), { expirationTtl: 2 * 86400 });
+  return true;
+}
+
+/** Shared daily budgets are hit by everyone at once; spread the counter over shards so no single KV key takes more than ~1 write/s. */
+const SHARDS = 16;
+async function allowShared(env: Env, key: string, limit: number): Promise<boolean> {
+  const base = `rl:${dayKey()}:${key}`;
+  const vals = await Promise.all(Array.from({ length: SHARDS }, (_, i) => env.W3PG_KV.get(`${base}:${i}`)));
+  const total = vals.reduce((n, v) => n + Number(v ?? "0"), 0);
+  if (total >= limit) return false;
+  const i = Math.floor(Math.random() * SHARDS);
+  await env.W3PG_KV.put(`${base}:${i}`, String(Number(vals[i] ?? "0") + 1), { expirationTtl: 2 * 86400 });
   return true;
 }
 
@@ -189,10 +216,47 @@ async function serverAgeDays(env: Env, registrable: string): Promise<number | un
 function registrableOf(host: string, freeHosts: string[]): string | null {
   const h = host.toLowerCase();
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.startsWith("[")) return null;
-  const d = tldParse(h, { allowPrivateDomains: false }).domain;
+  // shared platforms first, on the full host: "x.sites.google.com" is a free-host page, not "google.com"
+  if (freeHosts.some((f) => h === f || h.endsWith("." + f))) return null;
+  const r = tldParse(h, { allowPrivateDomains: true });
+  const d = r.domain;
   if (!d) return null;
   if (freeHosts.some((f) => d === f || d.endsWith("." + f))) return null;
   return d;
+}
+
+/**
+ * Domains that must never enter a blocklist through this API, however the request looks: the MetaMask allowlist,
+ * our trusted-infrastructure list, and a floor of very high-traffic domains. A listing attempt against one of
+ * these is logged as a report (so a moderator sees the abuse) but never applied.
+ */
+const NEVER_BLOCK = new Set(["google.com", "googleapis.com", "gstatic.com", "youtube.com", "apple.com", "icloud.com", "microsoft.com", "live.com", "office.com", "amazon.com", "amazonaws.com", "cloudflare.com", "github.com", "gitlab.com", "x.com", "twitter.com", "facebook.com", "instagram.com", "whatsapp.com", "meta.com", "reddit.com", "wikipedia.org", "linkedin.com", "discord.com", "telegram.org", "t.me", "netflix.com", "paypal.com", "stripe.com", "shopify.com", "wordpress.com", "medium.com", "substack.com", "notion.so", "figma.com", "zoom.us", "slack.com", "dropbox.com", "adobe.com", "mozilla.org", "brave.com", "duckduckgo.com", "bing.com", "yahoo.com", "baidu.com", "yandex.ru", "vk.com", "tiktok.com", "twitch.tv", "spotify.com", "openai.com", "anthropic.com", "coinbase.com", "binance.com", "kraken.com", "metamask.io", "uniswap.org", "opensea.io", "etherscan.io", "ethereum.org", "solana.com", "phantom.app", "ledger.com", "trezor.io", "walletconnect.com", "walletconnect.network", "rabby.io", "coinmarketcap.com", "coingecko.com", "defillama.com", "chainlist.org", "arbitrum.io", "optimism.io", "base.org", "polygon.technology"]);
+async function neverBlock(env: Env, domain: string, data: ServerData): Promise<boolean> {
+  if (NEVER_BLOCK.has(domain)) return true;
+  if (data.lists.trusted.some((d) => domain === d || domain.endsWith("." + d))) return true;
+  const allow = await fetchJsonCached<{ data?: { allowlist?: string[] } }>(env, "https://phishing-detection.api.cx.metamask.io/v1/stalelist", "data:metamask-stalelist", 6 * 3600);
+  return (allow?.data?.allowlist ?? []).some((d) => domain === d || domain.endsWith("." + d));
+}
+
+/**
+ * Auto-listing must rest on evidence the server saw itself: fetch the page and confirm it is live and still carries
+ * the drainer-shaped content the snapshot claims (wallet bait, seed-phrase inputs, drainer markers or the same
+ * external script hosts). A forged snapshot for a page that does not look like that never auto-lists.
+ */
+async function verifyPageEvidence(payload: ScanPayload): Promise<boolean> {
+  try {
+    const res = await fetch(payload.url, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", accept: "text/html,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return false;
+    if (new URL(res.url).hostname.toLowerCase() !== payload.host) return false;
+    const html = (await res.text()).slice(0, 400_000).toLowerCase();
+    const bait = /connect\s*wallet|claim|airdrop|mint|eligib|seed\s*phrase|recovery\s*phrase|private\s*key|mnemonic|walletconnect|ethereum\.request|window\.ethereum|solana/.test(html);
+    const scriptHosts = payload.page.scripts.map((u) => { try { return new URL(u).hostname.toLowerCase(); } catch { return ""; } }).filter(Boolean);
+    const sameScripts = scriptHosts.length > 0 && scriptHosts.some((h) => html.includes(h));
+    const markers = payload.page.drainerMarkers.some((m) => m.length >= 4 && html.includes(m.toLowerCase()));
+    return bait || sameScripts || markers;
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -364,7 +428,7 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   const hostKey = `scanhost:${ik}:${await sha256(payload.host)}`;
   if (await env.W3PG_KV.get(hostKey)) return json({ error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 }, 429);
   if (!(await allow(env, `scan:host:${await sha256(payload.host)}`, Number(env.SCANS_PER_HOST_PER_DAY) || 30))) return json({ error: "host_capacity_reached" }, 429);
-  if (!(await allow(env, "scan:global", Number(env.SCANS_GLOBAL_PER_DAY) || 3000))) return json({ error: "daily_capacity_reached" }, 429);
+  if (!(await allowShared(env, "scan:global", Number(env.SCANS_GLOBAL_PER_DAY) || 3000))) return json({ error: "daily_capacity_reached" }, 429);
   await env.W3PG_KV.put(hostKey, "1", { expirationTtl: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60) });
 
   // server-side facts
@@ -382,6 +446,8 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
     origin: payload.origin?.source ? { source: (payload.origin.source as "x") || "other", at: Date.now(), poster: payload.origin.poster || undefined, display: payload.origin.display || undefined, isReply: payload.origin.isReply, shortener: payload.origin.shortener || undefined } : undefined,
   }) : null;
   const facts: ServerFacts = { verdict, ageDays, metamask, goplus: gp, registrable };
+  // what the server can stand behind on its own: no client-supplied origin / X context
+  const serverOnly = parsed ? score(payload.url, parsed, { brands: data.brands, lists: data.lists, ageDays, blocklistHit: metamask ? "metamask" : undefined }) : null;
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   let response: Anthropic.Message;
@@ -430,17 +496,23 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   };
   await env.W3PG_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 });
 
-  // auto-list: both the server's own heuristics and the model agree, on a real registrable domain
-  const official = !!verdict && verdict.signals.some((s) => s.id === "brand-official" || s.id === "trusted" || s.id === "allowlist");
-  if (result.verdict === "dangerous" && result.confidence >= 0.9 && verdict && verdict.score >= 35 && registrable && !official) {
+  // Auto-list (warn-only "auto" set, no network block until a moderator confirms). Every leg is server-side:
+  //   - the server's own score without any client-supplied context is in the warn band or above,
+  //   - the domain is registrable, not official/trusted/allowlisted anywhere, and not a very-high-traffic domain,
+  //   - it is young (RDAP age known and under 60 days) or the server-only score alone already blocks,
+  //   - the server fetched the page itself and saw drainer-shaped content,
+  //   - the model is confident it is dangerous.
+  const official = !!serverOnly && serverOnly.signals.some((s) => s.id === "brand-official" || s.id === "brand-official-generated" || s.id === "trusted" || s.id === "allowlist");
+  const young = ageDays !== undefined && ageDays < 60;
+  if (result.verdict === "dangerous" && result.confidence >= 0.9 && serverOnly && serverOnly.score >= 35 && (young || serverOnly.score >= 70) && registrable && !official && !(await neverBlock(env, registrable, data))) {
     const list = await communityList(env);
-    if (!list.domains.includes(registrable) && !list.auto.includes(registrable)) {
+    if (!list.domains.includes(registrable) && !list.auto.includes(registrable) && (await verifyPageEvidence(payload))) {
       list.auto.push(registrable);
       list.updatedAt = Date.now();
       await env.W3PG_KV.put("community:list", JSON.stringify(list));
       await enqueueReport(env, {
-        id: crypto.randomUUID(), url: payload.url, host: payload.host, registrable, score: verdict.score,
-        signals: [`AI: dangerous ${Math.round(result.confidence * 100)}%`, `server: ${verdict.score}/100`, ...verdict.signals.filter((s) => s.weight > 0).map((s) => s.key)],
+        id: crypto.randomUUID(), url: payload.url.replace(/[?#].*$/, ""), host: payload.host, registrable, score: serverOnly.score,
+        signals: [`AI: dangerous ${Math.round(result.confidence * 100)}%`, `server: ${serverOnly.score}/100`, ...serverOnly.signals.filter((s) => s.weight > 0).map((s) => s.key)],
         note: `[auto] ${result.summary}`, at: Date.now(), status: "auto", ipHash: ik,
       });
     }
@@ -456,7 +528,7 @@ interface Report { id: string; url: string; host: string; registrable: string; s
 async function enqueueReport(env: Env, report: Report): Promise<void> {
   await env.W3PG_KV.put(`report:${report.id}`, JSON.stringify(report), { expirationTtl: 90 * 86400 });
   const idx = JSON.parse((await env.W3PG_KV.get("reports:pending")) ?? "[]") as string[];
-  if (idx.length >= 2000) return; // queue full: keep what is already waiting rather than letting a flood evict it
+  if (idx.length >= 2000) idx.length = 1999; // queue full: the oldest waiting report gives way (it stays readable by id)
   idx.unshift(report.id);
   await env.W3PG_KV.put("reports:pending", JSON.stringify(idx));
 }
@@ -474,6 +546,7 @@ async function handleReport(req: Request, env: Env): Promise<Response> {
   const data = await serverData(env);
   const registrable = registrableOf(host, data.freeHosts) ?? host; // free-host reports keep the full host
   if (data.lists.trusted.some((d) => host === d || host.endsWith("." + d))) return json({ error: "trusted_domain" }, 400);
+  if (await neverBlock(env, registrable, data)) return json({ error: "trusted_domain" }, 400);
   const ik = await ipKey(req, env);
   if (!(await allow(env, `report:${ik}`, Number(env.REPORTS_PER_IP_PER_DAY) || 10))) return json({ error: "rate_limited" }, 429);
   // one open report per domain
@@ -574,6 +647,7 @@ async function handleAdminAdd(req: Request, env: Env): Promise<Response> {
     if (!/^[a-z0-9.-]+\.[a-z0-9-]+$/.test(host)) { skipped.push(line); continue; }
     if (data.lists.trusted.some((d) => host === d || host.endsWith("." + d))) { skipped.push(host + " (trusted)"); continue; }
     const domain = registrableOf(host, data.freeHosts) ?? host;
+    if (await neverBlock(env, domain, data)) { skipped.push(domain + " (never-block)"); continue; }
     if (list.domains.includes(domain)) { skipped.push(domain + " (already listed)"); continue; }
     list.domains.push(domain);
     list.auto = list.auto.filter((d) => d !== domain);
@@ -617,6 +691,7 @@ async function handleDecide(req: Request, env: Env): Promise<Response> {
   await env.W3PG_KV.delete(`reportdom:${report.registrable}`);
   const list = await communityList(env);
   const domain = report.registrable || report.host;
+  if (report.status === "approved" && (await neverBlock(env, domain, await serverData(env)))) return json({ error: "never_block_domain" }, 400);
   if (report.status === "approved") {
     if (!list.domains.includes(domain)) list.domains.push(domain);
     await env.W3PG_KV.put(`approved:${domain}`, report.id, { expirationTtl: 365 * 86400 });
@@ -656,7 +731,7 @@ async function handleX(req: Request, env: Env, kind: "brand" | "user"): Promise<
   if (cached) return json(JSON.parse(cached), 200, { "cache-control": "public, max-age=3600" });
   const ik = await ipKey(req, env);
   if (!(await allow(env, `x:${ik}`, 80))) return json({ error: "rate_limited" }, 429);
-  if (!(await allow(env, "x:global", 5000))) return json({ error: "daily_capacity_reached" }, 429);
+  if (!(await allowShared(env, "x:global", 5000))) return json({ error: "daily_capacity_reached" }, 429);
   const fetcher = xquikFetcher(env);
   const result = kind === "brand" ? await resolveBrandRaw(q, fetcher) : await resolveUserRaw(q, fetcher);
   if (!result) return json({ error: "not_found" }, 404);

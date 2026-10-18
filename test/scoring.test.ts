@@ -270,8 +270,9 @@ describe("trusted infrastructure and blocklist confidence", () => {
     expect(run("https://random-site.com/", { blocklistHit: "phishdestroy" }).band).toBe("warn");
     expect(run("https://claim-random.com/", { blocklistHit: "phishdestroy" }).band).toBe("block");
   });
-  it("AI auto-listed domains block at 70, approved community at 100", () => {
-    expect(run("https://random-site.com/", { blocklistHit: "community-auto" }).score).toBe(70);
+  it("AI auto-listed domains only warn (40) until a moderator confirms; approved community blocks at 100", () => {
+    expect(run("https://random-site.com/", { blocklistHit: "community-auto" }).score).toBe(40);
+    expect(run("https://random-site.com/", { blocklistHit: "community-auto" }).band).toBe("warn");
     expect(run("https://random-site.com/", { blocklistHit: "community" }).score).toBe(100);
   });
   it("MetaMask / ScamSniffer hits block outright", () => {
@@ -537,10 +538,15 @@ describe("rdap bootstrap", () => {
 
 describe("X resolver signals", () => {
   const official = { handle: "yieldfields_rh", domains: ["yieldfields.fun"], followers: 27768 };
-  it("project's own X account linking the domain clears a suspicious host", () => {
-    const v = run("https://yieldfields.fun/whitelist", { origin: { source: "x", at: 0, poster: "YieldFields_RH" }, x: { token: "yieldfields", confidence: 0.6, official } });
+  it("project's own X account linking the domain clears a suspicious host, but only once the domain's age is known", () => {
+    const v = run("https://yieldfields.fun/whitelist", { ageDays: 200, origin: { source: "x", at: 0, poster: "YieldFields_RH" }, x: { token: "yieldfields", confidence: 0.8, official } });
     expect(v.signals.some((s) => s.id === "x-domain-match")).toBe(true);
     expect(v.band).toBe("none");
+    // registry unreachable: an account named after the token must not be able to clear the page it was made for
+    const unknownAge = run("https://yieldfields.fun/whitelist", { origin: { source: "x", at: 0, poster: "YieldFields_RH" }, x: { token: "yieldfields", confidence: 0.8, official } });
+    expect(unknownAge.signals.some((s) => s.id === "x-domain-match")).toBe(false);
+    const young = run("https://yieldfields.fun/whitelist", { ageDays: 5, origin: { source: "x", at: 0, poster: "YieldFields_RH" }, x: { token: "yieldfields", confidence: 0.8, official } });
+    expect(young.signals.some((s) => s.id === "x-domain-match")).toBe(false);
   });
   it("official account links elsewhere -> mismatch on a bait domain", () => {
     const v = run("https://yieldfields-claim.xyz/", { origin: { source: "x", at: 0, poster: "yf_claims" }, x: { token: "yieldfields", confidence: 0.6, official } });

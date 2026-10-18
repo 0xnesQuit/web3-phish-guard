@@ -3,7 +3,7 @@
     "message": "Web3 Phish Guard"
   },
   "ext_description": {
-    "message": "即时警告假冒的 NFT 铸造和空投领取页面。所有检查均在本地运行。"
+    "message": "即时警告假冒的 NFT 铸造和空投领取页面，并在危险的钱包请求前进行检查。"
   },
   "warning_tab_title": {
     "message": "警告：疑似钓鱼网站"

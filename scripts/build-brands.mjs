@@ -20,8 +20,7 @@ function tokensFromName(name) {
   return [...out];
 }
 
-const freeHosts = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
-const SHARED = new Set([...freeHosts.strong, ...freeHosts.weak, "x.com", "twitter.com", "github.com", "t.me", "telegram.org", "medium.com", "youtube.com", "google.com", "discord.gg", "discord.com", "linktr.ee", "notion.site", "gitbook.io", "substack.com", "mirror.xyz", "paragraph.xyz", "docs.google.com", "apple.com", "play.google.com"]);
+import { SHARED_HOSTS as SHARED, isSharedHost } from "./shared-hosts.mjs";
 
 function registrable(url) {
   try {
@@ -29,9 +28,8 @@ function registrable(url) {
     // allowPrivateDomains: "foo.vercel.app" stays "foo.vercel.app" instead of collapsing to "vercel.app"
     const d = parse(host, { allowPrivateDomains: true }).domain;
     if (!d) return null;
-    if (SHARED.has(d)) return null;
     // a bare shared/free host (or a page on a social platform) is never an "official domain"
-    for (const sh of SHARED) if (d === sh || d.endsWith("." + sh)) return null;
+    if (isSharedHost(host) || isSharedHost(d)) return null;
     return d;
   } catch {
     return null;
