@@ -35,7 +35,8 @@ describe("pickOfficial", () => {
   it("Uniswap: Business account with app.uniswap.org, not the 'Uniswap Airdrop' clone", () => {
     const r = pickOfficial("uniswap", UNI);
     expect(r.official?.handle).toBe("uniswap");
-    expect(r.official?.domains).toEqual(["uniswap.org"]);
+    expect(r.official?.domains).toEqual(expect.arrayContaining(["uniswap.org", "uniswapfoundation.org"]));
+    expect(r.official?.domains).not.toContain("weex.com");
     expect(r.confidence).toBeGreaterThan(0.8);
   });
   it("no plausible account -> confidence 0", () => {
