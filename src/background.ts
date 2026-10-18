@@ -1,6 +1,6 @@
 import { parseHost } from "./lib/hostname";
 import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
-import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle } from "./lib/lists";
+import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle, brandByToken } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, attackedBrandHit, listStatus } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
 import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
@@ -71,6 +71,7 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
     x: extra.x,
     socials: extra.socials,
     handleIndex: extra.socials ? brandByHandle(brands) : undefined,
+    brandByToken: extra.socials ? brandByToken(brands) : undefined,
   });
 }
 
@@ -338,9 +339,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const tabId = sender.tab?.id;
         if (tabId === undefined || sender.frameId !== 0 || !sender.url) return;
         const socials = msg.socials as PageSocials;
-        await chrome.storage.session.set({ [`soc:${tabId}`]: socials });
         const prev = await getTabVerdict(tabId);
         if (prev?.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted")) return;
+        // With an Xquik key, verify the first linked account (1 credit, cached a day): a real 5k+ account whose
+        // bio links elsewhere means this page borrowed someone else's social proof.
+        if (socials.xHandles.length && prev && prev.score >= 10 && (await getApiKey())) {
+          const acc = await resolvePoster(socials.xHandles[0]);
+          if (acc && acc.followers >= 5000) socials.verified = { handle: acc.handle, name: acc.name, followers: acc.followers, domains: acc.domains };
+        }
+        await chrome.storage.session.set({ [`soc:${tabId}`]: socials });
         const origin = await getTabOrigin(tabId);
         const v = await evaluate(sender.url, { ageDays: prev?.ageDays, origin, socials });
         if (v && (!prev || v.score !== prev.score)) {

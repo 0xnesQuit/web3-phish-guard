@@ -27,6 +27,8 @@ export interface ScoreContext {
   socials?: PageSocials;
   /** lowercase X handle -> brand (from lists.brandByHandle) */
   handleIndex?: Map<string, Brand>;
+  /** brand token -> brand (from lists.brandByToken) */
+  brandByToken?: Map<string, Brand>;
 }
 
 const SOURCE_LABEL: Record<OriginContext["source"], string> = {
@@ -38,7 +40,7 @@ const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "sh
 
 /** "papertradefnd" -> "papertrade", "officialzama" -> "zama": clones glue affixes onto the real name. */
 export function stripCloneAffixes(token: string): string {
-  const AFFIX = ["foundation", "official", "finance", "protocol", "network", "testnet", "mainnet", "labs", "team", "dao", "fnd", "fdn", "app", "xyz", "eth", "sol", "ico", "ido", "tge", "token", "coin", "portal", "claim", "drop", "net"];
+  const AFFIX = ["foundation", "official", "finance", "protocol", "network", "testnet", "mainnet", "labs", "team", "dao", "fndn", "fnd", "fdn", "app", "xyz", "eth", "sol", "ico", "ido", "tge", "token", "coin", "portal", "claim", "drop", "net", "hq", "io"];
   let t = token.toLowerCase();
   for (let pass = 0; pass < 2; pass++) {
     for (const a of AFFIX) {
@@ -285,6 +287,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // Clones paste the victim project's official X/Discord links in the footer to look legitimate.
   // Only on hosts that already look like bait (aggregators and news sites link to many projects).
   if (ctx.socials?.xHandles.length && ctx.handleIndex && (hasAction || p.freeHost || fresh || brandFlagged || attackedFlagged || !!o)) {
+    let hit = false;
+    // 1) exact: the handle is a listed project's official account
     for (const h of ctx.socials.xHandles.slice(0, 8)) {
       const b = ctx.handleIndex.get(h.toLowerCase());
       if (!b || !b.domains.length) continue;
@@ -292,7 +296,29 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       signals.push({ id: "page-official-x", weight: 35, key: "sig_page_official_x", sub: ["@" + h, b.name, b.domains[0]] });
       if (!matchedBrand) matchedBrand = b;
       brandFlagged = true;
+      hit = true;
       break;
+    }
+    // 2) by name: @ETHGasFNDN -> "ethgas" -> the ETHGas brand (projects run several accounts; lists hold one)
+    if (!hit && ctx.brandByToken) {
+      for (const h of ctx.socials.xHandles.slice(0, 8)) {
+        const stem = stripCloneAffixes(h.toLowerCase().replace(/[^a-z0-9]/g, ""));
+        if (stem.length < 5) continue;
+        const b = ctx.brandByToken.get(stem);
+        if (!b || !b.domains.length || b.domains.some((d) => isUnderDomain(p.host, d))) continue;
+        signals.push({ id: "page-brand-x", weight: 25, key: "sig_page_official_x", sub: ["@" + h, b.name, b.domains[0]] });
+        if (!matchedBrand) matchedBrand = b;
+        brandFlagged = true;
+        break;
+      }
+    }
+  }
+  // 3) verified at runtime (Xquik): the linked account is a real, sizeable account whose bio points elsewhere
+  if (ctx.socials?.verified && (hasAction || p.freeHost || fresh || brandFlagged || attackedFlagged || !!o)) {
+    const vx = ctx.socials.verified;
+    if (vx.domains.length && !vx.domains.some((d) => isUnderDomain(p.host, d)) && !signals.some((s) => s.id === "page-official-x")) {
+      signals.push({ id: "page-official-x", weight: 35, key: "sig_page_official_x", sub: ["@" + vx.handle, vx.name || vx.handle, vx.domains[0]] });
+      brandFlagged = true;
     }
   }
 

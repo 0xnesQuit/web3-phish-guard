@@ -423,6 +423,16 @@ describe("page links the victim's real X account", () => {
     expect(v.signals.some((s) => s.id === "page-official-x")).toBe(true);
     expect(v.band).toBe("block");
   });
+  it("handle that merely carries the brand name (@ETHGasFNDN) still flags via the token index", () => {
+    const byToken = new Map<string, Brand>([["ethgas", { name: "ETHGas", tokens: ["ethgas"], domains: ["ethgas.com"], x: "ETHGasOfficial", tier: "generated" }]]);
+    const v = run("https://claim.egfoundation.cyou/", { ageDays: 33, origin: { source: "x", at: 0 }, socials: { xHandles: ["ETHGasFNDN"], count: 3 }, handleIndex: idx, brandByToken: byToken });
+    expect(v.signals.some((s) => s.id === "page-brand-x")).toBe(true);
+    expect(v.band).toBe("block");
+  });
+  it("runtime-verified account with a different bio domain flags", () => {
+    const v = run("https://claim.egfoundation.cyou/", { origin: { source: "x", at: 0 }, socials: { xHandles: ["SomeHandle"], count: 1, verified: { handle: "somehandle", name: "Some Project", followers: 20000, domains: ["someproject.xyz"] } }, handleIndex: idx });
+    expect(v.signals.some((s) => s.id === "page-official-x")).toBe(true);
+  });
   it("the project's own site linking its own account is fine", () => {
     expect(run("https://ethgas.com/", { socials: { xHandles: ["ETHGasOfficial"], count: 3 }, handleIndex: idx }).signals.some((s) => s.id === "page-official-x")).toBe(false);
   });

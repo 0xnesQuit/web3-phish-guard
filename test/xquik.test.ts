@@ -46,6 +46,19 @@ describe("pickOfficial", () => {
   });
 });
 
+describe("foundation accounts", () => {
+  it("merges the foundation account's domain into the official set", () => {
+    const users = [
+      { username: "ETHGasOfficial", name: "ETHGas", followers: 90000, verifiedType: "Business", url: "https://ethgas.com" },
+      { username: "ETHGasFNDN", name: "ETHGas Foundation", followers: 141258, isBlueVerified: true, url: "https://ethgasfoundation.org/" },
+      { username: "ethgas_claims", name: "ETHGas Airdrop", followers: 300, url: "https://claim-ethgas.xyz" },
+    ];
+    const r = pickOfficial("ethgas", users);
+    expect(r.official?.domains).toEqual(expect.arrayContaining(["ethgas.com", "ethgasfoundation.org"]));
+    expect(r.official?.domains).not.toContain("claim-ethgas.xyz");
+  });
+});
+
 describe("link page parsing", () => {
   it("reads the owner's links from __NEXT_DATA__ and ignores Linktree's promoted links", () => {
     const html = `<a href="https://hellofresh.com/promo">ad</a><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"links":[{"url":"https://axisrobotics.ai/"},{"url":"https://x.com/axisrobotics"},{"url":"https://discord.gg/abc"},{"url":"https://app.axisrobotics.ai/claim"}]}}}</script><img src="https://lnkimg.com/x.png">`;

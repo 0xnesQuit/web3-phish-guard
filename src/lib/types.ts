@@ -82,6 +82,8 @@ export interface OriginContext {
 export interface PageSocials {
   xHandles: string[];
   count: number;
+  /** filled by the background when an Xquik key is set: the first linked account, resolved */
+  verified?: { handle: string; name: string; followers: number; domains: string[] };
 }
 
 /** What the optional X resolver learned (brand token -> official account, poster profile). */

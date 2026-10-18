@@ -44,10 +44,23 @@ export function brandByHandle(brands: Brand[]): Map<string, Brand> {
   return handleMap;
 }
 
+let tokenMap: Map<string, Brand> | null = null;
+/** brand token -> brand (first wins; seed before generated). */
+export function brandByToken(brands: Brand[]): Map<string, Brand> {
+  if (tokenMap && tokenMap.size) return tokenMap;
+  tokenMap = new Map();
+  for (const b of brands) for (const t of b.tokens) {
+    const k = t.toLowerCase();
+    if (k.length >= 5 && !tokenMap.has(k)) tokenMap.set(k, b);
+  }
+  return tokenMap;
+}
+
 /** Drop the in-memory cache so the next evaluation re-reads storage (after a remote refresh). */
 export function invalidateStaticData(): void {
   cache = null;
   handleMap = null;
+  tokenMap = null;
 }
 
 export async function remoteDataStatus(): Promise<{ updatedAt: number; files: number }> {

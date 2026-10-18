@@ -139,7 +139,18 @@ export function pickOfficial(token: string, users: RawUser[]): XBrand {
   }
   if (!best || best.score < 3) return { token, confidence: 0 };
   const confidence = Math.max(0, Math.min(1, (best.score - 2) / 6));
-  return { token, official: best.acc, confidence };
+  // Projects run several real accounts (main + foundation + regional). Merge the bio domains of every
+  // sizeable account whose handle/name is the brand plus a foundation/official-style affix, so a genuine
+  // claim page on the foundation's domain is not read as "the official account links elsewhere".
+  const domains = new Set(best.acc.domains);
+  for (const u of users) {
+    const acc = toAccount(u);
+    if (acc.handle === best.acc.handle || acc.followers < 5000) continue;
+    const stemH = norm(acc.handle).replace(/(foundation|fndn|fnd|fdn|official|labs|team|dao|hq|eco|ecosystem|network|protocol)+$/g, "");
+    const stemN = norm(acc.name).replace(/(foundation|fndn|fnd|fdn|official|labs|team|dao|hq|eco|ecosystem|network|protocol)+$/g, "");
+    if (stemH === t || stemN === t) for (const d of acc.domains) domains.add(d);
+  }
+  return { token, official: { ...best.acc, domains: [...domains] }, confidence };
 }
 
 /** All link-in-bio page URLs an account exposes (profile url + bio links). */
