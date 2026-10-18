@@ -505,8 +505,7 @@ const ADMIN_SHELL = `<!doctype html><meta charset="utf-8"><title>W3PG moderation
     document.getElementById("login").style.display="none";
     document.getElementById("app").innerHTML = await r.text();
   }
-  async function add(){ const r = await api("/admin/add", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ domains: document.getElementById("add").value, note: document.getElementById("addnote").value }) }); const j = await r.json().catch(()=>({})); if(r.ok){ document.getElementById("add").value=""; alert("added: "+(j.added||[]).join(", ")+(j.skipped&&j.skipped.length?"
-skipped: "+j.skipped.join(", "):"")); load(); } else alert("failed: "+r.status+" "+(j.error||"")); }
+  async function add(){ const r = await api("/admin/add", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ domains: document.getElementById("add").value, note: document.getElementById("addnote").value }) }); const j = await r.json().catch(()=>({})); if(r.ok){ document.getElementById("add").value=""; alert("added: "+(j.added||[]).join(", ")+(j.skipped&&j.skipped.length?" | skipped: "+j.skipped.join(", "):"")); load(); } else alert("failed: "+r.status+" "+(j.error||"")); }
   async function decide(id, action){ const r = await api("/admin/decide", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id, action}) }); if(r.ok) load(); else alert("failed: "+r.status); }
   load();
 </script>`;
