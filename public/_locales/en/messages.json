@@ -23,6 +23,12 @@
   "warning_proceed": {
     "message": "I understand the risk, continue anyway"
   },
+  "warning_official": {
+    "message": "Go to the official site: $1"
+  },
+  "warning_proceed_confirm": {
+    "message": "This site is on a reviewed phishing list. Click again to continue anyway."
+  },
   "warning_note": {
     "message": "Real projects host airdrop and mint flows on their official domain or on an address announced from their official X/Discord accounts. Do not trust \"claim\" links from X replies or DMs. Wallet connection and signature requests on this page can drain your funds."
   },

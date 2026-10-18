@@ -12,6 +12,21 @@ export async function clearTab(tabId: number): Promise<void> {
   await chrome.storage.session.remove(`tab:${tabId}`);
 }
 
+export interface WarningPayload { url: string; host: string; score: number; signals: Verdict["signals"]; brandDomain?: string; reviewed?: boolean; tabId: number }
+
+/** Store the warning page's payload under a random nonce; the page fetches it once through the background. */
+export async function putWarning(p: WarningPayload): Promise<string> {
+  const nonce = crypto.randomUUID();
+  await chrome.storage.session.set({ [`warn:${nonce}`]: { ...p, at: Date.now() } });
+  return nonce;
+}
+export async function getWarning(nonce: string): Promise<WarningPayload | undefined> {
+  if (!/^[0-9a-f-]{36}$/.test(nonce)) return undefined;
+  const p = (await chrome.storage.session.get(`warn:${nonce}`))[`warn:${nonce}`] as (WarningPayload & { at: number }) | undefined;
+  if (!p || Date.now() - p.at > 30 * 60_000) return undefined;
+  return p;
+}
+
 export async function addBypass(host: string): Promise<void> {
   const cur = ((await chrome.storage.session.get("bypass")).bypass as string[] | undefined) ?? [];
   if (!cur.includes(host)) await chrome.storage.session.set({ bypass: [...cur, host] });

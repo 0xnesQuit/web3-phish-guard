@@ -9,7 +9,8 @@
     "unlimitedStorage",
     "alarms",
     "webNavigation",
-    "tabs"
+    "tabs",
+    "declarativeNetRequest"
   ],
   "host_permissions": [
     "<all_urls>"

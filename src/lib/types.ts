@@ -121,7 +121,7 @@ export interface DeepReport {
   page: PageSnapshot;
   markers: string[];
   goplus?: { phishing?: boolean };
-  ai: { verdict?: string; confidence?: number; summary?: string; reasons?: string[]; advice?: string[]; impersonates?: string; model?: string; cached?: boolean; error?: string };
+  ai: { verdict?: string; confidence?: number; summary?: string; reasons?: string[]; advice?: string[]; impersonates?: string; model?: string; cached?: boolean; error?: string; goplus?: { phishing?: boolean } };
 }
 
 export interface ProviderEvent {

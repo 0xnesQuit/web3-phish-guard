@@ -23,6 +23,12 @@
   "warning_proceed": {
     "message": "Riski anlıyorum, yine de devam et"
   },
+  "warning_official": {
+    "message": "Resmi siteye git: $1"
+  },
+  "warning_proceed_confirm": {
+    "message": "Bu site incelenmiş bir phishing listesinde. Yine de devam etmek için tekrar tıklayın."
+  },
   "warning_note": {
     "message": "Gerçek projeler airdrop ve mint akışlarını resmi alan adlarında ya da resmi X/Discord hesaplarından duyurdukları adreste barındırır. X yanıtlarından veya DM'den gelen \"claim\" linklerine güvenmeyin. Bu sayfadaki cüzdan bağlantı ve imza istekleri paranızı kaybettirebilir."
   },

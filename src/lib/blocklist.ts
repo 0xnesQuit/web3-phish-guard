@@ -37,6 +37,10 @@ interface StoredList {
 
 const mem = new Map<string, Set<string>>();
 let allowMem: Set<string> | null = null;
+/** set only by warmLists(): a single hotlist diff must not make the worker think every list is loaded */
+let warmed = false;
+/** strongest source first: reviewed lists beat the broad PhishDestroy feed */
+const SOURCE_ORDER = ["metamask", "scamsniffer", "community", "community-auto", "phishdestroy"];
 
 /**
  * Sibling index: scammers rotate the label on a shared host (airdrop-onsolana.netlify.app is listed,
@@ -234,7 +238,7 @@ export async function refreshSource(src: ListSource): Promise<number> {
   const stored: StoredList = { domains, updatedAt: Date.now(), mmLastUpdated };
   await chrome.storage.local.set({ [`list:${src.id}`]: stored });
   mem.set(src.id, new Set(domains));
-  if (siblingHosts.length) rebuildSiblingIndex(siblingHosts);
+  scheduleIndexRebuild();
   return domains.length;
 }
 
@@ -254,9 +258,26 @@ export async function refreshMetaMaskDiffs(): Promise<void> {
     if (e.isRemoval) set.delete(url); else set.add(url);
     if (ts > last) last = ts;
   }
+  if (!entries.length && last === stored.mmLastUpdated) return; // nothing changed: skip the 3 MB write
   const domains = [...set];
   await chrome.storage.local.set({ "list:metamask": { domains, updatedAt: Date.now(), mmLastUpdated: last } satisfies StoredList });
-  mem.set("metamask", set);
+  if (warmed) { mem.set("metamask", set); scheduleIndexRebuild(); }
+}
+
+let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
+/** Several sources refresh back-to-back on install; rebuild the indexes once after the burst. */
+function scheduleIndexRebuild(): void {
+  if (!siblingHosts.length) return;
+  if (rebuildTimer) clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(() => { rebuildTimer = undefined; rebuildSiblingIndex(siblingHosts); }, 2000);
+}
+
+/** The freshest `n` entries of a source (feeds append, so the tail is the newest). */
+export function newestDomains(sourceId: string, n: number): string[] {
+  const set = mem.get(sourceId);
+  if (!set) return [];
+  const arr = [...set];
+  return arr.slice(Math.max(0, arr.length - n));
 }
 
 function findNumber(json: unknown, key: string, depth = 0): number | undefined {
@@ -283,6 +304,7 @@ export async function warmLists(freeHosts: string[] = []): Promise<void> {
     siblingHosts = freeHosts;
     if (!(await loadIndexes())) rebuildSiblingIndex(freeHosts);
   }
+  warmed = true;
 }
 
 export async function listStatus(): Promise<Record<string, { count: number; updatedAt: number }>> {
@@ -299,8 +321,9 @@ export async function listStatus(): Promise<Record<string, { count: number; upda
 /** Returns the source id whose list contains the host or one of its parent domains. */
 export function blocklistHit(host: string): string | undefined {
   const parents = parentDomains(host);
-  for (const [id, set] of mem) {
-    if (!set.size) continue;
+  for (const id of SOURCE_ORDER) {
+    const set = mem.get(id);
+    if (!set?.size) continue;
     for (const p of parents) if (set.has(p)) return id;
   }
   return undefined;
@@ -319,5 +342,5 @@ export function parentDomains(host: string): string[] {
 }
 
 export function isWarm(): boolean {
-  return mem.size > 0;
+  return warmed;
 }

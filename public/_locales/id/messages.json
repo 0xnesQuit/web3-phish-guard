@@ -23,6 +23,12 @@
   "warning_proceed": {
     "message": "Saya paham risikonya, tetap lanjutkan"
   },
+  "warning_official": {
+    "message": "Ke situs resmi: $1"
+  },
+  "warning_proceed_confirm": {
+    "message": "Situs ini ada dalam daftar phishing yang ditinjau. Klik lagi untuk tetap melanjutkan."
+  },
   "warning_note": {
     "message": "Proyek asli menempatkan airdrop dan mint di domain resminya atau di alamat yang diumumkan dari akun X/Discord resmi. Jangan percaya tautan \"claim\" dari balasan X atau DM. Permintaan koneksi dompet dan tanda tangan di halaman ini dapat menguras dana Anda."
   },

@@ -23,6 +23,12 @@
   "warning_proceed": {
     "message": "Tôi hiểu rủi ro, vẫn tiếp tục"
   },
+  "warning_official": {
+    "message": "Đến trang chính thức: $1"
+  },
+  "warning_proceed_confirm": {
+    "message": "Trang này nằm trong danh sách lừa đảo đã xét duyệt. Nhấp lần nữa để tiếp tục."
+  },
   "warning_note": {
     "message": "Dự án thật đặt airdrop và mint trên tên miền chính thức hoặc địa chỉ được công bố từ tài khoản X/Discord chính thức. Đừng tin các liên kết \"claim\" trong phần trả lời trên X hoặc tin nhắn riêng. Yêu cầu kết nối ví và ký trên trang này có thể rút sạch tài sản của bạn."
   },

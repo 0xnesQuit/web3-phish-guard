@@ -23,6 +23,12 @@
   "warning_proceed": {
     "message": "Ich verstehe das Risiko, trotzdem fortfahren"
   },
+  "warning_official": {
+    "message": "Zur offiziellen Seite: $1"
+  },
+  "warning_proceed_confirm": {
+    "message": "Diese Seite steht auf einer geprüften Phishing-Liste. Erneut klicken, um trotzdem fortzufahren."
+  },
   "warning_note": {
     "message": "Echte Projekte hosten Airdrop- und Mint-Abläufe auf ihrer offiziellen Domain oder unter einer Adresse, die über ihre offiziellen X/Discord-Konten angekündigt wurde. Vertrauen Sie keinen \"Claim\"-Links aus X-Antworten oder DMs. Wallet-Verbindungen und Signaturanfragen auf dieser Seite können Ihr Guthaben leeren."
   },

@@ -134,7 +134,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     }
   }
 
-  if (brandOfficial && matchedBrand) {
+  const reviewedHit = !!ctx.blocklistHit && ctx.blocklistHit !== "phishdestroy";
+  if (brandOfficial && matchedBrand && !(matchedBrand.tier === "generated" && reviewedHit)) {
+    // An auto-imported "official" domain (DefiLlama/CMC/OpenSea data) does not outrank a reviewed blocklist entry:
+    // listed scam projects exist on those platforms. Curated seed/trusted entries still do.
     signals.push({ id: "brand-official", weight: 0, key: "sig_brand_official", sub: [matchedBrand.name] });
     return done({ brand: matchedBrand.name });
   }
@@ -331,8 +334,12 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     const hostMatches = off.domains.some((d) => isUnderDomain(p.host, d));
     if (hostMatches && strong) {
       // the project's own X account links to exactly this domain: treat like an official domain
-      signals.push({ id: "x-domain-match", weight: -100, key: "sig_x_domain_match", sub: ["@" + off.handle] });
-      xCleared = true;
+      // Official accounts get hijacked and their bio swapped (ArbitrumDAO 2026): this clears, but never a
+      // freshly registered domain, and never below what a reviewed blocklist hit says.
+      if (!fresh && !ctx.blocklistHit) {
+        signals.push({ id: "x-domain-match", weight: -45, key: "sig_x_domain_match", sub: ["@" + off.handle] });
+        xCleared = true;
+      }
     } else if (!hostMatches && off.domains.length && (brandFlagged || hasAction || fresh) && !old) {
       signals.push({ id: "x-domain-mismatch", weight: 25, key: "sig_x_domain_mismatch", sub: ["@" + off.handle, off.domains[0]] });
     }

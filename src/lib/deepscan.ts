@@ -18,32 +18,35 @@ export async function scanExternalScripts(scripts: string[], max = 5): Promise<s
   const picks = scripts.filter((s) => !/jsdelivr|unpkg|cdnjs|googleapis|gstatic|cloudflare\.com|jquery|bootstrap|gtag|googletagmanager|facebook\.net|hotjar|intercom/i.test(s)).slice(0, max);
   await Promise.all(picks.map(async (s) => {
     try {
+      const host = s.split("/")[0].split(":")[0];
+      if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|169\.254\.|\[)/.test(host) || !/\./.test(host)) return;
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 6000);
+      const t = setTimeout(() => ctrl.abort(), 6000); // covers the whole read, not just the headers
       const res = await fetch("https://" + s, { signal: ctrl.signal, credentials: "omit" });
+      if (!res.ok || !res.body) { clearTimeout(t); return; }
+      const reader = res.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      while (total < 600_000) {
+        const { done, value } = await reader.read();
+        if (done || !value) break;
+        chunks.push(value);
+        total += value.length;
+      }
+      reader.cancel().catch(() => undefined);
       clearTimeout(t);
-      if (!res.ok) return;
-      const text = (await res.text()).slice(0, 600_000);
+      const text = new TextDecoder().decode(concat(chunks)).slice(0, 600_000);
       for (const re of SCRIPT_MARKERS) { const m = text.match(re); if (m) found.add(`${s.split("/").pop()?.slice(0, 40)}: ${m[0].slice(0, 50)}`); }
     } catch { /* ignore */ }
   }));
   return [...found].slice(0, 20);
 }
 
-/** GoPlus phishing_site (free, keyless). Sent only during an explicit deep scan. */
-export async function goPlus(host: string): Promise<{ phishing?: boolean } | undefined> {
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 6000);
-    const res = await fetch(`https://api.gopluslabs.io/api/v1/phishing_site?url=${encodeURIComponent(host)}`, { signal: ctrl.signal });
-    clearTimeout(t);
-    if (!res.ok) return undefined;
-    const j = (await res.json()) as { result?: { phishing_site?: number } };
-    if (!j.result) return undefined;
-    return { phishing: j.result.phishing_site === 1 };
-  } catch {
-    return undefined;
-  }
+function concat(chunks: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+  let o = 0;
+  for (const c of chunks) { out.set(c, o); o += c.length; }
+  return out;
 }
 
 export interface DeepContext {
@@ -54,7 +57,7 @@ export interface DeepContext {
   language: string;
 }
 
-export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { markers: string[]; goplus?: { phishing?: boolean } }): Promise<DeepReport["ai"]> {
+export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { markers: string[] }): Promise<DeepReport["ai"]> {
   const base = API_BASE;
   const v = ctx.verdict;
   const body = {
@@ -67,7 +70,6 @@ export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { 
     ageDays: v.ageDays,
     origin: ctx.origin ? { source: ctx.origin.source, poster: ctx.origin.poster, display: ctx.origin.display, isReply: ctx.origin.isReply, shortener: ctx.origin.shortener } : undefined,
     x: ctx.x ? { token: ctx.x.token, officialHandle: ctx.x.official?.handle, officialDomains: ctx.x.official?.domains, posterFollowers: ctx.x.poster?.followers, posterAgeDays: ctx.x.poster?.ageDays } : undefined,
-    gopluss: extra.goplus,
     language: ctx.language,
     page: { ...snapshot, drainerMarkers: [...new Set([...snapshot.drainerMarkers, ...extra.markers])].slice(0, 20), providerEvents: ctx.providerEvents },
   };

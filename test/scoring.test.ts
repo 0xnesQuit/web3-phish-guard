@@ -464,6 +464,24 @@ describe("field reports round 3", () => {
   });
 });
 
+describe("review fixes: hijacked accounts and generated officials", () => {
+  it("x-domain-match no longer clears a fresh domain or a listed one", () => {
+    const official = { handle: "proj", domains: ["fresh-proj.xyz"], followers: 50000 };
+    const fresh = run("https://claim.fresh-proj.xyz/", { ageDays: 2, x: { token: "proj", confidence: 0.9, official } });
+    expect(fresh.signals.some((s) => s.id === "x-domain-match")).toBe(false);
+    const listed = run("https://claim.fresh-proj.xyz/", { ageDays: 500, blocklistHit: "metamask", x: { token: "proj", confidence: 0.9, official } });
+    expect(listed.band).toBe("block");
+  });
+  it("a generated-tier official domain does not outrank a reviewed blocklist hit", () => {
+    const gen: Brand[] = [{ name: "ScamCo", tokens: ["scamco"], domains: ["scamco.xyz"] }];
+    const merged = mergeBrands(brands, gen);
+    const v = score("https://scamco.xyz/", parseHost("https://scamco.xyz/", freeHosts)!, { brands: merged, lists, blocklistHit: "metamask" });
+    expect(v.band).toBe("block");
+    const seedHit = run("https://uniswap.org/", { blocklistHit: "phishdestroy" });
+    expect(seedHit.band).toBe("none");
+  });
+});
+
 describe("blocklist helpers", () => {
   it("extractDomains handles plain arrays and nested configs", () => {
     expect(extractDomains(["a.com", "https://b.com/x"], ["blocklist"])).toEqual(["a.com", "b.com"]);

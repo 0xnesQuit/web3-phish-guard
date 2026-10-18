@@ -23,6 +23,12 @@
   "warning_proceed": {
     "message": "Entiendo el riesgo, continuar de todos modos"
   },
+  "warning_official": {
+    "message": "Ir al sitio oficial: $1"
+  },
+  "warning_proceed_confirm": {
+    "message": "Este sitio está en una lista de phishing revisada. Haz clic de nuevo para continuar."
+  },
   "warning_note": {
     "message": "Los proyectos reales alojan sus airdrops y mints en su dominio oficial o en una dirección anunciada desde sus cuentas oficiales de X/Discord. No confíes en enlaces de \"claim\" de respuestas en X o DMs. Las solicitudes de conexión y firma de billetera en esta página pueden vaciar tus fondos."
   },

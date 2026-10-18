@@ -23,6 +23,12 @@
   "warning_proceed": {
     "message": "위험을 이해합니다, 계속 진행"
   },
+  "warning_official": {
+    "message": "공식 사이트로 이동: $1"
+  },
+  "warning_proceed_confirm": {
+    "message": "검토된 피싱 목록에 있는 사이트입니다. 계속하려면 다시 클릭하세요."
+  },
   "warning_note": {
     "message": "실제 프로젝트는 에어드롭과 민팅을 공식 도메인 또는 공식 X/Discord 계정에서 공지한 주소에서 진행합니다. X 답글이나 DM의 \"claim\" 링크를 믿지 마세요. 이 페이지의 지갑 연결 및 서명 요청은 자산을 탈취할 수 있습니다."
   },

@@ -17,6 +17,8 @@
   .back { background: #e5484d; color: #fff; }
   .proceed { background: transparent; color: #f5b8b8; border: 1px solid #7a3030; }
   .proceed:hover { background: #3b1515; }
+  .proceed.armed { background: #7a3030; color: #fff; }
+  .host:focus { outline: 2px solid #ff6b6b; }
   .note { font-size: 13px; opacity: .7; margin-top: 16px; line-height: 1.5; }
 </style>
 </head>
@@ -24,11 +26,12 @@
   <main class="card">
     <h1 data-i18n="warning_title">This site is probably a wallet drainer</h1>
     <div class="score" id="score"></div>
-    <div class="host" id="host"></div>
+    <div class="host" id="host" tabindex="-1" role="status" aria-live="polite"></div>
     <p data-i18n="warning_reasons">Why it looks suspicious:</p>
     <ul id="reasons"></ul>
     <div class="actions">
       <button class="back" id="back" data-i18n="warning_back">Go back (recommended)</button>
+      <button class="back" id="official" hidden></button>
       <button class="proceed" id="proceed" data-i18n="warning_proceed">I understand the risk, continue anyway</button>
     </div>
     <p class="note" data-i18n="warning_note">Real projects host airdrop and mint flows on their official domain or on an address announced from their official X/Discord accounts. Do not trust "claim" links from X replies or DMs. Wallet connection and signature requests on this page can drain your funds.</p>

@@ -1,17 +1,24 @@
 import { parseHost } from "./lib/hostname";
 import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
 import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle, brandByToken } from "./lib/lists";
-import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, attackedBrandHit, listStatus } from "./lib/blocklist";
+import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, allowlistHit, siblingHit, attackedBrandHit, listStatus, newestDomains } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
-import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow } from "./lib/state";
+import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
-import { scanExternalScripts, goPlus, askApi, sendReport } from "./lib/deepscan";
-import { signalText } from "./lib/i18n";
+import { scanExternalScripts, askApi, sendReport } from "./lib/deepscan";
+import { buildRules, applyRules, addBypassRule } from "./lib/dnr";
 import type { XIntel } from "./lib/types";
 import type { DeepReport, OriginContext, PageSnapshot, PageSocials, ProviderEvent, Signal, Verdict } from "./lib/types";
 
 const WARNING_PAGE = chrome.runtime.getURL("warning.html");
+const EXT_ORIGIN = chrome.runtime.getURL("").replace(/\/$/, "");
+const REVIEWED = new Set(["metamask", "scamsniffer", "community"]);
+
+/** Messages that change state or read other tabs are accepted from the extension's own pages only. */
+function fromExtension(sender: chrome.runtime.MessageSender): boolean {
+  return !!sender.url && sender.url.startsWith(EXT_ORIGIN + "/");
+}
 
 // ---------------------------------------------------------------------------
 // list refresh scheduling
@@ -20,12 +27,14 @@ chrome.runtime.onInstalled.addListener(() => {
   for (const s of SOURCES) chrome.alarms.create(`refresh:${s.id}`, { periodInMinutes: s.every, delayInMinutes: 0.1 });
   chrome.alarms.create("refresh:metamask-diffs", { periodInMinutes: 5, delayInMinutes: 2 });
   chrome.alarms.create("refresh:data", { periodInMinutes: 60 * 12, delayInMinutes: 1 });
+  chrome.alarms.create("prune", { periodInMinutes: 60 * 24, delayInMinutes: 30 });
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   const id = alarm.name.replace("refresh:", "");
   try {
-    if (id === "metamask-diffs") await refreshMetaMaskDiffs();
+    if (alarm.name === "prune") { await pruneCaches(); return; }
+    if (id === "metamask-diffs") { await refreshMetaMaskDiffs(); if (isWarm()) await syncDnr(); }
     else if (id === "data") {
       const r = await refreshRemoteData();
       if (r.updated) console.info(`[w3pg] remote data: ${r.files} files`);
@@ -34,6 +43,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       if (src) {
         const n = await refreshSource(src);
         console.info(`[w3pg] ${id}: ${n} domains`);
+        if (isWarm()) await syncDnr();
       }
     }
   } catch (e) {
@@ -41,10 +51,50 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
+let readyPromise: Promise<Awaited<ReturnType<typeof loadStaticData>>> | null = null;
 async function ensureReady() {
-  const data = await loadStaticData();
-  if (!isWarm()) await warmLists([...data.lists.freeHostsStrong, ...data.lists.freeHostsWeak]);
-  return data;
+  if (!readyPromise) {
+    readyPromise = (async () => {
+      const data = await loadStaticData();
+      if (!isWarm()) {
+        await warmLists([...data.lists.freeHostsStrong, ...data.lists.freeHostsWeak]);
+        await syncDnr();
+      }
+      return data;
+    })().catch((e) => { readyPromise = null; throw e; });
+  }
+  return readyPromise;
+}
+
+/** Push the freshest known-phishing hosts into declarativeNetRequest so they are cancelled before any request. */
+const bypassedHosts: string[] = [];
+async function syncDnr(): Promise<void> {
+  try {
+    const { lists } = await loadStaticData();
+    const block = [
+      ...newestDomains("metamask", 40_000),
+      ...newestDomains("scamsniffer", 15_000),
+      ...newestDomains("community", 10_000),
+      ...newestDomains("community-auto", 10_000),
+    ];
+    const allow = [...(await getUserAllow()), ...lists.trusted, ...bypassedHosts];
+    await applyRules(buildRules(block, allow));
+  } catch (e) {
+    console.warn("[w3pg] DNR sync failed", e);
+  }
+}
+
+/** rdap:* / x:* cache entries have TTLs but were never deleted; sweep them daily. */
+async function pruneCaches(): Promise<void> {
+  const all = await chrome.storage.local.get(null);
+  const now = Date.now();
+  const drop: string[] = [];
+  for (const [k, v] of Object.entries(all)) {
+    const rec = v as { at?: number; checkedAt?: number } | null;
+    const at = rec?.at ?? rec?.checkedAt;
+    if ((k.startsWith("rdap:") || k.startsWith("x:")) && typeof at === "number" && now - at > 14 * 86400_000) drop.push(k);
+  }
+  if (drop.length) await chrome.storage.local.remove(drop);
 }
 
 // ---------------------------------------------------------------------------
@@ -83,12 +133,17 @@ async function warnDisplay(): Promise<"page" | "popup"> {
   return (((await chrome.storage.local.get("warnDisplay")).warnDisplay as string | undefined) === "popup" ? "popup" : "page");
 }
 
-/** Ask X (via Xquik) about the brand token and the poster; null when no key / nothing to ask. */
+/** True while the tab still shows the host a (slow) verdict was computed for. */
+async function stillOn(tabId: number, host: string): Promise<boolean> {
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  if (!tab?.url) return false;
+  try { return new URL(tab.url).hostname === host; } catch { return false; }
+}
+
+/** Ask the API (which holds the Xquik key) about the brand token and the poster. */
 async function xIntelFor(v: Verdict, origin?: OriginContext): Promise<XIntel | undefined> {
   if (!v.xToken) return undefined;
-  const brand = await resolveBrand(v.xToken);
-  const posterHandle = origin?.poster;
-  const poster = posterHandle ? await resolvePoster(posterHandle) : null;
+  const [brand, poster] = await Promise.all([resolveBrand(v.xToken), origin?.poster ? resolvePoster(origin.poster) : Promise.resolve(null)]);
   if (!brand && !poster) return undefined;
   return {
     token: v.xToken,
@@ -98,55 +153,47 @@ async function xIntelFor(v: Verdict, origin?: OriginContext): Promise<XIntel | u
   };
 }
 
-/** Full pipeline for one navigation: local score -> RDAP age -> X resolver, re-applying when the band changes. */
+/** Full pipeline for one navigation: local score -> RDAP age -> X resolver. Later passes are dropped if the tab moved on. */
 async function evaluateAndApply(tabId: number, url: string, origin?: OriginContext): Promise<void> {
   await chrome.storage.session.remove([`soc:${tabId}`, `pev:${tabId}`]);
   let v = await evaluate(url, { origin });
   if (!v) {
-    await clearTab(tabId);
-    await chrome.action.setBadgeText({ tabId, text: "" }).catch(() => undefined);
+    await resetTab(tabId);
     return;
   }
   await applyVerdict(tabId, v);
+  if (v.band === "block") return;
   let ageDays: number | undefined;
   if (v.needsAgeCheck) {
     ageDays = await domainAgeDays(v.registrable);
-    if (ageDays !== undefined) {
-      const v2 = await evaluate(url, { ageDays, origin });
-      if (v2) {
-        await applyVerdict(tabId, v2);
-        v = v2;
-      }
+    if (ageDays !== undefined && (await stillOn(tabId, v.host))) {
+      const v2 = await evaluate(url, { ageDays, origin, socials: await getTabSocials(tabId) });
+      if (v2) { await applyVerdict(tabId, v2); v = v2; }
     }
   }
   if (v.xToken && v.band !== "block") {
     const x = await xIntelFor(v, origin);
-    if (x) {
-      const v3 = await evaluate(url, { ageDays, origin, x });
-      if (v3) {
-        await applyVerdict(tabId, v3);
-      }
+    if (x && (await stillOn(tabId, v.host))) {
+      const v3 = await evaluate(url, { ageDays, origin, x, socials: await getTabSocials(tabId) });
+      if (v3) await applyVerdict(tabId, v3);
     }
   }
 }
 
-/** Follow a short-link (t.co) to its final URL. Cached; only the redirect target is kept. */
+/** Follow a short-link to its final URL. Cached (bounded); only the redirect target is kept. */
 const redirectCache = new Map<string, string>();
 async function resolveRedirect(url: string): Promise<string | null> {
   const hit = redirectCache.get(url);
   if (hit !== undefined) return hit || null;
+  if (redirectCache.size > 500) redirectCache.delete(redirectCache.keys().next().value as string);
   try {
     const ctrl = new AbortController();
     const tmr = setTimeout(() => ctrl.abort(), 6000);
     let res = await fetch(url, { method: "HEAD", redirect: "follow", signal: ctrl.signal, credentials: "omit" });
-    const stuck = (r: Response) => isShortener(new URL(r.url).hostname); // the target may answer 403 to bots; its URL is still the answer
-    if (stuck(res)) {
-      // many shorteners refuse HEAD (tr.ee answers 405) or interpose an HTML page; GET follows the real redirect
-      res = await fetch(url, { method: "GET", redirect: "follow", signal: ctrl.signal, credentials: "omit" });
-    }
+    const stuck = (r: Response) => isShortener(new URL(r.url).hostname);
+    if (stuck(res)) res = await fetch(url, { method: "GET", redirect: "follow", signal: ctrl.signal, credentials: "omit" });
     let finalUrl = stuck(res) ? "" : res.url;
     if (!finalUrl && res.ok) {
-      // last resort: meta refresh / JS redirect in the interstitial body
       const body = (await res.text()).slice(0, 20000);
       const m = body.match(/(?:http-equiv="refresh"[^>]*url=|window\.location(?:\.href)?\s*=\s*["'])(https?:[^"'>\s]+)/i);
       if (m) finalUrl = m[1];
@@ -160,17 +207,22 @@ async function resolveRedirect(url: string): Promise<string | null> {
   }
 }
 
-/** User-triggered deep scan: page snapshot + external script grep + GoPlus + API verdict. */
+/** User-triggered deep scan: page snapshot + external script grep + API verdict (the API also asks GoPlus). */
 async function deepScan(tabId: number, language: string): Promise<DeepReport | { error: string }> {
   const tab = await chrome.tabs.get(tabId).catch(() => null);
   if (!tab?.url || !/^https?:/.test(tab.url)) return { error: "not_http" };
   // Firefox 140+: the page snapshot leaves the browser, so ask for the declared optional data-collection permission first.
   try {
     const bss = chrome.runtime.getManifest().browser_specific_settings as { gecko?: { data_collection_permissions?: unknown } } | undefined;
-    const perms = chrome.permissions as unknown as { request?: (p: { data_collection?: string[] }) => Promise<boolean> };
+    const perms = chrome.permissions as unknown as { request?: (p: { data_collection?: string[] }) => Promise<boolean>; contains?: (p: { data_collection?: string[] }) => Promise<boolean> };
     if (bss?.gecko?.data_collection_permissions && perms?.request) {
-      const ok = await perms.request({ data_collection: ["websiteContent", "websiteActivity"] }).catch(() => true);
-      if (!ok) return { error: "permission_denied" };
+      const wanted = { data_collection: ["websiteContent", "websiteActivity"] };
+      const has = perms.contains ? await perms.contains(wanted).catch(() => false) : false;
+      if (!has) {
+        // request() must run from a user gesture; the popup click is one. A thrown error means "not granted".
+        const ok = await perms.request(wanted).catch(() => false);
+        if (!ok) return { error: "permission_denied" };
+      }
     }
   } catch { /* Chrome: no data-collection permissions */ }
   let v = await getTabVerdict(tabId);
@@ -188,21 +240,16 @@ async function deepScan(tabId: number, language: string): Promise<DeepReport | {
 
   const origin = await getTabOrigin(tabId);
   const pev = ((await chrome.storage.session.get(`pev:${tabId}`))[`pev:${tabId}`] as string[] | undefined) ?? [];
-  const [markers, gp, ageDays] = await Promise.all([
+  const [markers, ageDays] = await Promise.all([
     scanExternalScripts(snapshot.scripts),
-    goPlus(v.host),
     v.ageDays !== undefined ? Promise.resolve(v.ageDays) : domainAgeDays(v.registrable),
   ]);
-  if (ageDays !== undefined && v.ageDays === undefined) {
-    const v2 = await evaluate(tab.url, { ageDays, origin });
-    if (v2) v = v2;
-  }
   const socials = snapshot.socials ?? (await getTabSocials(tabId));
   const x = v.xToken ? await xIntelFor(v, origin) : undefined;
   const v3 = await evaluate(tab.url, { ageDays, origin, x, socials });
   if (v3) v = v3;
-  const ai = await askApi(snapshot, { verdict: v, origin, x, providerEvents: pev, language }, { markers, goplus: gp });
-  const report: DeepReport = { host: v.host, at: Date.now(), local: { score: v.score, band: v.band, signals: v.signals }, page: snapshot, markers, goplus: gp, ai };
+  const ai = await askApi(snapshot, { verdict: v, origin, x, providerEvents: pev, language }, { markers });
+  const report: DeepReport = { host: v.host, at: Date.now(), local: { score: v.score, band: v.band, signals: v.signals }, page: snapshot, markers, goplus: ai.goplus, ai };
   await chrome.storage.session.set({ [cacheKey]: report });
   return report;
 }
@@ -221,41 +268,52 @@ async function applyVerdict(tabId: number, v: Verdict) {
   await chrome.action.setBadgeText({ tabId, text: v.band === "none" ? "" : String(v.score) }).catch(() => undefined);
 
   if (v.band === "block" && !(await isBypassed(v.host))) {
-    const target = `${WARNING_PAGE}#${encodeURIComponent(JSON.stringify({ url: v.url, host: v.host, score: v.score, signals: v.signals }))}`;
-    await chrome.tabs.update(tabId, { url: target }).catch(() => undefined);
+    await showWarning(tabId, v);
     return;
   }
   if (v.band === "warn" && (await warnDisplay()) === "page") {
     chrome.tabs.sendMessage(tabId, { type: "w3pg:overlay", verdict: v }).catch(() => undefined);
   } else if (v.band === "none") {
-    // a later pass (domain age, X resolution) cleared the page: take the banner down
     chrome.tabs.sendMessage(tabId, { type: "w3pg:clear" }).catch(() => undefined);
   }
+}
+
+async function showWarning(tabId: number, v: Verdict) {
+  const { brands } = await ensureReady();
+  const brand = v.brand ? brands.find((b) => b.name === v.brand) : undefined;
+  const reviewed = v.signals.some((s) => s.id === "blocklist" && s.sub?.[0] !== undefined && REVIEWED.has(s.sub[0]));
+  const nonce = await putWarning({ url: v.url, host: v.host, score: v.score, signals: v.signals, brandDomain: brand?.domains[0], reviewed, tabId });
+  await chrome.tabs.update(tabId, { url: `${WARNING_PAGE}?n=${nonce}` }).catch(() => undefined);
+}
+
+async function resetTab(tabId: number) {
+  await clearTab(tabId);
+  await chrome.action.setBadgeText({ tabId, text: "" }).catch(() => undefined);
 }
 
 chrome.webNavigation.onCommitted.addListener(async (d) => {
   if (d.frameId !== 0) return;
   try {
-    // Redirector hop (t.co, out.reddit.com...): remember the source for the hop that follows.
     let host = "";
     try { host = new URL(d.url).hostname; } catch { /* ignore */ }
     const src = host ? sourceFromHost(host) : null;
     if (src && (host === "t.co" || host === "out.reddit.com")) {
       const pending = await takePendingClick();
       await setTabOrigin(d.tabId, { source: src, at: Date.now(), ...(pending ?? {}) });
+      await resetTab(d.tabId);
       return;
     }
-    if (src) return; // the social site itself is never evaluated
+    if (src) { await resetTab(d.tabId); return; } // the social site itself is never evaluated
     if (host && isShortener(host)) {
-      // tr.ee / bit.ly hop: keep the origin alive, remember that the destination was hidden
       const existing = (await getTabOrigin(d.tabId)) ?? (await takePendingClick());
       if (existing) await setTabOrigin(d.tabId, { ...existing, shortener: host, at: Date.now() });
+      await resetTab(d.tabId);
       return;
     }
+    if (d.url.startsWith(EXT_ORIGIN)) return;
 
     let origin = await getTabOrigin(d.tabId);
     if (!origin) {
-      // Article / card links often leave X without a t.co hop and open in a new tab with no referrer.
       const pending = await peekPendingClick();
       if (pending && (!pending.target || pending.target === "t.co" || pending.target === host || host.endsWith("." + pending.target))) {
         await takePendingClick();
@@ -269,13 +327,26 @@ chrome.webNavigation.onCommitted.addListener(async (d) => {
   }
 });
 
+// A DNR block shows the browser's error page; swap it for our warning with the real reasons.
+chrome.webNavigation.onErrorOccurred.addListener(async (d) => {
+  if (d.frameId !== 0 || !/^https?:/.test(d.url)) return;
+  if (!/BLOCKED_BY_CLIENT|NS_ERROR_ABORT|NS_BINDING_ABORTED/i.test(d.error ?? "")) return;
+  try {
+    const v = await evaluate(d.url, { origin: await getTabOrigin(d.tabId) });
+    if (v && v.signals.some((s) => s.id === "blocklist")) {
+      await setTabVerdict(d.tabId, v);
+      await showWarning(d.tabId, v);
+    }
+  } catch { /* ignore */ }
+});
+
 chrome.tabs.onRemoved.addListener((tabId) => void clearTab(tabId));
 
 // The overlay content script may load after the verdict was decided; nudge it once the page is complete.
 chrome.webNavigation.onCompleted.addListener(async (d) => {
   if (d.frameId !== 0) return;
   const v = await getTabVerdict(d.tabId);
-  if (v && v.band === "warn" && (await warnDisplay()) === "page") {
+  if (v && v.band === "warn" && v.url === d.url && (await warnDisplay()) === "page") {
     chrome.tabs.sendMessage(d.tabId, { type: "w3pg:overlay", verdict: v }).catch(() => undefined);
   }
 });
@@ -287,26 +358,48 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     switch (msg?.type) {
       case "w3pg:getVerdict": {
-        const tabId = msg.tabId ?? sender.tab?.id;
+        const tabId = fromExtension(sender) ? (msg.tabId ?? sender.tab?.id) : sender.tab?.id;
         sendResponse(tabId !== undefined ? await getTabVerdict(tabId) : undefined);
         return;
       }
+      case "w3pg:getWarning": {
+        if (!fromExtension(sender)) return;
+        sendResponse((await getWarning(String(msg.nonce))) ?? null);
+        return;
+      }
       case "w3pg:bypass": {
-        await addBypass(String(msg.host));
+        if (!fromExtension(sender)) return;
+        const p = await getWarning(String(msg.nonce));
+        if (!p) { sendResponse(false); return; }
+        await addBypass(p.host);
+        bypassedHosts.push(p.host);
+        await addBypassRule(p.host);
+        sendResponse(true);
+        return;
+      }
+      case "w3pg:leave": {
+        const tabId = sender.tab?.id;
+        if (!fromExtension(sender) || tabId === undefined) return;
+        await chrome.tabs.update(tabId, { url: "about:blank" }).catch(() => undefined);
         sendResponse(true);
         return;
       }
       case "w3pg:allow": {
+        if (!fromExtension(sender)) return;
         await addUserAllow(String(msg.registrable));
+        await syncDnr();
         sendResponse(true);
         return;
       }
       case "w3pg:unallow": {
+        if (!fromExtension(sender)) return;
         await removeUserAllow(String(msg.registrable));
+        await syncDnr();
         sendResponse(true);
         return;
       }
       case "w3pg:status": {
+        if (!fromExtension(sender)) return;
         sendResponse({ lists: await listStatus(), userAllow: await getUserAllow(), data: await remoteDataStatus() });
         return;
       }
@@ -316,7 +409,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const ev = msg.event as ProviderEvent;
         const prev = (await getTabVerdict(tabId)) ?? (await evaluate(sender.url));
         if (!prev) return;
-        if (prev.signals.some((s) => s.id === "user-allow" || s.id === "brand-official")) return;
+        let frameHost = "";
+        try { frameHost = new URL(sender.url).hostname; } catch { /* ignore */ }
+        if (sender.frameId !== 0 && frameHost !== prev.host) return;
+        if (prev.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted")) return;
         const weight = providerWeight(ev);
         if (!weight) return;
         const id = `provider-${ev.kind}`;
@@ -340,17 +436,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const socials = msg.socials as PageSocials;
         const prev = await getTabVerdict(tabId);
         if (prev?.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted")) return;
-        // With an Xquik key, verify the first linked account (1 credit, cached a day): a real 5k+ account whose
-        // bio links elsewhere means this page borrowed someone else's social proof.
         if (socials.xHandles.length && prev && prev.score >= 10) {
           const acc = await resolvePoster(socials.xHandles[0]);
           if (acc && acc.followers >= 5000) socials.verified = { handle: acc.handle, name: acc.name, followers: acc.followers, domains: acc.domains };
         }
         await chrome.storage.session.set({ [`soc:${tabId}`]: socials });
+        let host = "";
+        try { host = new URL(sender.url).hostname; } catch { return; }
+        if (!(await stillOn(tabId, host))) return;
         const origin = await getTabOrigin(tabId);
         const v = await evaluate(sender.url, { ageDays: prev?.ageDays, origin, socials });
         if (v && (!prev || v.score !== prev.score)) {
-          // keep provider signals already accumulated on this tab
           const extra = (prev?.signals ?? []).filter((s) => s.id.startsWith("provider-"));
           const merged = extra.length ? { ...v, signals: [...v.signals, ...extra] } : v;
           const total = Math.max(0, Math.min(100, merged.signals.reduce((s, x) => s + x.weight, 0)));
@@ -359,7 +455,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:referrer": {
-        // Fallback when no redirector hop was seen (e.g. Discord opens links directly).
         const tabId = sender.tab?.id;
         if (tabId === undefined || sender.frameId !== 0 || !sender.url) return;
         let rh = "";
@@ -384,7 +479,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:scoreLink": {
-        // Timeline / article link: resolve t.co to the real target, then score that host with the shown text as display.
         const href = String(msg.href);
         let target = "";
         try { target = new URL(href).hostname.toLowerCase(); } catch { sendResponse(null); return; }
@@ -398,25 +492,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:getSettings": {
+        if (!fromExtension(sender)) return;
         sendResponse({ warnDisplay: await warnDisplay() });
         return;
       }
       case "w3pg:setSettings": {
+        if (!fromExtension(sender)) return;
         if (msg.warnDisplay === "page" || msg.warnDisplay === "popup") await chrome.storage.local.set({ warnDisplay: msg.warnDisplay });
         sendResponse(true);
         return;
       }
       case "w3pg:deepScan": {
-        const tabId = Number(msg.tabId);
-        sendResponse(await deepScan(tabId, String(msg.language || "en")));
+        if (!fromExtension(sender)) return;
+        sendResponse(await deepScan(Number(msg.tabId), String(msg.language || "en")));
         return;
       }
       case "w3pg:getDeepReport": {
+        if (!fromExtension(sender)) return;
         const tabId = Number(msg.tabId);
         sendResponse((await chrome.storage.session.get(`deep:${tabId}`))[`deep:${tabId}`] ?? null);
         return;
       }
       case "w3pg:report": {
+        if (!fromExtension(sender)) return;
         const tabId = Number(msg.tabId);
         let v = await getTabVerdict(tabId);
         if (!v) {
@@ -428,10 +526,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
       case "w3pg:refreshNow": {
+        if (!fromExtension(sender)) return;
         try { await refreshRemoteData(true); } catch (e) { console.warn(e); }
         for (const s of SOURCES) {
           try { await refreshSource(s); } catch (e) { console.warn(e); }
         }
+        await syncDnr();
         sendResponse(await listStatus());
         return;
       }
