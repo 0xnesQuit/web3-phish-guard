@@ -8,3 +8,5 @@ dist-firefox/
 packages/
 *.pem
 *.crx
+reports/
+research_notes/
