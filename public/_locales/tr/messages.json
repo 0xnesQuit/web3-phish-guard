@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$2 için $1"
   },
+  "sbx_clean_reassure": {
+    "message": "Bu sitede cüzdanına zarar verecek bir davranış görülmedi. Aşağıdakiler yalnızca kod gözlemleri, tehlike değil."
+  },
+  "sbx_observations_label": {
+    "message": "Teknik gözlemler (tehlike değil)"
+  },
+  "sbx_findings_label": {
+    "message": "Tespit edilenler"
+  },
+  "sbx_markers_note": {
+    "message": "Drainer kitlerinde de rastlanan $1 kod kalıbı — tek başına tehlike değil"
+  },
   "verdict_suspicious": {
     "message": "Şüpheli"
   },

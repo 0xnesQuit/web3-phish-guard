@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$2：$1"
   },
+  "sbx_clean_reassure": {
+    "message": "在此网站上未发现会损害你钱包的行为。以下内容只是代码层面的观察，并非威胁。"
+  },
+  "sbx_observations_label": {
+    "message": "技术观察（并非威胁）"
+  },
+  "sbx_findings_label": {
+    "message": "发现的内容"
+  },
+  "sbx_markers_note": {
+    "message": "$1 个代码特征也出现在已知的 drainer 套件中——单独出现并不危险"
+  },
   "verdict_suspicious": {
     "message": "可疑"
   },

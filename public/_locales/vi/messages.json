@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$1 cho $2"
   },
+  "sbx_clean_reassure": {
+    "message": "Không phát hiện hành vi nào gây hại cho ví của bạn trên trang này. Các mục bên dưới chỉ là quan sát về mã, không phải mối đe dọa."
+  },
+  "sbx_observations_label": {
+    "message": "Quan sát kỹ thuật (không phải mối đe dọa)"
+  },
+  "sbx_findings_label": {
+    "message": "Những gì chúng tôi tìm thấy"
+  },
+  "sbx_markers_note": {
+    "message": "$1 mẫu mã cũng xuất hiện trong các bộ drainer đã biết — tự nó không nguy hiểm"
+  },
   "verdict_suspicious": {
     "message": "Đáng ngờ"
   },

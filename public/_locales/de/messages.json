@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$1 für $2"
   },
+  "sbx_clean_reassure": {
+    "message": "Auf dieser Seite wurde kein Verhalten beobachtet, das deiner Wallet schaden könnte. Die Punkte unten sind nur Code-Beobachtungen, keine Bedrohungen."
+  },
+  "sbx_observations_label": {
+    "message": "Technische Beobachtungen (keine Bedrohungen)"
+  },
+  "sbx_findings_label": {
+    "message": "Was wir gefunden haben"
+  },
+  "sbx_markers_note": {
+    "message": "$1 Code-Muster, das auch in bekannten Drainer-Kits vorkommt – für sich allein nicht gefährlich"
+  },
   "verdict_suspicious": {
     "message": "Verdächtig"
   },

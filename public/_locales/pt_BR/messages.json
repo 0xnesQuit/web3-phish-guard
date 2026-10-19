@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$1 para $2"
   },
+  "sbx_clean_reassure": {
+    "message": "Nenhum comportamento prejudicial à sua carteira foi observado neste site. Os itens abaixo são apenas observações do código, não ameaças."
+  },
+  "sbx_observations_label": {
+    "message": "Observações técnicas (não são ameaças)"
+  },
+  "sbx_findings_label": {
+    "message": "O que encontramos"
+  },
+  "sbx_markers_note": {
+    "message": "$1 padrão de código também encontrado em kits drainer conhecidos — não é perigoso por si só"
+  },
   "verdict_suspicious": {
     "message": "Suspeito"
   },

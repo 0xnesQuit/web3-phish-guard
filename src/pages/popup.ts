@@ -159,8 +159,15 @@ function paintSandbox() {
   let body = "";
   if (!sb.job && s && s.ok && SHOW_RESULT.has(st)) {
     const cls = s.verdict === "malicious" ? "dangerous" : s.verdict === "suspicious" ? "suspicious" : "likely_safe";
-    const findings = (s.findings ?? []).slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join("");
-    body = `<div class="v ${cls}">${esc(t(`verdict_${s.verdict}`))} · ${s.score}/100</div><div class="sbsub">${esc(t("popup_sandbox_sub"))}</div>${findings ? `<ul>${findings}</ul>` : ""}`;
+    const calm = s.verdict !== "malicious" && s.verdict !== "suspicious";
+    // Drop the server's free-text "drainer kit" marker line; we render markers ourselves, softened and localized.
+    const items = (s.findings ?? []).filter((x) => !/drainer\s*kit/i.test(x)).slice(0, 8);
+    const markerCount = s.scriptMarkers?.length ?? 0;
+    if (markerCount > 0) items.unshift(t("sbx_markers_note", [String(markerCount)]));
+    const reassure = calm && items.length ? `<div class="sbcalm">${esc(t("sbx_clean_reassure"))}</div>` : "";
+    const listHead = items.length ? `<div class="sbsub2">${esc(t(calm ? "sbx_observations_label" : "sbx_findings_label"))}</div>` : "";
+    const list = items.length ? `<ul>${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+    body = `<div class="v ${cls}">${esc(t(`verdict_${s.verdict}`))} · ${s.score}/100</div><div class="sbsub">${esc(t("popup_sandbox_sub"))}</div>${reassure}${listHead}${list}`;
   }
   el.innerHTML = `<div class="sbh">${esc(t("popup_sandbox_title"))}</div><div class="sbstate sb-${bucket}"><span class="sbicon">${icon}</span> ${esc(line)}</div>${body}${btn}`;
   el.querySelector("#sbxqueue")?.addEventListener("click", () => void startQueue());

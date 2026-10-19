@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$2: $1"
   },
+  "sbx_clean_reassure": {
+    "message": "이 사이트에서 지갑에 해를 끼치는 동작은 발견되지 않았습니다. 아래 항목은 코드 관찰 사항일 뿐 위협이 아닙니다."
+  },
+  "sbx_observations_label": {
+    "message": "기술적 관찰 사항 (위협 아님)"
+  },
+  "sbx_findings_label": {
+    "message": "발견된 내용"
+  },
+  "sbx_markers_note": {
+    "message": "알려진 드레이너 킷에서도 발견되는 코드 패턴 $1개 — 그 자체로는 위험하지 않음"
+  },
   "verdict_suspicious": {
     "message": "의심스러움"
   },

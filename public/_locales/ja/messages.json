@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$2 の結果：$1"
   },
+  "sbx_clean_reassure": {
+    "message": "このサイトでは、ウォレットに害を及ぼす挙動は確認されませんでした。以下はコードに関する観察事項であり、脅威ではありません。"
+  },
+  "sbx_observations_label": {
+    "message": "技術的な観察事項（脅威ではありません）"
+  },
+  "sbx_findings_label": {
+    "message": "検出された内容"
+  },
+  "sbx_markers_note": {
+    "message": "既知のドレイナーキットにも見られるコードパターンが $1 件 — 単独では危険ではありません"
+  },
   "verdict_suspicious": {
     "message": "疑わしい"
   },

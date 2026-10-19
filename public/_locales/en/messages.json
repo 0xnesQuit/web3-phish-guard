@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$1 for $2"
   },
+  "sbx_clean_reassure": {
+    "message": "No wallet-harming behavior was seen on this site. The items below are just code observations, not threats."
+  },
+  "sbx_observations_label": {
+    "message": "Technical observations (not threats)"
+  },
+  "sbx_findings_label": {
+    "message": "What we found"
+  },
+  "sbx_markers_note": {
+    "message": "$1 code pattern also found in known drainer kits — not dangerous on its own"
+  },
   "verdict_suspicious": {
     "message": "Suspicious"
   },

@@ -218,6 +218,18 @@
   "sbx_notify_msg": {
     "message": "$1 untuk $2"
   },
+  "sbx_clean_reassure": {
+    "message": "Tidak ada perilaku yang membahayakan dompet Anda yang terlihat di situs ini. Item di bawah hanyalah pengamatan kode, bukan ancaman."
+  },
+  "sbx_observations_label": {
+    "message": "Pengamatan teknis (bukan ancaman)"
+  },
+  "sbx_findings_label": {
+    "message": "Yang kami temukan"
+  },
+  "sbx_markers_note": {
+    "message": "$1 pola kode yang juga ditemukan di kit drainer yang dikenal — tidak berbahaya dengan sendirinya"
+  },
   "verdict_suspicious": {
     "message": "Mencurigakan"
   },
