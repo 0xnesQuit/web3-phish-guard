@@ -565,9 +565,13 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
  *  Accounting: `total`+`day` once per client request (handleSandbox, or handleQueue); exactly one outcome per request
  *  (cache/blocklist/busy/fresh/queued); a queued job's dispatched scan counts `fresh` (runDispatch) but never another `total`;
  *  verdict_x + autolist in storeSandboxResult, fresh or fail_x in scanStat; `backend:<host>` only for the backend that answered (sandboxFetch). */
-const bump = (env: Env, fields: string[]) => { try { state(env).bumpStats(fields).catch(() => {}); } catch { /* stats are best effort */ } };
+// Cloudflare cancels un-awaited promises once the response is returned, so these DO writes are kept alive with
+// ctx.waitUntil (set per-request at the top of fetch); without it the counters/log would never persist.
+let statCtx: ExecutionContext | null = null;
+const keep = (p: Promise<unknown>) => { try { statCtx?.waitUntil(p); } catch { /* ignore */ } };
+const bump = (env: Env, fields: string[]) => { try { keep(state(env).bumpStats(fields).catch(() => {})); } catch { /* stats are best effort */ } };
 /** Recent-requests log (host only, never a full URL). */
-const logEv = (env: Env, e: { host?: string; outcome: string; reason?: string; verdict?: string; backend?: string }) => { try { state(env).logEvent({ ts: Date.now(), host: e.host ?? "", ...e }).catch(() => {}); } catch { /* best effort */ } };
+const logEv = (env: Env, e: { host?: string; outcome: string; reason?: string; verdict?: string; backend?: string }) => { try { keep(state(env).logEvent({ ts: Date.now(), host: e.host ?? "", ...e }).catch(() => {})); } catch { /* best effort */ } };
 /** A request that did not end in a usable verdict: one fail_<reason> counter + one log row. */
 const failStat = (env: Env, reason: string, host = "") => { bump(env, [`fail_${reason}`]); logEv(env, { host, outcome: "fail", reason }); };
 /** A request rejected before the normal flow counted it: also count it in total/day. */
@@ -975,45 +979,228 @@ pre{text-align:left;background:#0c111d;border:1px solid #1e283f;border-radius:10
 })();
 </script></body></html>`;
 
-const ADMIN_SHELL = `<!doctype html><meta charset="utf-8"><title>W3PG moderation</title>
-<style>body{font:14px system-ui;margin:24px;background:#111;color:#eee}table{border-collapse:collapse;width:100%}td,th{border:1px solid #333;padding:8px;vertical-align:top}button{margin-right:6px}code{color:#ffd27a}input{font:inherit;padding:6px;width:360px}</style>
-<h1>W3PG moderation</h1>
-<div id="login"><p>Admin token:</p><input id="tok" type="password"> <button onclick="save()">Open</button></div>
-<div id="app"></div>
-<div id="sbx" style="margin-top:28px"></div>
+const ADMIN_SHELL = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Guard3 Admin</title>
+<style>
+:root{--bg:#0b0e14;--panel:#121722;--panel2:#171d2b;--border:#232b3d;--text:#e6e9f0;--muted:#8b93a7;--accent:#6d8cff;--accent2:#8aa2ff;--green:#34d399;--blue:#60a5fa;--red:#f87171;--amber:#fbbf24;--gray:#94a3b8;--radius:10px}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+header.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:12px 20px;background:rgba(18,23,34,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),#a78bfa);flex:none}
+header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+header .sp{flex:1}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 60px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font:inherit;font-weight:600;padding:10px 16px;cursor:pointer;white-space:nowrap;margin-bottom:-1px;border-radius:0}
+.tab:hover{color:var(--text);background:none}
+.tab.on{color:var(--accent2);border-bottom-color:var(--accent)}
+.hidden{display:none!important}
+button{font:inherit;font-weight:600;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 14px;cursor:pointer;transition:background .15s,border-color .15s}
+button:hover{background:#1f2738;border-color:#33405c}
+button.primary{background:var(--accent);border-color:var(--accent);color:#0b0e14}
+button.primary:hover{background:var(--accent2)}
+input,textarea{font:inherit;background:#0d111a;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 11px;max-width:100%}
+input:focus,textarea:focus{outline:2px solid rgba(109,140,255,.45);border-color:var(--accent)}
+code{background:#0d111a;border:1px solid var(--border);border-radius:6px;padding:1px 7px;color:#ffd27a;font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;display:inline-block;margin:2px 2px 2px 0}
+small{color:var(--muted)}
+h2{font-size:15px;margin:0 0 12px;font-weight:650}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:18px}
+.card h2{display:flex;align-items:center;gap:10px}
+.cnt{background:var(--panel2);border:1px solid var(--border);border-radius:999px;font-size:12px;padding:1px 9px;color:var(--muted);font-weight:600}
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th{background:var(--panel2);color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;text-align:left;font-weight:600}
+td,th{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:0}
+table tr:hover td{background:rgba(109,140,255,.05)}
+td button{margin:2px 6px 2px 0;padding:5px 11px;font-size:13px}
+td button:first-child{border-color:rgba(52,211,153,.5);color:var(--green)}
+td button:first-child:hover{background:rgba(52,211,153,.12)}
+td button:nth-child(2){border-color:rgba(248,113,113,.5);color:var(--red)}
+td button:nth-child(2):hover{background:rgba(248,113,113,.12)}
+td.empty{color:var(--muted);text-align:center;padding:22px 12px}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid;letter-spacing:.3px}
+.green{color:var(--green);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.1)}
+.blue{color:var(--blue);border-color:rgba(96,165,250,.4);background:rgba(96,165,250,.1)}
+.red{color:var(--red);border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.1)}
+.amber{color:var(--amber);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.1)}
+.gray{color:var(--gray);border-color:rgba(148,163,184,.35);background:rgba(148,163,184,.08)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.stat b{display:block;font-size:22px;font-weight:700;line-height:1.2}
+.stat span{font-size:12px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px}
+.grid2 .card{margin-bottom:0}
+.grid2 table{min-width:0}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.bar h2{margin:0}
+.msg{color:var(--muted);padding:30px;text-align:center}
+.err{color:var(--red);min-height:20px;margin:8px 0 0;font-size:13px}
+#login{min-height:60vh;display:flex;align-items:center;justify-content:center}
+#login .card{width:100%;max-width:380px;margin:0}
+#login input{width:100%;margin:10px 0 12px}
+#login .btn-row{display:flex;justify-content:flex-end}
+#mod-body .status{margin:12px 0 0;color:var(--muted)}
+.btn-row{display:flex;justify-content:flex-end}
+.chips{display:flex;flex-wrap:wrap;gap:2px}
+.brk{word-break:break-all}
+td.acts{white-space:nowrap}
+#mod-body textarea{width:100%;min-height:90px;resize:vertical}
+#mod-body #addnote{width:100%;margin:10px 0}
+</style></head><body>
+<header class="top"><div class="logo"></div><h1>Guard3 — Admin</h1><div class="sp"></div><button id="logout" class="hidden" onclick="logout()">Sign out</button></header>
+<main>
+<div id="login" class="hidden"><div class="card"><h2>Admin sign-in</h2><small>Enter the admin token to continue.</small>
+<input id="tok" type="password" placeholder="Admin token" autocomplete="off">
+<div class="btn-row"><button class="primary" onclick="save()">Open</button></div><div id="loginerr" class="err"></div></div></div>
+<div id="app" class="hidden">
+<nav class="tabs" role="tablist">
+<button class="tab" data-tab="mod" onclick="showTab('mod')">Moderation</button>
+<button class="tab" data-tab="stats" onclick="showTab('stats')">Sandbox stats</button>
+<button class="tab" data-tab="act" onclick="showTab('act')">Activity</button>
+</nav>
+<section id="p-mod" class="hidden"><div class="bar"><h2>Moderation</h2><button onclick="load()">Refresh</button></div><div id="mod-body"><div class="msg">Loading…</div></div></section>
+<section id="p-stats" class="hidden"><div class="bar"><h2>Sandbox stats</h2><button onclick="statsLoad()">Refresh</button></div><div id="stats-body"><div class="msg">Loading…</div></div></section>
+<section id="p-act" class="hidden"><div class="bar"><h2>Recent sandbox requests</h2><button onclick="actLoad()">Refresh</button></div><div id="act-body"><div class="msg">Loading…</div></div></section>
+</div>
+</main>
 <script>
-  const KEY = "w3pg_admin_token";
-  function save(){ sessionStorage.setItem(KEY, document.getElementById("tok").value.trim()); load(); }
-  async function api(path, opts={}){ const t = sessionStorage.getItem(KEY) || ""; return fetch(path, { ...opts, headers: { ...(opts.headers||{}), "x-admin-token": t } }); }
-  async function load(){
-    const t = sessionStorage.getItem(KEY); if(!t) return;
-    const r = await api("/admin/data"); if(!r.ok){ sessionStorage.removeItem(KEY); alert("unauthorized"); return; }
-    document.getElementById("login").style.display="none";
-    document.getElementById("app").innerHTML = await r.text();
-    sbxLoad();
-  }
+  const KEY = "w3pg_admin_token", TABKEY = "w3pg_admin_tab";
+  const loaded = {};
+  const $ = (id)=>document.getElementById(id);
   const esc = (x)=>String(x==null?"":x).replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-  const tbl = (head, rows)=>"<table style='width:auto;margin:6px 0'><tr>"+head.map((h)=>"<th>"+esc(h)+"</th>").join("")+"</tr>"+(rows.length?rows.map((r)=>"<tr>"+r.map((c)=>"<td>"+esc(c)+"</td>").join("")+"</tr>").join(""):"<tr><td colspan='"+head.length+"'>none</td></tr>")+"</table>";
-  async function sbxLoad(){
-    const el = document.getElementById("sbx");
-    const [a,b] = await Promise.all([api("/admin/stats"), api("/admin/log")]);
-    if(!a.ok||!b.ok){ el.innerHTML="<p>sandbox stats unavailable</p>"; return; }
-    const s = await a.json(), log = await b.json(), n = (k)=>Number(s[k])||0;
+  function showLogin(msg){
+    $("app").classList.add("hidden"); $("logout").classList.add("hidden"); $("login").classList.remove("hidden");
+    $("loginerr").textContent = msg || "";
+    for (const k in loaded) delete loaded[k];
+  }
+  function logout(){ try{ sessionStorage.removeItem(KEY); }catch(e){} showLogin(""); }
+  function save(){ try{ sessionStorage.setItem(KEY, $("tok").value.trim()); }catch(e){} $("tok").value=""; start(); }
+  async function api(path, opts={}){
+    let t = ""; try{ t = sessionStorage.getItem(KEY) || ""; }catch(e){}
+    const r = await fetch(path, { ...opts, headers: { ...(opts.headers||{}), "x-admin-token": t } });
+    if (r.status === 401) { try{ sessionStorage.removeItem(KEY); }catch(e){} showLogin("Unauthorized - check the token."); }
+    return r;
+  }
+  function showTab(name){
+    try{ sessionStorage.setItem(TABKEY, name); }catch(e){}
+    for (const b of document.querySelectorAll(".tab")) b.classList.toggle("on", b.dataset.tab === name);
+    for (const n of ["mod","stats","act"]) $("p-"+n).classList.toggle("hidden", n !== name);
+    if (!loaded[name]) { loaded[name] = true; ({mod:load, stats:statsLoad, act:actLoad})[name](); }
+  }
+  async function start(){
+    let t = null; try{ t = sessionStorage.getItem(KEY); }catch(e){}
+    if (!t) { showLogin(""); return; }
+    $("login").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden");
+    let tab = "mod"; try{ tab = sessionStorage.getItem(TABKEY) || "mod"; }catch(e){}
+    if (["mod","stats","act"].indexOf(tab) < 0) tab = "mod";
+    for (const k in loaded) delete loaded[k];
+    showTab(tab);
+    if (tab !== "mod") { loaded.mod = true; load(); }
+  }
+  // Moderation: /admin/data returns JSON, rendered with DOM nodes and textContent only.
+  function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function chips(list){
+    const w = el("div", "chips");
+    if (!list || !list.length) { w.appendChild(el("small", "", "None yet")); return w; }
+    for (const d of list) w.appendChild(el("code", "", d));
+    return w;
+  }
+  function modCard(title, count){
+    const c = el("div", "card"), h = el("h2", "", title);
+    if (count != null) h.appendChild(el("span", "cnt", String(count)));
+    c.appendChild(h); return c;
+  }
+  async function load(){
+    const r = await api("/admin/data"); if (r.status === 401) return;
+    const box = $("mod-body");
+    if (!r.ok) { box.textContent = "Could not load moderation data (" + r.status + ")."; box.className = "msg"; return; }
+    const d = await r.json().catch(()=>null);
+    if (!d) { box.textContent = "Bad response."; box.className = "msg"; return; }
+    box.className = ""; box.textContent = "";
+    const com = d.community || {}, pend = d.pending || [];
+    // add form (kept across reloads of the data, ids used by add())
+    const addc = modCard("Add domains by hand");
+    const ta = el("textarea"); ta.id = "add"; ta.rows = 4; ta.placeholder = "one per line, URLs are fine: https://claim-foo.xyz/airdrop";
+    const nt = el("input"); nt.id = "addnote"; nt.placeholder = "note (where you found it, e.g. x.com/... tweet)";
+    const ab = el("button", "primary", "Add to blocklist"); ab.addEventListener("click", add);
+    addc.appendChild(ta); addc.appendChild(nt);
+    const row = el("div", "btn-row"); row.appendChild(ab); addc.appendChild(row);
+    const st = el("p", "status", (com.domains||[]).length + " approved + " + (com.auto||[]).length + " auto-listed, updated " + (com.updatedAt ? new Date(com.updatedAt).toLocaleString() : "never"));
+    addc.appendChild(st);
+    box.appendChild(addc);
+    // pending
+    const pc = modCard("Pending", pend.length), tw = el("div", "tw"), tb = el("table"), hr = el("tr");
+    for (const h of ["Domain","Score","Signals","Note","When",""]) hr.appendChild(el("th", "", h));
+    tb.appendChild(hr);
+    if (!pend.length) { const tr = el("tr"), td = el("td", "empty", "Nothing pending"); td.colSpan = 6; tr.appendChild(td); tb.appendChild(tr); }
+    for (const p of pend) {
+      const tr = el("tr"), auto = p.status === "auto";
+      const c1 = el("td"); c1.appendChild(el("code", "", p.registrable)); c1.appendChild(el("br"));
+      const sm = el("small", "", p.host); c1.appendChild(sm); c1.appendChild(el("br")); c1.appendChild(el("small", "brk", p.url));
+      const c3 = el("td"); (p.signals||[]).forEach((s, i)=>{ if (i) c3.appendChild(el("br")); c3.appendChild(el("small", "", s)); });
+      const c5 = el("td"); c5.appendChild(document.createTextNode(new Date(p.at).toLocaleString())); c5.appendChild(el("br"));
+      c5.appendChild(el("span", "pill " + (auto ? "amber" : "gray"), auto ? "AUTO-LISTED" : "pending"));
+      const c6 = el("td", "acts");
+      const ok = el("button", "", auto ? "Confirm" : "Approve"), no = el("button", "", auto ? "Remove" : "Reject");
+      ok.addEventListener("click", ()=>decide(p.id, "approve")); no.addEventListener("click", ()=>decide(p.id, "reject"));
+      c6.appendChild(ok); c6.appendChild(no);
+      tr.appendChild(c1); tr.appendChild(el("td", "", p.score)); tr.appendChild(c3); tr.appendChild(el("td", "", p.note)); tr.appendChild(c5); tr.appendChild(c6);
+      tb.appendChild(tr);
+    }
+    tw.appendChild(tb); pc.appendChild(tw); box.appendChild(pc);
+    const ac = modCard("Auto-listed", (com.auto||[]).length); ac.appendChild(chips(com.auto)); box.appendChild(ac);
+    const dc = modCard("Approved", (com.domains||[]).length); dc.appendChild(chips(com.domains)); box.appendChild(dc);
+  }
+  async function add(){
+    const r = await api("/admin/add", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ domains: $("add").value, note: $("addnote").value }) });
+    if (r.status === 401) return;
+    const j = await r.json().catch(()=>({}));
+    if (r.ok) { $("add").value=""; alert("added: "+(j.added||[]).join(", ")+(j.skipped&&j.skipped.length?" | skipped: "+j.skipped.join(", "):"")); load(); }
+    else alert("failed: "+r.status+" "+(j.error||""));
+  }
+  async function decide(id, action){
+    const r = await api("/admin/decide", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id, action}) });
+    if (r.status === 401) return;
+    if (r.ok) load(); else alert("failed: "+r.status);
+  }
+  const tbl = (head, rows, empty)=>"<div class='tw'><table><tr>"+head.map((h)=>"<th>"+esc(h)+"</th>").join("")+"</tr>"+(rows.length?rows.map((r)=>"<tr>"+r.map((c)=>"<td>"+c+"</td>").join("")+"</tr>").join(""):"<tr><td class='empty' colspan='"+head.length+"'>"+esc(empty||"No data")+"</td></tr>")+"</table></div>";
+  async function statsLoad(){
+    const el = $("stats-body");
+    const a = await api("/admin/stats"); if (a.status === 401) return;
+    if (!a.ok) { el.innerHTML = "<div class='msg'>Sandbox stats unavailable ("+a.status+").</div>"; return; }
+    const s = await a.json(), n = (k)=>Number(s[k])||0;
     const fails = Object.keys(s).filter((k)=>k.indexOf("fail_")===0).sort((x,y)=>n(y)-n(x));
     const failed = fails.reduce((t,k)=>t+n(k),0);
     const days = Object.entries(s.days||{}).sort().slice(-14).reverse();
     const bks = Object.entries(s.backends||{}).sort((x,y)=>y[1]-x[1]);
-    el.innerHTML = "<h2>Sandbox stats <button onclick='sbxLoad()'>refresh</button></h2>"
-      + tbl(["total","succeeded (fresh)","from cache","blocklist","failed","busy","queued","malicious","suspicious","clean","autolisted"],[[n("total"),n("fresh"),n("cache"),n("blocklist"),failed,n("busy"),n("queued"),n("verdict_malicious"),n("verdict_suspicious"),n("verdict_clean"),n("autolist")]])
-      + "<h3>Failed by reason</h3>" + tbl(["reason","count"], fails.map((k)=>[k.slice(5),n(k)]))
-      + "<h3>Per backend</h3>" + tbl(["host","scans"], bks)
-      + "<h3>Per day (last 14)</h3>" + tbl(["day","requests"], days)
-      + "<h2>Recent sandbox requests</h2>" + tbl(["time","host","outcome","reason / verdict","backend"], (log||[]).map((e)=>[new Date(e.ts).toLocaleString(),e.host,e.outcome,e.reason||e.verdict||"",e.backend||""]));
+    const cards = [["Total",n("total")],["Succeeded (fresh)",n("fresh")],["From cache",n("cache")],["Blocklist",n("blocklist")],["Failed",failed],["Busy",n("busy")],["Queued",n("queued")],["Malicious",n("verdict_malicious")],["Suspicious",n("verdict_suspicious")],["Clean",n("verdict_clean")],["Autolisted",n("autolist")]];
+    el.innerHTML = "<div class='stats'>"+cards.map((c)=>"<div class='stat'><b>"+c[1]+"</b><span>"+esc(c[0])+"</span></div>").join("")+"</div>"
+      + "<div class='grid2'>"
+      + "<div class='card'><h2>Failed by reason</h2>"+tbl(["Reason","Count"], fails.map((k)=>[esc(k.slice(5)),n(k)]), "No failures")+"</div>"
+      + "<div class='card'><h2>Per backend (VPS)</h2>"+tbl(["Host","Scans"], bks.map((e)=>[esc(e[0]),esc(e[1])]), "No backends yet")+"</div>"
+      + "<div class='card'><h2>Per day (last 14)</h2>"+tbl(["Day","Requests"], days.map((e)=>[esc(e[0]),esc(e[1])]), "No data yet")+"</div>"
+      + "</div>";
   }
-  async function add(){ const r = await api("/admin/add", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ domains: document.getElementById("add").value, note: document.getElementById("addnote").value }) }); const j = await r.json().catch(()=>({})); if(r.ok){ document.getElementById("add").value=""; alert("added: "+(j.added||[]).join(", ")+(j.skipped&&j.skipped.length?" | skipped: "+j.skipped.join(", "):"")); load(); } else alert("failed: "+r.status+" "+(j.error||"")); }
-  async function decide(id, action){ const r = await api("/admin/decide", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id, action}) }); if(r.ok) load(); else alert("failed: "+r.status); }
-  load();
-</script>`;
+  function badge(o){
+    const v = String(o==null?"":o).toLowerCase();
+    let c = "gray";
+    if (v === "fresh") c = "green";
+    else if (v === "cache") c = "blue";
+    else if (v.indexOf("fail") >= 0 || v.indexOf("block") >= 0 || v.indexOf("error") >= 0) c = "red";
+    else if (v.indexOf("busy") >= 0 || v.indexOf("queue") >= 0) c = "amber";
+    return "<span class='pill "+c+"'>"+esc(o)+"</span>";
+  }
+  async function actLoad(){
+    const el = $("act-body");
+    const b = await api("/admin/log"); if (b.status === 401) return;
+    if (!b.ok) { el.innerHTML = "<div class='msg'>Activity log unavailable ("+b.status+").</div>"; return; }
+    const log = await b.json();
+    el.innerHTML = "<div class='card'>"+tbl(["Time","Host","Outcome","Reason / verdict","Backend"], (log||[]).map((e)=>[esc(new Date(e.ts).toLocaleString()),esc(e.host),badge(e.outcome),esc(e.reason||e.verdict||""),esc(e.backend||"")]), "No requests yet")+"</div>";
+  }
+  $("tok").addEventListener("keydown",(e)=>{ if(e.key==="Enter") save(); });
+  start();
+</script></body></html>`;
 
 async function handleAdminData(req: Request, env: Env): Promise<Response> {
   if (!adminAuthed(req, env)) return new Response("unauthorized", { status: 401 });
@@ -1023,30 +1210,14 @@ async function handleAdminData(req: Request, env: Env): Promise<Response> {
     const r = await env.W3PG_KV.get(`report:${id}`);
     if (r) reports.push(JSON.parse(r));
   }
-  const pending = reports.filter((r) => r.status === "pending" || r.status === "auto");
+  const pending = reports
+    .filter((r) => r.status === "pending" || r.status === "auto")
+    .map((r) => ({ id: r.id, registrable: r.registrable, host: r.host, url: r.url, score: r.score, signals: r.signals, note: r.note, at: r.at, status: r.status }));
   const community = await communityList(env);
-  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
-  const rows = pending.map((r) => `
-    <tr>
-      <td><code>${esc(r.registrable)}</code><br><small>${esc(r.host)}<br>${esc(r.url)}</small></td>
-      <td>${r.score}</td>
-      <td><small>${r.signals.map(esc).join("<br>")}</small></td>
-      <td>${esc(r.note)}</td>
-      <td>${new Date(r.at).toISOString().slice(0, 16).replace("T", " ")}<br><b>${r.status === "auto" ? "AUTO-LISTED" : "pending"}</b></td>
-      <td>
-        <button onclick="decide('${r.id}','approve')">${r.status === "auto" ? "Confirm" : "Approve"}</button>
-        <button onclick="decide('${r.id}','reject')">${r.status === "auto" ? "Remove" : "Reject"}</button>
-      </td>
-    </tr>`).join("");
-  const html = `<h2>Add domains by hand</h2>
-  <p><textarea id="add" rows="4" style="width:100%;font:inherit;padding:6px" placeholder="one per line, URLs are fine: https://claim-foo.xyz/airdrop"></textarea><br>
-  <input id="addnote" placeholder="note (where you found it, e.g. x.com/… tweet)"> <button onclick="add()">Add to blocklist</button></p>
-  <p>Community blocklist: ${community.domains.length} approved + ${community.auto.length} auto-listed, updated ${community.updatedAt ? new Date(community.updatedAt).toISOString() : "never"}</p>
-  <h2>Pending (${pending.length})</h2>
-  <table><tr><th>Domain</th><th>Score</th><th>Signals</th><th>Note</th><th>At</th><th></th></tr>${rows || "<tr><td colspan=6>nothing pending</td></tr>"}</table>
-  <h2>Auto-listed</h2><p><code>${community.auto.map(esc).join("</code> <code>") || "–"}</code></p>
-  <h2>Approved</h2><p><code>${community.domains.map(esc).join("</code> <code>") || "–"}</code></p>`;
-  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+  return json({
+    community: { domains: community.domains, auto: community.auto, updatedAt: community.updatedAt ? new Date(community.updatedAt).toISOString() : null },
+    pending,
+  });
 }
 
 /** Hand-curated additions from the panel: each line may be a URL or a bare host; trusted and already-listed domains are skipped. */
@@ -1199,7 +1370,8 @@ async function handleResolve(req: Request, env: Env): Promise<Response> {
 // router
 // ---------------------------------------------------------------------------
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    statCtx = ctx;
     const url = new URL(req.url);
     const headers = cors(req, env);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
