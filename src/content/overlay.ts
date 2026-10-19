@@ -11,11 +11,15 @@ import { t, signalText } from "../lib/i18n";
 const ID = "w3pg-banner";
 const COLLAPSE_AFTER_MS = 8000;
 let current: HTMLElement | null = null;
+/** disconnects the current card's re-mount observer before it is replaced; otherwise it resurrects itself */
+let disposeCurrent: (() => void) | null = null;
 
 /** After an extension update the old content script lingers in open tabs; its chrome.runtime.id is gone. */
 const orphaned = () => { try { return !chrome.runtime?.id; } catch { return true; } };
 
 function render(v: Verdict) {
+  disposeCurrent?.();
+  disposeCurrent = null;
   current?.remove();
   // Cards left behind by a previous script instance (extension reload / update). Older builds re-mount their card
   // whenever it is removed, so leftovers are hidden in place rather than removed: a hidden node is still connected
@@ -78,6 +82,7 @@ function render(v: Verdict) {
     if (!closed && !host.isConnected) mount();
   });
   keep.observe(document.documentElement, { childList: true });
+  disposeCurrent = () => { closed = true; keep.disconnect(); };
   mount();
 }
 
@@ -85,7 +90,7 @@ function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
 }
 
-const clear = () => { current?.remove(); current = null; shownScore = -1; };
+const clear = () => { disposeCurrent?.(); disposeCurrent = null; current?.remove(); current = null; shownScore = -1; };
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === "w3pg:overlay" && msg.verdict) { shownScore = (msg.verdict as Verdict).score; render(msg.verdict as Verdict); }
