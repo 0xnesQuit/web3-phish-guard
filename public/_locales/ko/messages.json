@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "위험"
   },
+  "verdict_malicious": {
+    "message": "악성"
+  },
+  "verdict_clean": {
+    "message": "공격 미발견"
+  },
+  "popup_sandbox_title": {
+    "message": "샌드박스 (미끼 지갑)"
+  },
+  "popup_sandbox_sub": {
+    "message": "일회용 지갑으로 사이트를 열어 무엇을 요구하는지 관찰했습니다."
+  },
   "verdict_suspicious": {
     "message": "의심스러움"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "위험한 페이지(70점 이상)는 항상 전체 화면 경고를 엽니다."
+  },
+  "opt_sim_heading": {
+    "message": "트랜잭션 시뮬레이션"
+  },
+  "opt_simulate": {
+    "message": "보류된 트랜잭션을 공개 RPC로 시뮬레이션 (대기 중인 트랜잭션이 publicnode / 1rpc / dRPC로 전송됨)"
   },
   "opt_api_heading": {
     "message": "정밀 검사 및 신고 서버"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "알 수 없는 컨트랙트 호출에 ETH 지불"
+  },
+  "gate_impact_title": {
+    "message": "지갑에 미칠 수 있는 영향"
+  },
+  "gate_checking": {
+    "message": "온체인 정보를 확인하는 중…"
+  },
+  "gate_impact_all": {
+    "message": "보유한 $1 전부를 가져갈 수 있습니다 (현재 $2)"
+  },
+  "gate_impact_all_zero": {
+    "message": "무제한 $1: 나중에 보유하게 되는 것도 가져갈 수 있습니다"
+  },
+  "gate_impact_amount": {
+    "message": "수량: $1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "내 잔액: $1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "컬렉션: $1 — $2개 보유"
+  },
+  "gate_impact_sends": {
+    "message": "$3(으)로 $1 $2 전송"
+  },
+  "gate_impact_deadline": {
+    "message": "유효 기간: $1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "만료되지 않음"
+  },
+  "gate_impact_tokens": {
+    "message": "토큰: $1"
+  },
+  "gate_impact_give": {
+    "message": "내가 주는 것: $1"
+  },
+  "gate_impact_get": {
+    "message": "내가 받는 것: $1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "내가 받는 것: 없음"
+  },
+  "gate_known": {
+    "message": "알려진 컨트랙트: $1"
+  },
+  "gate_unknown_contract": {
+    "message": "알 수 없는 컨트랙트"
+  },
+  "gate_simulating": {
+    "message": "트랜잭션 시뮬레이션 중…"
+  },
+  "gate_sim_title": {
+    "message": "시뮬레이션 (실제로 일어날 일)"
+  },
+  "gate_sim_out": {
+    "message": "지갑에서 나가는 것: $1"
+  },
+  "gate_sim_in": {
+    "message": "돌아오는 것: $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "돌아오는 것이 없음"
+  },
+  "gate_sim_approval": {
+    "message": "새 승인: $1"
+  },
+  "gate_sim_reverted": {
+    "message": "트랜잭션이 실패합니다 (revert)"
+  },
+  "gate_sim_unavailable": {
+    "message": "이 체인 / 요청은 시뮬레이션할 수 없음"
+  },
+  "gate_sim_no_changes": {
+    "message": "내 주소의 자산 변동 없음"
+  },
+  "gate_sim_unlimited": {
+    "message": "무제한"
+  },
+  "gate_sim_all_nfts": {
+    "message": "모든 NFT"
+  },
+  "gate_sim_sol_failed": {
+    "message": "트랜잭션이 실패합니다"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "토큰 위임 권한 부여: $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "계정을 제어하는 주체를 변경합니다"
+  },
+  "gate_impact_delegate": {
+    "message": "계정을 다음에 넘깁니다: $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "알 수 없는 컨트랙트"
+  },
+  "gate_word_plain_wallet": {
+    "message": "일반 지갑 주소"
+  },
+  "gate_impact_call": {
+    "message": "호출 $1: $2"
   },
   "seed_title": {
     "message": "중지: 이 페이지가 복구 구문을 요구합니다"

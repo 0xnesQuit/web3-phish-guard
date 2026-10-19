@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "Dangereux"
   },
+  "verdict_malicious": {
+    "message": "Malveillant"
+  },
+  "verdict_clean": {
+    "message": "Aucune attaque vue"
+  },
+  "popup_sandbox_title": {
+    "message": "Sandbox (portefeuille leurre)"
+  },
+  "popup_sandbox_sub": {
+    "message": "Nous avons ouvert le site avec un portefeuille jetable et observé ses demandes."
+  },
   "verdict_suspicious": {
     "message": "Suspect"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "Les pages dangereuses (70+) ouvrent toujours l'avertissement plein écran."
+  },
+  "opt_sim_heading": {
+    "message": "Simulation de transactions"
+  },
+  "opt_simulate": {
+    "message": "Simuler les transactions retenues via un RPC public (envoie la transaction en attente à publicnode / 1rpc / dRPC)"
   },
   "opt_api_heading": {
     "message": "Serveur d'analyse approfondie et de signalements"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "Paie de l'ETH dans un appel de contrat inconnu"
+  },
+  "gate_impact_title": {
+    "message": "Ce que cela peut faire à votre portefeuille"
+  },
+  "gate_checking": {
+    "message": "Vérification des détails on-chain…"
+  },
+  "gate_impact_all": {
+    "message": "Cela pourrait prendre TOUS vos $1 ($2 actuellement)"
+  },
+  "gate_impact_all_zero": {
+    "message": "$1 illimité : tout ce que vous détiendrez plus tard peut être pris"
+  },
+  "gate_impact_amount": {
+    "message": "Montant : $1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "Votre solde : $1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "Collection : $1 — vous en détenez $2"
+  },
+  "gate_impact_sends": {
+    "message": "Envoie $1 $2 à $3"
+  },
+  "gate_impact_deadline": {
+    "message": "Valable pendant : $1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "N'expire jamais"
+  },
+  "gate_impact_tokens": {
+    "message": "Jetons : $1"
+  },
+  "gate_impact_give": {
+    "message": "Vous donnez : $1"
+  },
+  "gate_impact_get": {
+    "message": "Vous recevez : $1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "Vous recevez : rien"
+  },
+  "gate_known": {
+    "message": "Contrat connu : $1"
+  },
+  "gate_unknown_contract": {
+    "message": "Contrat inconnu"
+  },
+  "gate_simulating": {
+    "message": "Simulation de la transaction…"
+  },
+  "gate_sim_title": {
+    "message": "Simulation (ce qui se passerait réellement)"
+  },
+  "gate_sim_out": {
+    "message": "Quitte votre portefeuille : $1"
+  },
+  "gate_sim_in": {
+    "message": "Vous revient : $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "Rien ne vous revient"
+  },
+  "gate_sim_approval": {
+    "message": "Nouvelle approbation : $1"
+  },
+  "gate_sim_reverted": {
+    "message": "La transaction échouerait (revert)"
+  },
+  "gate_sim_unavailable": {
+    "message": "Simulation indisponible pour ce réseau / cette demande"
+  },
+  "gate_sim_no_changes": {
+    "message": "Aucun changement d'actifs pour votre adresse"
+  },
+  "gate_sim_unlimited": {
+    "message": "illimité"
+  },
+  "gate_sim_all_nfts": {
+    "message": "tous les NFT"
+  },
+  "gate_sim_sol_failed": {
+    "message": "La transaction échouerait"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "Délégué de jetons accordé : $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "Change qui contrôle votre compte"
+  },
+  "gate_impact_delegate": {
+    "message": "Confie votre compte à : $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "contrat inconnu"
+  },
+  "gate_word_plain_wallet": {
+    "message": "adresse de portefeuille simple"
+  },
+  "gate_impact_call": {
+    "message": "Appel $1 : $2"
   },
   "seed_title": {
     "message": "Stop : cette page veut votre phrase de récupération"

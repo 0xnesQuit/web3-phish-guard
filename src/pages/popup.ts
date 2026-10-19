@@ -94,7 +94,7 @@ function renderDeep(r: DeepReport) {
   const ai = r.ai;
   const facts = `${t("popup_facts_libs")}: ${r.page.libs.join(", ") || "–"} · ${t("popup_facts_scripts")}: ${r.page.scripts.length} · ${t("popup_facts_wallet")}: ${r.page.walletButtons.length} · ${t("popup_facts_seed")}: ${r.page.seedPhraseInputs} · ${t("popup_facts_markers")}: ${[...r.page.drainerMarkers, ...r.markers].length}${r.goplus?.phishing ? " · GoPlus: phishing" : ""}`;
   if (ai.error) {
-    box.innerHTML = `<div class="v ${r.local.band === "block" ? "dangerous" : r.local.band === "warn" ? "suspicious" : "likely_safe"}">${esc(t("popup_local_only"))} · ${r.local.score}/100</div><div>${esc(t("popup_ai_unavailable"))} (${esc(ai.error)})</div><div class="facts">${esc(facts)}</div>`;
+    box.innerHTML = `<div class="v ${r.local.band === "block" ? "dangerous" : r.local.band === "warn" ? "suspicious" : "likely_safe"}">${esc(t("popup_local_only"))} · ${r.local.score}/100</div><div>${esc(t("popup_ai_unavailable"))} (${esc(ai.error)})</div><div class="facts">${esc(facts)}</div>${sandboxHtml(r.sandbox)}`;
     return;
   }
   const label = t(`verdict_${ai.verdict}`);
@@ -103,7 +103,21 @@ function renderDeep(r: DeepReport) {
     <div>${esc(ai.summary ?? "")}</div>
     <ul>${(ai.reasons ?? []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
     ${(ai.advice ?? []).length ? `<div class="adv">${(ai.advice ?? []).map((x) => `→ ${esc(x)}`).join("<br>")}</div>` : ""}
-    <div class="facts">${esc(facts)}${ai.cached ? " · cached" : ""}</div>`;
+    <div class="facts">${esc(facts)}${ai.cached ? " · cached" : ""}</div>${sandboxHtml(r.sandbox)}`;
+}
+
+/** The sandbox block: what the page did to a throw-away wallet, server-side. Only shown when the sandbox ran. */
+function sandboxHtml(s: DeepReport["sandbox"]): string {
+  if (!s || !s.ok) return "";
+  const cls = s.verdict === "malicious" ? "dangerous" : s.verdict === "suspicious" ? "suspicious" : "likely_safe";
+  const findings = (s.findings ?? []).slice(0, 8).map((x) => `<li>${esc(x)}</li>`).join("");
+  return `
+    <div class="sandbox">
+      <div class="sbh">${esc(t("popup_sandbox_title"))}</div>
+      <div class="v ${cls}">${esc(t(`verdict_${s.verdict}`))} · ${s.score}/100</div>
+      <div class="sbsub">${esc(t("popup_sandbox_sub"))}</div>
+      ${findings ? `<ul>${findings}</ul>` : ""}
+    </div>`;
 }
 
 function esc(s: string) {

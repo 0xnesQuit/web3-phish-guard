@@ -3,11 +3,15 @@ import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
 import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle, brandByToken } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, blocklistPathHit, allowlistHit, siblingHit, attackedBrandHit, listStatus, newestDomains, newestPaths } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
-import { setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning, consumeWarning } from "./lib/state";
+import { simulateEnabled, setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning, consumeWarning } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener, isAdHop } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
-import { scanExternalScripts, askApi, sendReport, API_BASE } from "./lib/deepscan";
+import { scanExternalScripts, askApi, askSandbox, sendReport, API_BASE } from "./lib/deepscan";
 import { buildRules, applyRules, addBypassRule } from "./lib/dnr";
+import { SOL_ENDPOINTS, parseMessageAccounts, diffSolana, mergeDiffs, summarizeSolana, type SolAccount } from "./lib/solana";
+import { RPC_ENDPOINTS, buildSimulateRequest, parseSimulation, summarizeChanges } from "./lib/simulate";
+import { decodeString, decodeUint, SEL } from "./lib/impact";
+import { t } from "./lib/i18n";
 import type { XIntel } from "./lib/types";
 import type { DeepReport, OriginContext, PageSnapshot, PageSocials, ProviderEvent, Signal, Verdict } from "./lib/types";
 
@@ -190,6 +194,141 @@ async function getTabSocials(tabId: number): Promise<PageSocials | undefined> {
   return (await chrome.storage.session.get(`soc:${tabId}`))[`soc:${tabId}`] as PageSocials | undefined;
 }
 
+// ---------------------------------------------------------------------------
+// transaction simulation (held transactions only): eth_simulateV1 on a public RPC, see PRIVACY.md
+// ---------------------------------------------------------------------------
+const simStamps = new Map<number, number[]>();
+/** at most one simulation per 2 s and 20 per minute per tab */
+function simAllowed(tabId: number): boolean {
+  const now = Date.now();
+  const list = (simStamps.get(tabId) ?? []).filter((x) => now - x < 60_000);
+  if (list.length >= 20 || (list.length && now - list[list.length - 1] < 2000)) { simStamps.set(tabId, list); return false; }
+  list.push(now);
+  simStamps.set(tabId, list);
+  return true;
+}
+
+async function jsonRpc(url: string, body: unknown, ms: number): Promise<unknown> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal, credentials: "omit" });
+    return r.ok ? await r.json() : null;
+  } catch { return null; } finally { clearTimeout(timer); }
+}
+
+type SimMeta = { symbol?: string; decimals?: number };
+/** symbol / decimals per chain+token, kept for the worker's lifetime (insertion-ordered, oldest dropped past 500) */
+const simLabels = new Map<string, SimMeta>();
+async function simTokenLabels(chainId: number, endpoint: string, tokens: string[]): Promise<Map<string, SimMeta>> {
+  const labels = new Map<string, SimMeta>();
+  const missing: string[] = [];
+  for (const tk of tokens) {
+    const hit = simLabels.get(`${chainId}:${tk}`);
+    if (hit) labels.set(tk, hit); else missing.push(tk);
+  }
+  if (!missing.length) return labels;
+  // one batched request to the endpoint that just answered the simulation
+  const batch = missing.flatMap((tk, i) => [
+    { jsonrpc: "2.0", id: i * 2, method: "eth_call", params: [{ to: tk, data: SEL.symbol }, "latest"] },
+    { jsonrpc: "2.0", id: i * 2 + 1, method: "eth_call", params: [{ to: tk, data: SEL.decimals }, "latest"] },
+  ]);
+  const res = await jsonRpc(endpoint, batch, 3000);
+  if (!Array.isArray(res)) return labels;
+  const byId = new Map<number, string>();
+  for (const r of res as Array<{ id?: number; result?: unknown }>) if (typeof r?.id === "number" && typeof r.result === "string") byId.set(r.id, r.result);
+  missing.forEach((tk, i) => {
+    const d = decodeUint(byId.get(i * 2 + 1));
+    const meta: SimMeta = { symbol: decodeString(byId.get(i * 2)), decimals: d !== undefined && d <= 77n ? Number(d) : undefined };
+    if (meta.symbol === undefined && meta.decimals === undefined) return;
+    simLabels.set(`${chainId}:${tk}`, meta);
+    if (simLabels.size > 500) simLabels.delete(simLabels.keys().next().value as string);
+    labels.set(tk, meta);
+  });
+  return labels;
+}
+
+type SimReply = { ok: true; reverted: boolean; error?: string; out: string[]; in: string[]; approvals: string[] } | { ok: false; reason: string };
+async function simulateTx(tabId: number | undefined, msg: { chainId?: unknown; tx?: Record<string, unknown>; calls?: unknown }): Promise<SimReply> {
+  if (!(await simulateEnabled())) return { ok: false, reason: "disabled" };
+  if (tabId === undefined) return { ok: false, reason: "no-tab" };
+  const chain = typeof msg.chainId === "string" && /^0x[0-9a-f]{1,8}$/i.test(msg.chainId) ? parseInt(msg.chainId, 16) : 0;
+  const endpoints = RPC_ENDPOINTS[chain];
+  if (!endpoints) return { ok: false, reason: "chain" };
+  // one transaction (`tx`) or a wallet_sendCalls batch (`calls`, at most 16, simulated in order)
+  const rawList = Array.isArray(msg.calls) ? (msg.calls as Array<Record<string, unknown>>) : [msg.tx ?? {}];
+  if (!rawList.length || rawList.length > 16) return { ok: false, reason: "tx" };
+  const addr = /^0x[0-9a-fA-F]{40}$/;
+  const list: Array<{ from: string; to: string; data: string; value: string }> = [];
+  for (const raw of rawList) {
+    const tx = raw && typeof raw === "object" ? raw : {};
+    const from = String(tx.from ?? ""), to = String(tx.to ?? "");
+    const data = tx.data === undefined || tx.data === "" ? "0x" : String(tx.data);
+    const value = tx.value === undefined || tx.value === "" ? "0x0" : String(tx.value);
+    if (!addr.test(from) || !addr.test(to) || !/^0x([0-9a-fA-F]{2}){0,100000}$/.test(data) || !/^0x[0-9a-fA-F]{1,64}$/.test(value)) return { ok: false, reason: "tx" };
+    list.push({ from, to, data, value });
+  }
+  const from = list[0].from;
+  if (!simAllowed(tabId)) return { ok: false, reason: "rate" };
+  const req = buildSimulateRequest(Array.isArray(msg.calls) ? list : list[0]);
+  for (const url of endpoints) {
+    const res = (await jsonRpc(url, req, 5000)) as { result?: unknown; error?: { code?: number; message?: string } } | null;
+    if (!res) continue; // timeout, network error or HTTP failure: next operator
+    if (res.error) {
+      if (res.error.code === -32601 || /not (found|supported|available)|unsupported|unknown method|does not exist/i.test(String(res.error.message ?? ""))) continue;
+      return { ok: false, reason: "rpc-error" };
+    }
+    const parsed = parseSimulation(res.result, from);
+    if (!parsed) return { ok: false, reason: "bad-response" };
+    const tokens = [...new Set([...parsed.out, ...parsed.in].filter((c) => c.kind !== "native").map((c) => c.token).concat(parsed.approvals.map((a) => a.token)))].slice(0, 20);
+    const labels = tokens.length ? await simTokenLabels(chain, url, tokens) : new Map<string, SimMeta>();
+    const s = summarizeChanges(parsed, labels, msg.chainId as string, { unlimited: t("gate_sim_unlimited"), all: t("gate_sim_all_nfts") });
+    return { ok: true, reverted: parsed.reverted, error: parsed.error, ...s };
+  }
+  return { ok: false, reason: "unavailable" };
+}
+
+type SolSimReply = { ok: true; failed: boolean; out: string[]; in: string[]; warnings: string[] } | { ok: false; reason: string };
+/** Solana: simulateTransaction on a public RPC (jsonParsed accounts before / after), diffed for the signer */
+async function simulateSol(tabId: number | undefined, msg: { txs?: unknown }): Promise<SolSimReply> {
+  if (!(await simulateEnabled())) return { ok: false, reason: "disabled" };
+  if (tabId === undefined) return { ok: false, reason: "no-tab" };
+  const txs = Array.isArray(msg.txs) ? (msg.txs as unknown[]).filter((x): x is string => typeof x === "string" && x.length > 0 && x.length <= 2400 && /^[A-Za-z0-9+/]+={0,2}$/.test(x)).slice(0, 4) : [];
+  if (!txs.length) return { ok: false, reason: "tx" };
+  const parsed = txs.map((x) => ({ tx: x, msg: parseMessageAccounts(x) }));
+  if (parsed.some((p) => !p.msg)) return { ok: false, reason: "tx" };
+  if (!simAllowed(tabId)) return { ok: false, reason: "rate" };
+  const rpc = async (url: string, method: string, params: unknown[]) =>
+    (await jsonRpc(url, { jsonrpc: "2.0", id: 1, method, params }, 5000)) as { result?: unknown; error?: unknown } | null;
+  for (const url of SOL_ENDPOINTS) {
+    const diffs = [];
+    let failed = false, user = "";
+    let usable = true;
+    for (const p of parsed) {
+      const { keys, signer } = p.msg!;
+      user = user || signer;
+      const addresses = keys.slice(0, 64);
+      const [preRes, postRes] = await Promise.all([
+        rpc(url, "getMultipleAccounts", [addresses, { encoding: "jsonParsed", commitment: "processed" }]),
+        rpc(url, "simulateTransaction", [p.tx, { encoding: "base64", replaceRecentBlockhash: true, sigVerify: false, commitment: "processed", accounts: { encoding: "jsonParsed", addresses } }]),
+      ]);
+      if (!preRes || !postRes) { usable = false; break; } // timeout, network or HTTP failure: next operator
+      if (preRes.error || postRes.error) return { ok: false, reason: "rpc-error" };
+      const pre = (preRes.result as { value?: SolAccount[] } | undefined)?.value;
+      const sim = (postRes.result as { value?: { err?: unknown; accounts?: SolAccount[] } } | undefined)?.value;
+      if (!Array.isArray(pre) || !sim || typeof sim !== "object") return { ok: false, reason: "bad-response" };
+      if (sim.err) { failed = true; continue; }
+      if (!Array.isArray(sim.accounts)) return { ok: false, reason: "bad-response" };
+      diffs.push(diffSolana(pre, sim.accounts, signer, addresses));
+    }
+    if (!usable) continue;
+    if (failed) return { ok: true, failed: true, out: [], in: [], warnings: [] };
+    const s = summarizeSolana(mergeDiffs(diffs), new Map(), { delegate: (l) => t("gate_sim_sol_delegate", [l]), owner: t("gate_sim_sol_owner") });
+    return { ok: true, failed: false, ...s };
+  }
+  return { ok: false, reason: "unavailable" };
+}
+
 async function warnDisplay(): Promise<"page" | "popup"> {
   return (((await chrome.storage.local.get("warnDisplay")).warnDisplay as string | undefined) === "popup" ? "popup" : "page");
 }
@@ -339,8 +478,12 @@ async function deepScan(tabId: number, language: string): Promise<DeepReport | {
   const x = v.xToken ? await xIntelFor(v, origin) : undefined;
   const v3 = await evaluate(tab.url, { ageDays, origin, x, socials });
   if (v3) v = v3;
-  const ai = await askApi(snapshot, { verdict: v, origin, x, providerEvents: pev, language }, { markers });
-  const report: DeepReport = { host: v.host, at: Date.now(), local: { score: v.score, band: v.band, signals: v.signals }, page: snapshot, markers, goplus: ai.goplus, ai };
+  // the AI verdict and the headless-browser sandbox run in parallel; the sandbox is best-effort and may be absent
+  const [ai, sandbox] = await Promise.all([
+    askApi(snapshot, { verdict: v, origin, x, providerEvents: pev, language }, { markers }),
+    askSandbox(v.url),
+  ]);
+  const report: DeepReport = { host: v.host, at: Date.now(), local: { score: v.score, band: v.band, signals: v.signals }, page: snapshot, markers, goplus: ai.goplus, ai, sandbox };
   await chrome.storage.session.set({ [cacheKey]: report });
   return report;
 }
@@ -482,6 +625,7 @@ chrome.webNavigation.onErrorOccurred.addListener(async (d) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  simStamps.delete(tabId);
   void clearTab(tabId);
   void chrome.storage.session.remove([`deep:${tabId}`, `origin:${tabId}`, `soc:${tabId}`, `pev:${tabId}`]).catch(() => undefined);
 });
@@ -651,6 +795,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         await applyVerdict(tabId, { ...prev, signals, score: total, band: bandOf(total), at: Date.now() });
         return;
       }
+      case "w3pg:simulate": {
+        sendResponse(await simulateTx(sender.tab?.id, msg).catch((): SimReply => ({ ok: false, reason: "error" })));
+        return;
+      }
+      case "w3pg:simulateSol": {
+        sendResponse(await simulateSol(sender.tab?.id, msg).catch((): SolSimReply => ({ ok: false, reason: "error" })));
+        return;
+      }
       case "w3pg:leaveTab": {
         const tabId = sender.tab?.id;
         if (tabId === undefined) return;
@@ -700,12 +852,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "w3pg:getSettings": {
         if (!fromExtension(sender)) return;
-        sendResponse({ warnDisplay: await warnDisplay() });
+        sendResponse({ warnDisplay: await warnDisplay(), simulate: await simulateEnabled() });
         return;
       }
       case "w3pg:setSettings": {
         if (!fromExtension(sender)) return;
         if (msg.warnDisplay === "page" || msg.warnDisplay === "popup") await chrome.storage.local.set({ warnDisplay: msg.warnDisplay });
+        if (typeof msg.simulate === "boolean") await chrome.storage.local.set({ simulate: msg.simulate });
         sendResponse(true);
         return;
       }

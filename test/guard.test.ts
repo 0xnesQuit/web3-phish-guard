@@ -11,6 +11,7 @@ const seen: Inspect[] = [];
 const engineCalls: unknown[] = [];
 let decide: (m: Inspect) => boolean = () => true;
 let port: MessagePort;
+const rpcReplies: Array<{ id: string; result: unknown }> = [];
 
 class FakeEngine {
   handle(payload: unknown, cb: (e: unknown, r?: unknown) => void) { engineCalls.push(payload); cb(null, { jsonrpc: "2.0", id: 1, result: "ok" }); }
@@ -30,6 +31,7 @@ beforeAll(async () => {
   const win = new EventTarget() as EventTarget & Record<string, unknown>;
   win.ethereum = new BaseProvider();
   win.navigator = {};
+  win.solana = { signTransaction: async (t: unknown) => t, signMessage: async (m: unknown) => m };
   win.getSelection = () => null;
   (globalThis as unknown as Record<string, unknown>).window = win;
   (globalThis as unknown as Record<string, unknown>).document = { execCommand: undefined, activeElement: null };
@@ -39,6 +41,7 @@ beforeAll(async () => {
   port = ch.port1;
   port.onmessage = (e) => {
     const d = e.data;
+    if (d?.type === "rpc") { rpcReplies.push(d); return; }
     if (d?.type !== "inspect") return;
     seen.push({ id: d.id, method: d.method, params: d.params });
     const allow = decide(d);
@@ -103,5 +106,59 @@ describe("provider guard protocol (fake MetaMask)", () => {
     const inspected = (seen[0].params as Array<{ data: string }>)[0].data;
     const delivered = ((engineCalls[0] as { params: Array<{ data: string }> }).params)[0].data;
     expect(delivered).toBe(inspected);
+  });
+  it("rpc relay: allowlisted read-only methods go through the provider, anything else answers null untouched", async () => {
+    seen.length = 0; engineCalls.length = 0; rpcReplies.length = 0; decide = () => true;
+    port.postMessage({ type: "rpc", id: "r1", reqId: "none", method: "eth_getCode", params: ["0x" + "ab".repeat(20), "latest"] });
+    port.postMessage({ type: "rpc", id: "r2", reqId: "none", method: "eth_sendTransaction", params: [tx] });
+    port.postMessage({ type: "rpc", id: "r3", reqId: "none", method: "personal_sign", params: ["0x01"] });
+    for (let i = 0; i < 50 && rpcReplies.length < 3; i++) await new Promise((r) => setTimeout(r, 20));
+    const byId = Object.fromEntries(rpcReplies.map((r) => [r.id, r.result]));
+    expect(byId.r1).toBe("ok");
+    expect(byId.r2).toBeNull();
+    expect(byId.r3).toBeNull();
+    const methods = engineCalls.map((c) => (c as { method: string }).method);
+    expect(methods).toEqual(["eth_getCode"]);
+  });
+});
+
+describe("provider guard: Solana transactions for the simulation", () => {
+  const sol = () => (globalThis as unknown as { window: { solana: { signTransaction: (t: unknown) => Promise<unknown>; signMessage: (m: unknown) => Promise<unknown> } } }).window.solana;
+  const bytes = Uint8Array.from([1, 2, 3, 250, 255]);
+  const b64 = Buffer.from(bytes).toString("base64");
+  // the legacy provider is wrapped by the guard's poll (every 500 ms), so wait until the hook is in place
+  const hooked = async () => { decide = () => true; for (let i = 0; i < 40; i++) { seen.length = 0; await sol().signMessage(bytes); if (seen.length) return; await new Promise((r) => setTimeout(r, 100)); } };
+
+  it("sends a legacy Transaction serialized without requiring signatures, as base64", async () => {
+    await hooked();
+    seen.length = 0; decide = () => true;
+    let args: unknown;
+    await sol().signTransaction({ serialize(a: unknown) { args = a; return bytes; } });
+    expect(args).toEqual({ requireAllSignatures: false, verifySignatures: false });
+    expect(seen[0].method).toBe("solana:signTransaction");
+    expect(seen[0].params).toEqual({ batch: 1, txs: [b64] });
+  });
+  it("falls back to serialize() with no arguments (VersionedTransaction)", async () => {
+    await hooked();
+    seen.length = 0; decide = () => true;
+    await sol().signTransaction({ serialize(a?: unknown) { if (a) throw new Error("no options here"); return bytes; } });
+    expect((seen[0].params as { txs: string[] }).txs).toEqual([b64]);
+  });
+  it("a throwing, lying or oversized transaction yields no txs and never changes the outcome", async () => {
+    await hooked();
+    decide = () => true;
+    for (const bad of [{ serialize() { throw new Error("x"); } }, { serialize: "nope" }, { serialize() { return new Uint8Array(1701); } }, { serialize() { return "not bytes"; } }]) {
+      seen.length = 0;
+      const r = await sol().signTransaction(bad);
+      expect(r).toBe(bad);
+      expect(seen[0].params).toEqual({ batch: 1 });
+    }
+    seen.length = 0; decide = () => false;
+    await expect(sol().signTransaction({ serialize() { return bytes; } })).rejects.toMatchObject({ code: 4001 });
+  });
+  it("signMessage carries no transaction", async () => {
+    await hooked();
+    expect(seen[0].method).toBe("solana:signMessage");
+    expect(seen[0].params).toEqual({ batch: 1 });
   });
 });

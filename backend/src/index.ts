@@ -50,6 +50,11 @@ export interface Env {
   SCAN_BURST?: RateLimit; // Cloudflare rate-limit binding: per-IP burst (atomic, edge-local)
   MODEL: string;
   LISTS_BASE: string;
+  /** headless-browser sandbox (optional): its URL and bearer token live here, never in the extension */
+  SANDBOX_URL?: string;
+  SANDBOX_TOKEN?: string;
+  SANDBOX_PER_IP_PER_DAY?: string;
+  SANDBOX_GLOBAL_PER_DAY?: string;
 }
 
 const MAX_BODY = 80_000;
@@ -541,6 +546,51 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
 }
 
 // ---------------------------------------------------------------------------
+// /v1/sandbox  -> proxies to the headless-browser sandbox (its URL + token stay here, never in the extension)
+// ---------------------------------------------------------------------------
+async function handleSandbox(req: Request, env: Env): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) return json({ error: "sandbox_disabled" }, 503);
+  const text = await req.text();
+  if (text.length > 4000) return json({ error: "payload_too_large" }, 413);
+  let raw: unknown;
+  try { raw = JSON.parse(text); } catch { return json({ error: "bad_json" }, 400); }
+  const url = str((raw as Record<string, unknown>).url, 2048);
+  let host = "";
+  try { const u = new URL(url); if (u.protocol !== "http:" && u.protocol !== "https:") throw 0; host = u.hostname; } catch { return json({ error: "bad_url" }, 400); }
+  if (!host || !host.includes(".") || host === "localhost") return json({ error: "bad_url" }, 400);
+
+  // same admission as /v1/scan: a browser scan is far more expensive, so it draws on the same per-IP, per-host
+  // and global budgets (protecting the VPS, not an API key).
+  const ik = await ipKey(req, env);
+  const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+  const ip64 = ipRaw.includes(":") ? ipRaw.split(":").slice(0, 4).join(":") + "::/64" : ipRaw;
+  if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `sb:${ip64}` })).success) return json({ error: "rate_limited" }, 429);
+  const admission = await state(env).admitScan({
+    ip: `sb:${ik}`, host: await sha256(`sb:${host}`),
+    ipLimit: Number(env.SANDBOX_PER_IP_PER_DAY) || 10, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: Number(env.SANDBOX_GLOBAL_PER_DAY) || 500,
+    cooldownSec: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60),
+  });
+  if (!admission.ok) return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429);
+
+  try {
+    const res = await fetch(`${env.SANDBOX_URL.replace(/\/$/, "")}/scan`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${env.SANDBOX_TOKEN}` },
+      body: JSON.stringify({ url }),
+      signal: AbortSignal.timeout(40_000),
+    });
+    if (!res.ok) return json({ error: `sandbox_${res.status}` }, 502);
+    const report = (await res.json()) as Record<string, unknown>;
+    // pass the report through, but never echo back the raw captured params (they are large and not needed client-side)
+    if (Array.isArray(report.requests)) report.requests = (report.requests as Array<Record<string, unknown>>).map(({ params, ...rest }) => rest);
+    return json(report);
+  } catch {
+    return json({ error: "sandbox_unreachable" }, 502);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // /v1/report + moderation
 // ---------------------------------------------------------------------------
 interface Report { id: string; url: string; host: string; registrable: string; score: number; signals: string[]; note: string; at: number; status: "pending" | "approved" | "rejected" | "auto"; ipHash: string }
@@ -837,6 +887,7 @@ export default {
       return res;
     };
     if (req.method === "POST" && url.pathname === "/v1/scan") return wrap(() => handleScan(req, env));
+    if (req.method === "POST" && url.pathname === "/v1/sandbox") return wrap(() => handleSandbox(req, env));
     if (req.method === "POST" && url.pathname === "/v1/report") return wrap(() => handleReport(req, env));
     if (req.method === "GET" && url.pathname === "/v1/x/brand") return wrap(() => handleX(req, env, "brand"));
     if (req.method === "GET" && url.pathname === "/v1/x/user") return wrap(() => handleX(req, env, "user"));

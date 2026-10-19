@@ -35,6 +35,8 @@ LISTS_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists
 #   npx wrangler secret put XQUIK_API_KEY       (X account lookups; optional, the feature is skipped without it)
 #   npx wrangler secret put ADMIN_TOKEN        (long random string for the /admin panel)
 #   npx wrangler secret put IP_HASH_SECRET     (optional: separate key for the daily IP hash; otherwise derived from ADMIN_TOKEN)
+#   npx wrangler secret put SANDBOX_URL         (optional: the headless-browser sandbox base URL; /v1/sandbox is 503 without it. See ../sandbox/README.md)
+#   npx wrangler secret put SANDBOX_TOKEN       (optional: bearer token the sandbox requires)
 
 # Per-IP flood brake for /v1/scan: 3 scans per minute per machine. Permissive and eventually consistent by design
 # (Cloudflare docs), so it stops floods, not careful abuse; the KV daily/per-host counters do the accounting.

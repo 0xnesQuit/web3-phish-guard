@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "危険"
   },
+  "verdict_malicious": {
+    "message": "悪意あり"
+  },
+  "verdict_clean": {
+    "message": "攻撃は確認されず"
+  },
+  "popup_sandbox_title": {
+    "message": "サンドボックス（おとりウォレット）"
+  },
+  "popup_sandbox_sub": {
+    "message": "使い捨てウォレットでサイトを開き、何を要求するか観察しました。"
+  },
   "verdict_suspicious": {
     "message": "疑わしい"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "危険なページ（70 点以上）は常に全画面警告を表示します。"
+  },
+  "opt_sim_heading": {
+    "message": "トランザクションのシミュレーション"
+  },
+  "opt_simulate": {
+    "message": "保留したトランザクションを公開 RPC でシミュレーションする（保留中のトランザクションが publicnode / 1rpc / dRPC に送信されます）"
   },
   "opt_api_heading": {
     "message": "詳細スキャン・報告サーバー"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "不明なコントラクト呼び出しに ETH を支払う"
+  },
+  "gate_impact_title": {
+    "message": "ウォレットへの影響"
+  },
+  "gate_checking": {
+    "message": "オンチェーン情報を確認中…"
+  },
+  "gate_impact_all": {
+    "message": "あなたの $1 をすべて奪える可能性があります（現在 $2）"
+  },
+  "gate_impact_all_zero": {
+    "message": "$1 無制限：今後保有する分もすべて奪われる可能性があります"
+  },
+  "gate_impact_amount": {
+    "message": "数量：$1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "残高：$1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "コレクション：$1 — 保有数 $2"
+  },
+  "gate_impact_sends": {
+    "message": "$3 に $1 $2 を送ります"
+  },
+  "gate_impact_deadline": {
+    "message": "有効期間：$1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "有効期限なし"
+  },
+  "gate_impact_tokens": {
+    "message": "トークン：$1"
+  },
+  "gate_impact_give": {
+    "message": "あなたが渡すもの：$1"
+  },
+  "gate_impact_get": {
+    "message": "あなたが受け取るもの：$1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "あなたが受け取るもの：なし"
+  },
+  "gate_known": {
+    "message": "既知のコントラクト：$1"
+  },
+  "gate_unknown_contract": {
+    "message": "不明なコントラクト"
+  },
+  "gate_simulating": {
+    "message": "トランザクションをシミュレーション中…"
+  },
+  "gate_sim_title": {
+    "message": "シミュレーション（実際に起こること）"
+  },
+  "gate_sim_out": {
+    "message": "ウォレットから出るもの: $1"
+  },
+  "gate_sim_in": {
+    "message": "あなたに戻るもの: $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "あなたには何も戻りません"
+  },
+  "gate_sim_approval": {
+    "message": "新しい承認: $1"
+  },
+  "gate_sim_reverted": {
+    "message": "トランザクションは失敗します（revert）"
+  },
+  "gate_sim_unavailable": {
+    "message": "このチェーン / リクエストではシミュレーションを利用できません"
+  },
+  "gate_sim_no_changes": {
+    "message": "あなたのアドレスの資産変動はありません"
+  },
+  "gate_sim_unlimited": {
+    "message": "無制限"
+  },
+  "gate_sim_all_nfts": {
+    "message": "すべての NFT"
+  },
+  "gate_sim_sol_failed": {
+    "message": "トランザクションは失敗します"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "トークンのデリゲートが付与されます: $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "アカウントの管理者を変更します"
+  },
+  "gate_impact_delegate": {
+    "message": "アカウントを次に引き渡します: $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "不明なコントラクト"
+  },
+  "gate_word_plain_wallet": {
+    "message": "通常のウォレットアドレス"
+  },
+  "gate_impact_call": {
+    "message": "呼び出し $1: $2"
   },
   "seed_title": {
     "message": "停止：このページはリカバリーフレーズを要求しています"

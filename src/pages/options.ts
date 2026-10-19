@@ -4,12 +4,16 @@ const $ = (id: string) => document.getElementById(id)!;
 
 async function main() {
   localizePage();
-  const s = (await chrome.runtime.sendMessage({ type: "w3pg:getSettings" })) as { warnDisplay: "page" | "popup" };
+  const s = (await chrome.runtime.sendMessage({ type: "w3pg:getSettings" })) as { warnDisplay: "page" | "popup"; simulate: boolean };
   ($(s.warnDisplay === "popup" ? "warn-popup" : "warn-page") as HTMLInputElement).checked = true;
   for (const id of ["warn-page", "warn-popup"]) {
     $(id).onchange = async () => { await chrome.runtime.sendMessage({ type: "w3pg:setSettings", warnDisplay: ($(id) as HTMLInputElement).value }); };
   }
 
+
+  const sim = $("simulate") as HTMLInputElement;
+  sim.checked = s.simulate !== false;
+  sim.onchange = async () => { await chrome.runtime.sendMessage({ type: "w3pg:setSettings", simulate: sim.checked }); };
 
   $("refreshlists").onclick = async () => {
     const b = $("refreshlists") as HTMLButtonElement;

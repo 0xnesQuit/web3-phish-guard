@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "危险"
   },
+  "verdict_malicious": {
+    "message": "恶意"
+  },
+  "verdict_clean": {
+    "message": "未见攻击"
+  },
+  "popup_sandbox_title": {
+    "message": "沙箱（诱饵钱包）"
+  },
+  "popup_sandbox_sub": {
+    "message": "我们用一次性钱包打开该站点并观察它的请求。"
+  },
   "verdict_suspicious": {
     "message": "可疑"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "危险页面（70 分以上）始终打开整页警告。"
+  },
+  "opt_sim_heading": {
+    "message": "交易模拟"
+  },
+  "opt_simulate": {
+    "message": "通过公共 RPC 模拟被拦截的交易（待处理交易会发送到 publicnode / 1rpc / dRPC）"
   },
   "opt_api_heading": {
     "message": "深度扫描与举报服务器"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "向未知合约调用支付 ETH"
+  },
+  "gate_impact_title": {
+    "message": "这可能对你的钱包造成什么影响"
+  },
+  "gate_checking": {
+    "message": "正在检查链上详情…"
+  },
+  "gate_impact_all": {
+    "message": "可能拿走你全部的 $1（当前 $2）"
+  },
+  "gate_impact_all_zero": {
+    "message": "无限额度 $1：你之后持有的任何数量都可能被拿走"
+  },
+  "gate_impact_amount": {
+    "message": "数量：$1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "你的余额：$1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "合集：$1 — 你持有 $2 个"
+  },
+  "gate_impact_sends": {
+    "message": "向 $3 发送 $1 $2"
+  },
+  "gate_impact_deadline": {
+    "message": "有效期：$1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "永不过期"
+  },
+  "gate_impact_tokens": {
+    "message": "代币：$1"
+  },
+  "gate_impact_give": {
+    "message": "你付出：$1"
+  },
+  "gate_impact_get": {
+    "message": "你收到：$1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "你收到：什么都没有"
+  },
+  "gate_known": {
+    "message": "已知合约：$1"
+  },
+  "gate_unknown_contract": {
+    "message": "未知合约"
+  },
+  "gate_simulating": {
+    "message": "正在模拟交易…"
+  },
+  "gate_sim_title": {
+    "message": "模拟（实际会发生什么）"
+  },
+  "gate_sim_out": {
+    "message": "离开你的钱包：$1"
+  },
+  "gate_sim_in": {
+    "message": "返还给你：$1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "没有任何东西返还给你"
+  },
+  "gate_sim_approval": {
+    "message": "新授权：$1"
+  },
+  "gate_sim_reverted": {
+    "message": "该交易会失败（revert）"
+  },
+  "gate_sim_unavailable": {
+    "message": "此链 / 请求无法模拟"
+  },
+  "gate_sim_no_changes": {
+    "message": "你的地址没有资产变动"
+  },
+  "gate_sim_unlimited": {
+    "message": "无限"
+  },
+  "gate_sim_all_nfts": {
+    "message": "所有 NFT"
+  },
+  "gate_sim_sol_failed": {
+    "message": "该交易将失败"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "授予代币委托：$1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "更改谁控制您的账户"
+  },
+  "gate_impact_delegate": {
+    "message": "将您的账户交给：$1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "未知合约"
+  },
+  "gate_word_plain_wallet": {
+    "message": "普通钱包地址"
+  },
+  "gate_impact_call": {
+    "message": "调用 $1：$2"
   },
   "seed_title": {
     "message": "停止：此页面想要您的助记词"

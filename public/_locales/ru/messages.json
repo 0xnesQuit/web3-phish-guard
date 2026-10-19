@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "Опасно"
   },
+  "verdict_malicious": {
+    "message": "Вредоносный"
+  },
+  "verdict_clean": {
+    "message": "Атак не замечено"
+  },
+  "popup_sandbox_title": {
+    "message": "Песочница (приманка-кошелёк)"
+  },
+  "popup_sandbox_sub": {
+    "message": "Мы открыли сайт с одноразовым кошельком и посмотрели, что он запрашивает."
+  },
   "verdict_suspicious": {
     "message": "Подозрительно"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "Опасные страницы (70+) всегда открывают полноэкранное предупреждение."
+  },
+  "opt_sim_heading": {
+    "message": "Симуляция транзакций"
+  },
+  "opt_simulate": {
+    "message": "Симулировать удержанные транзакции через публичный RPC (ожидающая транзакция отправляется в publicnode / 1rpc / dRPC)"
   },
   "opt_api_heading": {
     "message": "Сервер глубокой проверки и жалоб"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "Отправляет ETH в неизвестный вызов контракта"
+  },
+  "gate_impact_title": {
+    "message": "Что это может сделать с вашим кошельком"
+  },
+  "gate_checking": {
+    "message": "Проверка данных в блокчейне…"
+  },
+  "gate_impact_all": {
+    "message": "Может забрать ВСЕ ваши $1 (сейчас $2)"
+  },
+  "gate_impact_all_zero": {
+    "message": "Неограниченный $1: всё, что у вас появится позже, можно забрать"
+  },
+  "gate_impact_amount": {
+    "message": "Сумма: $1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "Ваш баланс: $1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "Коллекция: $1 — у вас $2"
+  },
+  "gate_impact_sends": {
+    "message": "Отправляет $1 $2 на $3"
+  },
+  "gate_impact_deadline": {
+    "message": "Действует: $1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "Не истекает никогда"
+  },
+  "gate_impact_tokens": {
+    "message": "Токены: $1"
+  },
+  "gate_impact_give": {
+    "message": "Вы отдаёте: $1"
+  },
+  "gate_impact_get": {
+    "message": "Вы получаете: $1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "Вы получаете: ничего"
+  },
+  "gate_known": {
+    "message": "Известный контракт: $1"
+  },
+  "gate_unknown_contract": {
+    "message": "Неизвестный контракт"
+  },
+  "gate_simulating": {
+    "message": "Симуляция транзакции…"
+  },
+  "gate_sim_title": {
+    "message": "Симуляция (что произойдёт на самом деле)"
+  },
+  "gate_sim_out": {
+    "message": "Уходит из кошелька: $1"
+  },
+  "gate_sim_in": {
+    "message": "Возвращается к вам: $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "К вам ничего не возвращается"
+  },
+  "gate_sim_approval": {
+    "message": "Новое разрешение: $1"
+  },
+  "gate_sim_reverted": {
+    "message": "Транзакция завершится ошибкой (revert)"
+  },
+  "gate_sim_unavailable": {
+    "message": "Симуляция недоступна для этой сети / запроса"
+  },
+  "gate_sim_no_changes": {
+    "message": "Нет изменений активов для вашего адреса"
+  },
+  "gate_sim_unlimited": {
+    "message": "без лимита"
+  },
+  "gate_sim_all_nfts": {
+    "message": "все NFT"
+  },
+  "gate_sim_sol_failed": {
+    "message": "Транзакция завершилась бы ошибкой"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "Выдан делегат токена: $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "Меняет того, кто управляет вашим аккаунтом"
+  },
+  "gate_impact_delegate": {
+    "message": "Передаёт ваш аккаунт: $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "неизвестный контракт"
+  },
+  "gate_word_plain_wallet": {
+    "message": "обычный адрес кошелька"
+  },
+  "gate_impact_call": {
+    "message": "Вызов $1: $2"
   },
   "seed_title": {
     "message": "Стоп: эта страница запрашивает вашу seed-фразу"

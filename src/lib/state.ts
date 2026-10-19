@@ -49,6 +49,11 @@ export async function removeUserAllow(registrable: string): Promise<void> {
   const cur = ((await chrome.storage.local.get("userAllow")).userAllow as string[] | undefined) ?? [];
   await chrome.storage.local.set({ userAllow: cur.filter((d) => d !== registrable) });
 }
+/** Transaction simulation through a public RPC (PRIVACY.md): on unless the user turned it off. */
+export async function simulateEnabled(): Promise<boolean> {
+  return (await chrome.storage.local.get("simulate")).simulate !== false;
+}
+
 export async function getUserAllow(): Promise<string[]> {
   return ((await chrome.storage.local.get("userAllow")).userAllow as string[] | undefined) ?? [];
 }

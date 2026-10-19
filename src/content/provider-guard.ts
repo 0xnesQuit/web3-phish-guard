@@ -45,6 +45,7 @@ export {};
   const promiseReject = Promise.reject;
   const cloneF = (window as unknown as { structuredClone?: <T>(v: T) => T }).structuredClone;
   const jsonStringify = JSON.stringify, jsonParse = JSON.parse;
+  const btoaF = btoa, fromCharCodeF = String.fromCharCode, isView = ArrayBuffer.isView;
   const strIndexOf = String.prototype.indexOf, strLower = String.prototype.toLowerCase, strSplit = String.prototype.split;
   const createEvent = (name: string, detail: unknown) => new CustomEvent(name, { detail });
   const dispatch = EventTarget.prototype.dispatchEvent;
@@ -81,7 +82,7 @@ export {};
     const d = e.data;
     if (!d || typeof d !== "object") return;
     const id = toStr(d.id);
-    if (d.type === "getCode") { void getCode(id, toStr(d.address)); return; }
+    if (d.type === "rpc") { void relayRpc(id, toStr(d.reqId), toStr(d.method), d.params); return; }
     const w = pending[id];
     if (!w) return;
     if (d.type === "ack") w.ack(!!d.hold);
@@ -129,23 +130,28 @@ export {};
   }
   const rejected = () => { const err = new Error("User rejected the request (Web3 Phish Guard)."); (err as unknown as { code: number }).code = 4001; return err; };
 
-  // ---- read-only call on behalf of the bridge (eth_getCode) ----
+  // ---- read-only RPC relay on behalf of the bridge ----
+  // Only these methods are ever forwarded; anything else is answered with null without touching the provider.
+  const RPC_ALLOW: Record<string, true> = objectCreate(null);
+  for (const mth of ["eth_getCode", "eth_call", "eth_chainId", "eth_accounts", "eth_getBalance"]) RPC_ALLOW[mth] = true;
   let rawRequest: ((args: unknown) => Promise<unknown>) | null = null;
   const requestProvider: Record<string, object> = objectCreate(null);
-  async function getCode(id: string, address: string): Promise<void> {
-    let code: string | null = null;
+  async function relayRpc(id: string, reqId: string, method: string, params: unknown): Promise<void> {
+    let result: unknown = null;
     try {
-      // answer through the provider the inspected request came in on, not whichever provider was wrapped first
-      const prov = requestProvider[id];
-      const viaProvider = prov ? (R(weakMapGet, rawRequests, [prov]) as ((a: unknown) => Promise<unknown>) | undefined) : undefined;
-      const req = viaProvider ?? rawRequest;
-      if (req) {
-        const p = req({ method: "eth_getCode", params: [address, "latest"] });
-        const v = await new PromiseC<unknown>((res, rej) => { const tm = later(() => rej(new Error("timeout")), 3000); then(p, (x) => { cancel(tm); res(x); }, (e) => { cancel(tm); rej(e); }); });
-        if (typeof v === "string") code = v;
+      if (RPC_ALLOW[method] === true) {
+        // answer through the provider the inspected request came in on, not whichever provider was wrapped first
+        const prov = requestProvider[reqId];
+        const viaProvider = prov ? (R(weakMapGet, rawRequests, [prov]) as ((a: unknown) => Promise<unknown>) | undefined) : undefined;
+        const req = viaProvider ?? rawRequest;
+        if (req) {
+          const p = req({ method, params: isArray(params) ? params : [] });
+          const v = await new PromiseC<unknown>((res, rej) => { const tm = later(() => rej(new Error("timeout")), 3000); then(p, (x) => { cancel(tm); res(x); }, (e) => { cancel(tm); rej(e); }); });
+          if (typeof v === "string" || isArray(v)) result = v;
+        }
       }
     } catch { /* unknown */ }
-    send({ type: "code", id, code });
+    send({ type: "rpc", id, result });
   }
 
   // ---- provider wrapping: instance + prototype chain -------------------------------------
@@ -212,7 +218,7 @@ export {};
   };
   const rawRequests = new WeakMap<object, (args: unknown) => Promise<unknown>>();
 
-  /** remember which provider a (snapshotted) request belongs to, for the bridge's getCode round trip */
+  /** remember which provider a (snapshotted) request belongs to, for the bridge's rpc round trips */
   const itemProvider = new WeakMap<object, object>();
   const requestProviderFor = (item: object, p: object) => { R(weakMapSet, itemProvider, [item, p]); };
 
@@ -323,17 +329,65 @@ export {};
   const SOL_METHODS = ["signTransaction", "signAllTransactions", "signAndSendTransaction", "signAndSendAllTransactions", "signMessage", "signIn"];
   const isSol = (m: string) => { for (let i = 0; i < SOL_METHODS.length; i++) if (SOL_METHODS[i] === m) return true; return false; };
   void strSplit;
-  const guardSolanaCall = (method: string, orig: (...a: any[]) => any, self: unknown, args: IArguments | unknown[]) => {
+  /**
+   * Display-only copy of the transactions about to be signed (base64, at most 4, each at most 1700 bytes), so the
+   * bridge can simulate them. Everything here is best effort and can only ever yield fewer items: a throwing or
+   * lying page produces no `txs`, and nothing in here influences whether the request is held.
+   */
+  const TX_METHODS: Record<string, true> = objectCreate(null);
+  for (const mth of ["signTransaction", "signAllTransactions", "signAndSendTransaction", "signAndSendAllTransactions"]) TX_METHODS[mth] = true;
+  const toBase64 = (b: unknown): string | undefined => {
+    if (!b || typeof b !== "object" || !R(isView, ArrayBuffer, [b])) return undefined;
+    const arr = b as ArrayLike<number>;
+    const len = arr.length;
+    if (typeof len !== "number" || !(len > 0) || len > 1700) return undefined;
+    let bin = "";
+    for (let i = 0; i < len; i += 512) {
+      const chunk: number[] = [];
+      for (let j = i; j < len && j < i + 512; j++) chunk[chunk.length] = arr[j] & 255;
+      bin += toStr(R(fromCharCodeF, String, chunk));
+    }
+    return toStr(R(btoaF, window, [bin]));
+  };
+  const serializeTx = (tx: any): string | undefined => {
+    try {
+      if (!tx || typeof tx !== "object") return undefined;
+      const direct = toBase64(tx); // some wallets hand over raw bytes
+      if (direct) return direct;
+      const ser = tx.serialize;
+      if (typeof ser !== "function") return undefined;
+      let bytes: unknown;
+      try { bytes = R(ser, tx, [{ requireAllSignatures: false, verifySignatures: false }]); } catch { bytes = undefined; } // legacy Transaction
+      let out = toBase64(bytes);
+      if (!out) { try { out = toBase64(R(ser, tx, [])); } catch { out = undefined; } } // VersionedTransaction
+      return out;
+    } catch { return undefined; }
+  };
+  const solanaTxs = (bare: string, args: unknown[], standard: boolean): string[] => {
+    const out: string[] = [];
+    try {
+      if (TX_METHODS[bare] !== true) return out;
+      const raw: unknown[] = standard ? args : isArray(args[0]) ? (args[0] as unknown[]) : [args[0]];
+      for (let i = 0; i < raw.length && i < 4; i++) {
+        const item = raw[i] as any;
+        const b64 = serializeTx(standard ? (item && typeof item === "object" ? item.transaction : undefined) : item);
+        if (b64) out[out.length] = b64;
+      }
+    } catch { /* display only */ }
+    return out;
+  };
+  const guardSolanaCall = (method: string, orig: (...a: any[]) => any, self: unknown, args: IArguments | unknown[], bare = "", standard = false) => {
     const first = (args as unknown[])[0];
-    const batch = isArray(first) ? (first as unknown[]).length : 1;
-    return then(inspect(method, { batch }, "solana"), (allow) => (allow ? R(orig, self, args as unknown[]) : PromiseC.reject(rejected())), () => R(orig, self, args as unknown[]));
+    const batch = standard ? (args as unknown[]).length || 1 : isArray(first) ? (first as unknown[]).length : 1;
+    const txs = solanaTxs(bare, args as unknown[], standard);
+    return then(inspect(method, txs.length ? { batch, txs } : { batch }, "solana"), (allow) => (allow ? R(orig, self, args as unknown[]) : PromiseC.reject(rejected())), () => R(orig, self, args as unknown[]));
   };
   const wrapSolana = () => {
     const w = window as any;
     const s = w.solana ?? (w.phantom && w.phantom.solana);
     if (!s || typeof s !== "object" || has(wrappedProviders, s)) return;
     add(wrappedProviders, s);
-    for (const m of SOL_METHODS) for (const o of owners(s, m)) patch(o, m, (orig) => function (this: unknown) { return guardSolanaCall("solana:" + m, orig, this ?? s, arguments); });
+    for (const m of SOL_METHODS) for (const o of owners(s, m)) patch(o, m, (orig) => function (this: unknown) { return guardSolanaCall("solana:" + m, orig, this ?? s, arguments, m); });
     for (const o of owners(s, "request")) {
       patch(o, "request", (orig) => function (this: unknown, args: { method?: string; params?: unknown }) {
         const m = toStr((args && args.method) ?? "");
@@ -372,7 +426,7 @@ export {};
         if (!feat || typeof feat !== "object" || !method) { copy[key] = feat; continue; }
         const fcopy: Record<string, unknown> = { ...feat };
         const origFn = feat[method];
-        if (typeof origFn === "function") fcopy[method] = function (this: unknown, ...inputs: unknown[]) { return guardSolanaCall(key, origFn, feat, inputs); };
+        if (typeof origFn === "function") fcopy[method] = function (this: unknown, ...inputs: unknown[]) { return guardSolanaCall(key, origFn, feat, inputs, method, true); };
         copy[key] = fcopy;
       }
       return copy;

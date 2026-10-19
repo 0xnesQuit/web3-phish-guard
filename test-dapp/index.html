@@ -49,7 +49,7 @@
       <button class="danger" id="transferAuth">EIP-3009 TransferWithAuthorization</button>
       <button class="danger" id="safeDelegate">Safe tx with delegatecall</button>
     </div>
-    <p class="muted">Expected: the red extension dialog appears for each of these, whatever the page's score. "Reject" → the page sees error code 4001 and the wallet never shows the request. "Allow" → the wallet's own prompt appears; reject it there.</p>
+    <p class="muted">Expected: the red extension dialog appears for each of these, whatever the page's score. On Ethereum mainnet the token is USDC, so the dialog also shows its symbol and your balance, and (for transactions) a simulation block with what the call would really do; the spender stays a dead-looking address and you reject anyway. On other chains the token reads simply find no contract. "Reject" → the page sees error code 4001 and the wallet never shows the request. "Allow" → the wallet's own prompt appears; reject it there.</p>
   </section>
 
   <section>
@@ -57,11 +57,12 @@
     <div class="row">
       <button id="approveLimited">Limited approve (100 tokens)</button>
       <button id="transfer">ERC-20 transfer</button>
+      <button id="transferUsdc">Transfer 1 USDC</button>
       <button id="sendEth">Send 0 ETH</button>
       <button id="multicall">multicall hiding an approve</button>
       <button id="sendCalls">wallet_sendCalls batch (EIP-5792)</button>
     </div>
-    <p class="muted">Expected on a clean page: straight to the wallet. Open this page with <code>#w3pg-drill=45</code> (warn) or <code>#w3pg-drill=75</code> in the URL and reload: the extension pretends the page scored that much (localhost only), and these are held too. The multicall and batch must be held at any score because they hide an unlimited approve.</p>
+    <p class="muted">Expected on a clean page: straight to the wallet. Open this page with <code>#w3pg-drill=45</code> (warn) or <code>#w3pg-drill=75</code> in the URL and reload: the extension pretends the page scored that much (localhost only), and these are held too. The multicall and batch must be held at any score because they hide an unlimited approve. "Transfer 1 USDC" (<code>transfer(DEAD, 1e6)</code>) is the one to use with <code>#w3pg-drill=45</code> on mainnet to see the simulation's "Leaves your wallet" line (it needs at least 1 USDC in the wallet, otherwise the simulation says the call would revert).</p>
   </section>
 
   <section>
@@ -87,7 +88,7 @@
   const log = (m, cls) => { const el = document.getElementById("log"); const line = document.createElement("div"); if (cls) line.className = cls; line.textContent = `${new Date().toLocaleTimeString()}  ${m}`; el.prepend(line); };
   const DEAD = "0x000000000000000000000000000000000000dEaD";
   const SPENDER = "0x1111111111111111111111111111111111111111"; // an EOA-looking spender: the extension flags EOA spenders
-  const TOKEN = "0x2222222222222222222222222222222222222222";
+  const TOKEN = "0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"; // mainnet USDC: the symbol / decimals / balance reads and the simulation give real lines there
   const pad = (hex) => hex.replace(/^0x/, "").padStart(64, "0");
   const MAX = "f".repeat(64);
   let account = null;
@@ -148,6 +149,7 @@
   // ---- 2. score-dependent ----
   document.getElementById("approveLimited").onclick = () => run("approve(100)", async () => { await needAccount(); return send({ to: TOKEN, data: "0x095ea7b3" + pad(SPENDER) + pad("64") }); });
   document.getElementById("transfer").onclick = () => run("transfer", async () => { await needAccount(); return send({ to: TOKEN, data: "0xa9059cbb" + pad(DEAD) + pad("1") }); });
+  document.getElementById("transferUsdc").onclick = () => run("transfer 1 USDC", async () => { await needAccount(); return send({ to: TOKEN, data: "0xa9059cbb" + pad(DEAD) + pad("f4240") }); });
   document.getElementById("sendEth").onclick = () => run("send 0 ETH", async () => { await needAccount(); return send({ to: DEAD, value: "0x0" }); });
   document.getElementById("multicall").onclick = () => run("multicall(approve)", async () => { await needAccount(); const inner = "095ea7b3" + pad(SPENDER) + MAX; return send({ to: TOKEN, data: "0xac9650d8" + pad("20") + pad("1") + pad("20") + pad((inner.length / 2).toString(16)) + inner }); });
   document.getElementById("sendCalls").onclick = () => run("wallet_sendCalls", async () => { await needAccount(); const chainId = await eth().request({ method: "eth_chainId" }); return eth().request({ method: "wallet_sendCalls", params: [{ version: "2.0.0", chainId, from: account, calls: [{ to: DEAD, value: "0x0" }, { to: TOKEN, data: "0x095ea7b3" + pad(SPENDER) + MAX }] }] }); });

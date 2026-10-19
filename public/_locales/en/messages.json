@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "Dangerous"
   },
+  "verdict_malicious": {
+    "message": "Malicious"
+  },
+  "verdict_clean": {
+    "message": "No attack seen"
+  },
+  "popup_sandbox_title": {
+    "message": "Sandbox (decoy wallet)"
+  },
+  "popup_sandbox_sub": {
+    "message": "We opened the site with a throw-away wallet and watched what it asked for."
+  },
   "verdict_suspicious": {
     "message": "Suspicious"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "Dangerous pages (score 70+) always open the full-page warning regardless of this setting."
+  },
+  "opt_sim_heading": {
+    "message": "Transaction simulation"
+  },
+  "opt_simulate": {
+    "message": "Simulate held transactions through a public RPC (sends the pending transaction to publicnode / 1rpc / dRPC)"
   },
   "opt_api_heading": {
     "message": "Deep scan & reports server"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "Pays ETH into an unknown contract call"
+  },
+  "gate_impact_title": {
+    "message": "What this can do to your wallet"
+  },
+  "gate_checking": {
+    "message": "Checking on-chain details…"
+  },
+  "gate_impact_all": {
+    "message": "It could take ALL of your $1 ($2 now)"
+  },
+  "gate_impact_all_zero": {
+    "message": "Unlimited $1: anything you hold later can be taken"
+  },
+  "gate_impact_amount": {
+    "message": "Amount: $1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "Your balance: $1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "Collection: $1 — you hold $2"
+  },
+  "gate_impact_sends": {
+    "message": "Sends $1 $2 to $3"
+  },
+  "gate_impact_deadline": {
+    "message": "Valid for: $1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "Never expires"
+  },
+  "gate_impact_tokens": {
+    "message": "Tokens: $1"
+  },
+  "gate_impact_give": {
+    "message": "You give: $1"
+  },
+  "gate_impact_get": {
+    "message": "You receive: $1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "You receive: nothing"
+  },
+  "gate_known": {
+    "message": "Known contract: $1"
+  },
+  "gate_unknown_contract": {
+    "message": "Unknown contract"
+  },
+  "gate_simulating": {
+    "message": "Simulating the transaction…"
+  },
+  "gate_sim_title": {
+    "message": "Simulation (what would actually happen)"
+  },
+  "gate_sim_out": {
+    "message": "Leaves your wallet: $1"
+  },
+  "gate_sim_in": {
+    "message": "Comes back to you: $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "Nothing comes back to you"
+  },
+  "gate_sim_approval": {
+    "message": "New approval: $1"
+  },
+  "gate_sim_reverted": {
+    "message": "The transaction would fail (revert)"
+  },
+  "gate_sim_unavailable": {
+    "message": "Simulation not available for this chain / request"
+  },
+  "gate_sim_no_changes": {
+    "message": "No asset changes for your address"
+  },
+  "gate_sim_unlimited": {
+    "message": "unlimited"
+  },
+  "gate_sim_all_nfts": {
+    "message": "all NFTs"
+  },
+  "gate_sim_sol_failed": {
+    "message": "The transaction would fail"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "Token delegate granted: $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "Changes who controls your account"
+  },
+  "gate_impact_delegate": {
+    "message": "Hands your account to: $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "unknown contract"
+  },
+  "gate_word_plain_wallet": {
+    "message": "plain wallet address"
+  },
+  "gate_impact_call": {
+    "message": "Call $1: $2"
   },
   "seed_title": {
     "message": "Stop: this page wants your recovery phrase"

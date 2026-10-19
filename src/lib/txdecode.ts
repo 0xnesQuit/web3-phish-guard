@@ -12,6 +12,8 @@ export interface TxIntent {
   counterparty?: string;
   token?: string;
   amountHex?: string;
+  /** native value of the transaction (hex), set for eth-send / unknown-payable */
+  valueHex?: string;
   unlimited?: boolean;
   /** nested intents for multicall / sendCalls */
   inner?: TxIntent[];
@@ -23,6 +25,14 @@ export interface SignIntent {
   /** spender/operator/offerer when present */
   counterparty?: string;
   deadline?: string;
+  /** the token a permit applies to (Permit: verifyingContract; Permit2: details.token / permitted.token) */
+  token?: string;
+  /** every token of a batch permit */
+  tokens?: string[];
+  /** permitted amount (hex or decimal as signed) */
+  amountHex?: string;
+  /** raw typed-data message, only for seaport / blur orders (the bridge summarizes it) */
+  message?: Record<string, unknown>;
 }
 
 const UINT_MAX = "f".repeat(64);
@@ -85,7 +95,7 @@ export function decodeCalldata(data: string | undefined, to?: string): TxIntent 
     case "transferFrom":
     case "safeTransferFrom":
     case "safeBatchTransferFrom":
-      return { kind: "transferFrom", selector: sel, counterparty: addr(word(d, 1)), token: to?.toLowerCase() };
+      return { kind: "transferFrom", selector: sel, counterparty: addr(word(d, 1)), token: to?.toLowerCase(), amountHex: sel === "0x23b872dd" ? word(d, 2) : undefined };
     case "universal-router": {
       // Universal Router command bytes (low 6 bits): 0x0a PERMIT2_PERMIT, 0x03 PERMIT2_PERMIT_BATCH (signature-based
       // allowances, held), 0x02 PERMIT2_TRANSFER_FROM, 0x0d PERMIT2_TRANSFER_FROM_BATCH (moves tokens, reported).
@@ -132,8 +142,8 @@ export function decodeTx(tx: TxLike | undefined): TxIntent {
   const intent = decodeCalldata(tx.data, tx.to);
   if (intent.kind !== "none") return intent;
   const hasValue = !!tx.value && /^0x0*[1-9a-f]/i.test(tx.value);
-  if (hasValue && (!tx.data || tx.data === "0x")) return { kind: "eth-send", counterparty: tx.to?.toLowerCase() };
-  if (hasValue) return { kind: "unknown-payable", selector: (tx.data ?? "").slice(0, 10), counterparty: tx.to?.toLowerCase() };
+  if (hasValue && (!tx.data || tx.data === "0x")) return { kind: "eth-send", counterparty: tx.to?.toLowerCase(), valueHex: tx.value };
+  if (hasValue) return { kind: "unknown-payable", selector: (tx.data ?? "").slice(0, 10), counterparty: tx.to?.toLowerCase(), valueHex: tx.value };
   return { kind: "none", selector: (tx.data ?? "").slice(0, 10) };
 }
 
@@ -146,7 +156,7 @@ export function decodeSendCalls(p: { calls?: TxLike[] } | undefined): TxIntent {
 
 /** eth_signTypedData_v4 params[1] (JSON string or object). */
 export function decodeTypedData(raw: unknown): SignIntent {
-  let td: { primaryType?: string; message?: Record<string, unknown>; domain?: { name?: string } } | null = null;
+  let td: { primaryType?: string; message?: Record<string, unknown>; domain?: { name?: string; verifyingContract?: string } } | null = null;
   try { td = typeof raw === "string" ? JSON.parse(raw) : (raw as typeof td); } catch { return { kind: "other" }; }
   if (!td || typeof td !== "object") return { kind: "other" };
   const pt = String(td.primaryType ?? "");
@@ -158,13 +168,22 @@ export function decodeTypedData(raw: unknown): SignIntent {
     }
     return undefined;
   };
+  const addrOf = (v: unknown) => (typeof v === "string" && /^0x[0-9a-f]{40}$/i.test(v) ? v.toLowerCase() : undefined);
+  const amtOf = (v: unknown) => (typeof v === "string" || typeof v === "number" ? String(v) : undefined);
+  const details = m.details as Record<string, unknown> | Array<Record<string, unknown>> | undefined;
+  const permitted = m.permitted as Record<string, unknown> | Array<Record<string, unknown>> | undefined;
+  const first = (x: unknown): Record<string, unknown> | undefined => (Array.isArray(x) ? (x[0] as Record<string, unknown> | undefined) : (x as Record<string, unknown> | undefined));
+  const listOf = (x: unknown): Record<string, unknown>[] => (Array.isArray(x) ? (x as Record<string, unknown>[]).filter((e) => e && typeof e === "object") : x && typeof x === "object" ? [x as Record<string, unknown>] : []);
+  const entry = first(details) ?? first(permitted);
+  const tokenList = [...listOf(details), ...listOf(permitted)].map((e) => addrOf(e.token)).filter((x): x is string => !!x);
+  const tokenInfo = { token: addrOf(entry?.token), amountHex: amtOf(entry?.amount) };
   const deadline = ["deadline", "sigDeadline", "expiry", "expiration", "endTime"].map((k) => m[k]).find((v) => v !== undefined);
-  if (/^PermitBatch(TransferFrom|WitnessTransferFrom)?$/.test(pt)) return { kind: "permit-batch", primaryType: pt, counterparty: pick("spender"), deadline: String(deadline ?? "") };
-  if (/^Permit(Single|TransferFrom|WitnessTransferFrom)$/.test(pt)) return { kind: "permit2", primaryType: pt, counterparty: pick("spender"), deadline: String(deadline ?? "") };
+  if (/^PermitBatch(TransferFrom|WitnessTransferFrom)?$/.test(pt)) return { kind: "permit-batch", primaryType: pt, counterparty: pick("spender"), deadline: String(deadline ?? ""), ...tokenInfo, tokens: tokenList };
+  if (/^Permit(Single|TransferFrom|WitnessTransferFrom)$/.test(pt)) return { kind: "permit2", primaryType: pt, counterparty: pick("spender"), deadline: String(deadline ?? ""), ...tokenInfo };
   if (pt === "PermitForAll") return { kind: "permit-for-all", primaryType: pt, counterparty: pick("operator", "spender") };
-  if (pt === "Permit") return { kind: "permit", primaryType: pt, counterparty: pick("spender"), deadline: String(deadline ?? "") };
-  if (/^(OrderComponents|Order|BulkOrder|SeaportOrder)$/.test(pt)) return { kind: "seaport-order", primaryType: pt, counterparty: pick("offerer") };
-  if (/^(Root|Order|Listing)$/.test(pt) && /blur/i.test(String(td.domain?.name ?? ""))) return { kind: "blur-order", primaryType: pt };
+  if (pt === "Permit") return { kind: "permit", primaryType: pt, counterparty: pick("spender"), deadline: String(deadline ?? ""), token: addrOf(td.domain?.verifyingContract), amountHex: amtOf(m.value) };
+  if (/^(OrderComponents|Order|BulkOrder|SeaportOrder)$/.test(pt)) return { kind: "seaport-order", primaryType: pt, counterparty: pick("offerer"), message: m };
+  if (/^(Root|Order|Listing)$/.test(pt) && /blur/i.test(String(td.domain?.name ?? ""))) return { kind: "blur-order", primaryType: pt, message: m };
   if (/^Delegation$/.test(pt) || /^(SetDelegate|Delegate)/.test(pt)) return { kind: "delegation", primaryType: pt, counterparty: pick("delegate") };
   // Safe: a delegatecall transaction can replace the Safe's own logic (the Bybit-style attack)
   if (pt === "SafeTx") {

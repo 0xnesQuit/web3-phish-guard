@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "Berbahaya"
   },
+  "verdict_malicious": {
+    "message": "Berbahaya"
+  },
+  "verdict_clean": {
+    "message": "Tak ada serangan"
+  },
+  "popup_sandbox_title": {
+    "message": "Sandbox (dompet umpan)"
+  },
+  "popup_sandbox_sub": {
+    "message": "Kami membuka situs dengan dompet sekali pakai dan mengamati permintaannya."
+  },
   "verdict_suspicious": {
     "message": "Mencurigakan"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "Halaman berbahaya (70+) selalu membuka peringatan layar penuh."
+  },
+  "opt_sim_heading": {
+    "message": "Simulasi transaksi"
+  },
+  "opt_simulate": {
+    "message": "Simulasikan transaksi yang ditahan lewat RPC publik (transaksi tertunda dikirim ke publicnode / 1rpc / dRPC)"
   },
   "opt_api_heading": {
     "message": "Server pindai mendalam & laporan"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "Membayar ETH ke pemanggilan kontrak tak dikenal"
+  },
+  "gate_impact_title": {
+    "message": "Dampaknya pada dompet Anda"
+  },
+  "gate_checking": {
+    "message": "Memeriksa detail on-chain…"
+  },
+  "gate_impact_all": {
+    "message": "Bisa mengambil SEMUA $1 Anda (saat ini $2)"
+  },
+  "gate_impact_all_zero": {
+    "message": "$1 tanpa batas: apa pun yang Anda miliki nanti bisa diambil"
+  },
+  "gate_impact_amount": {
+    "message": "Jumlah: $1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "Saldo Anda: $1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "Koleksi: $1 — Anda memiliki $2"
+  },
+  "gate_impact_sends": {
+    "message": "Mengirim $1 $2 ke $3"
+  },
+  "gate_impact_deadline": {
+    "message": "Berlaku selama: $1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "Tidak pernah kedaluwarsa"
+  },
+  "gate_impact_tokens": {
+    "message": "Token: $1"
+  },
+  "gate_impact_give": {
+    "message": "Anda memberi: $1"
+  },
+  "gate_impact_get": {
+    "message": "Anda menerima: $1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "Anda menerima: tidak ada"
+  },
+  "gate_known": {
+    "message": "Kontrak dikenal: $1"
+  },
+  "gate_unknown_contract": {
+    "message": "Kontrak tidak dikenal"
+  },
+  "gate_simulating": {
+    "message": "Mensimulasikan transaksi…"
+  },
+  "gate_sim_title": {
+    "message": "Simulasi (apa yang sebenarnya terjadi)"
+  },
+  "gate_sim_out": {
+    "message": "Keluar dari dompet Anda: $1"
+  },
+  "gate_sim_in": {
+    "message": "Kembali ke Anda: $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "Tidak ada yang kembali ke Anda"
+  },
+  "gate_sim_approval": {
+    "message": "Persetujuan baru: $1"
+  },
+  "gate_sim_reverted": {
+    "message": "Transaksi akan gagal (revert)"
+  },
+  "gate_sim_unavailable": {
+    "message": "Simulasi tidak tersedia untuk jaringan / permintaan ini"
+  },
+  "gate_sim_no_changes": {
+    "message": "Tidak ada perubahan aset untuk alamat Anda"
+  },
+  "gate_sim_unlimited": {
+    "message": "tak terbatas"
+  },
+  "gate_sim_all_nfts": {
+    "message": "semua NFT"
+  },
+  "gate_sim_sol_failed": {
+    "message": "Transaksi akan gagal"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "Delegasi token diberikan: $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "Mengubah siapa yang mengendalikan akun Anda"
+  },
+  "gate_impact_delegate": {
+    "message": "Menyerahkan akun Anda kepada: $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "kontrak tidak dikenal"
+  },
+  "gate_word_plain_wallet": {
+    "message": "alamat dompet biasa"
+  },
+  "gate_impact_call": {
+    "message": "Panggilan $1: $2"
   },
   "seed_title": {
     "message": "Berhenti: halaman ini meminta frasa pemulihan Anda"

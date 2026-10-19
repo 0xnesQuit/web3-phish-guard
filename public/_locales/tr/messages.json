@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "Tehlikeli"
   },
+  "verdict_malicious": {
+    "message": "Zararlı"
+  },
+  "verdict_clean": {
+    "message": "Saldırı görülmedi"
+  },
+  "popup_sandbox_title": {
+    "message": "Sandbox (tuzak cüzdan)"
+  },
+  "popup_sandbox_sub": {
+    "message": "Siteyi atılabilir bir cüzdanla açıp neyi istediğini izledik."
+  },
   "verdict_suspicious": {
     "message": "Şüpheli"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "Tehlikeli sayfalar (70+ puan) bu ayardan bağımsız olarak her zaman tam sayfa uyarı açar."
+  },
+  "opt_sim_heading": {
+    "message": "İşlem simülasyonu"
+  },
+  "opt_simulate": {
+    "message": "Bekletilen işlemleri herkese açık bir RPC üzerinden simüle et (bekleyen işlem publicnode / 1rpc / dRPC'ye gönderilir)"
   },
   "opt_api_heading": {
     "message": "Derin tarama ve bildirim sunucusu"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "Bilinmeyen bir kontrat çağrısına ETH ödüyor"
+  },
+  "gate_impact_title": {
+    "message": "Bunun cüzdanınıza etkisi"
+  },
+  "gate_checking": {
+    "message": "Zincir üstü ayrıntılar kontrol ediliyor…"
+  },
+  "gate_impact_all": {
+    "message": "Tüm $1 varlığınızı alabilir (şu an $2)"
+  },
+  "gate_impact_all_zero": {
+    "message": "Sınırsız $1: sonradan sahip olacağınız her şey alınabilir"
+  },
+  "gate_impact_amount": {
+    "message": "Miktar: $1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "Bakiyeniz: $1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "Koleksiyon: $1 — elinizde $2 adet var"
+  },
+  "gate_impact_sends": {
+    "message": "$3 adresine $1 $2 gönderir"
+  },
+  "gate_impact_deadline": {
+    "message": "Geçerlilik: $1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "Hiç sona ermez"
+  },
+  "gate_impact_tokens": {
+    "message": "Tokenlar: $1"
+  },
+  "gate_impact_give": {
+    "message": "Verdikleriniz: $1"
+  },
+  "gate_impact_get": {
+    "message": "Aldıklarınız: $1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "Aldığınız: hiçbir şey"
+  },
+  "gate_known": {
+    "message": "Bilinen kontrat: $1"
+  },
+  "gate_unknown_contract": {
+    "message": "Bilinmeyen kontrat"
+  },
+  "gate_simulating": {
+    "message": "İşlem simüle ediliyor…"
+  },
+  "gate_sim_title": {
+    "message": "Simülasyon (gerçekte ne olurdu)"
+  },
+  "gate_sim_out": {
+    "message": "Cüzdanınızdan çıkar: $1"
+  },
+  "gate_sim_in": {
+    "message": "Size geri gelir: $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "Size hiçbir şey geri gelmez"
+  },
+  "gate_sim_approval": {
+    "message": "Yeni onay: $1"
+  },
+  "gate_sim_reverted": {
+    "message": "İşlem başarısız olurdu (revert)"
+  },
+  "gate_sim_unavailable": {
+    "message": "Bu ağ / istek için simülasyon yok"
+  },
+  "gate_sim_no_changes": {
+    "message": "Adresiniz için varlık değişimi yok"
+  },
+  "gate_sim_unlimited": {
+    "message": "sınırsız"
+  },
+  "gate_sim_all_nfts": {
+    "message": "tüm NFT'ler"
+  },
+  "gate_sim_sol_failed": {
+    "message": "İşlem başarısız olurdu"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "Token yetkilisi atanır: $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "Hesabınızı kimin kontrol ettiğini değiştirir"
+  },
+  "gate_impact_delegate": {
+    "message": "Hesabınızı şuna devreder: $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "bilinmeyen kontrat"
+  },
+  "gate_word_plain_wallet": {
+    "message": "düz cüzdan adresi"
+  },
+  "gate_impact_call": {
+    "message": "Çağrı $1: $2"
   },
   "seed_title": {
     "message": "Dur: bu sayfa kurtarma ifadenizi istiyor"

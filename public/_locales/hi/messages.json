@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "खतरनाक"
   },
+  "verdict_malicious": {
+    "message": "दुर्भावनापूर्ण"
+  },
+  "verdict_clean": {
+    "message": "कोई हमला नहीं दिखा"
+  },
+  "popup_sandbox_title": {
+    "message": "सैंडबॉक्स (डिकॉय वॉलेट)"
+  },
+  "popup_sandbox_sub": {
+    "message": "हमने साइट को एक अस्थायी वॉलेट से खोला और देखा कि उसने क्या माँगा।"
+  },
   "verdict_suspicious": {
     "message": "संदिग्ध"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "खतरनाक पेज (70+) हमेशा पूर्ण-पेज चेतावनी खोलते हैं।"
+  },
+  "opt_sim_heading": {
+    "message": "लेनदेन सिमुलेशन"
+  },
+  "opt_simulate": {
+    "message": "रोके गए लेनदेन को सार्वजनिक RPC से सिमुलेट करें (लंबित लेनदेन publicnode / 1rpc / dRPC को भेजा जाता है)"
   },
   "opt_api_heading": {
     "message": "गहन स्कैन और रिपोर्ट सर्वर"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "अज्ञात कॉन्ट्रैक्ट कॉल में ETH देता है"
+  },
+  "gate_impact_title": {
+    "message": "इससे आपके वॉलेट पर क्या असर पड़ सकता है"
+  },
+  "gate_checking": {
+    "message": "ऑन-चेन विवरण जाँचे जा रहे हैं…"
+  },
+  "gate_impact_all": {
+    "message": "यह आपके सभी $1 ले सकता है (अभी $2)"
+  },
+  "gate_impact_all_zero": {
+    "message": "असीमित $1: आगे आपके पास जो भी होगा वह लिया जा सकता है"
+  },
+  "gate_impact_amount": {
+    "message": "राशि: $1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "आपका बैलेंस: $1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "कलेक्शन: $1 — आपके पास $2 हैं"
+  },
+  "gate_impact_sends": {
+    "message": "$1 $2 को $3 पर भेजता है"
+  },
+  "gate_impact_deadline": {
+    "message": "वैधता: $1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "कभी समाप्त नहीं होता"
+  },
+  "gate_impact_tokens": {
+    "message": "टोकन: $1"
+  },
+  "gate_impact_give": {
+    "message": "आप देते हैं: $1"
+  },
+  "gate_impact_get": {
+    "message": "आपको मिलता है: $1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "आपको मिलता है: कुछ नहीं"
+  },
+  "gate_known": {
+    "message": "ज्ञात कॉन्ट्रैक्ट: $1"
+  },
+  "gate_unknown_contract": {
+    "message": "अज्ञात कॉन्ट्रैक्ट"
+  },
+  "gate_simulating": {
+    "message": "लेनदेन का सिमुलेशन चल रहा है…"
+  },
+  "gate_sim_title": {
+    "message": "सिमुलेशन (असल में क्या होगा)"
+  },
+  "gate_sim_out": {
+    "message": "आपके वॉलेट से जाएगा: $1"
+  },
+  "gate_sim_in": {
+    "message": "आपको वापस मिलेगा: $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "आपको कुछ भी वापस नहीं मिलेगा"
+  },
+  "gate_sim_approval": {
+    "message": "नई अनुमति: $1"
+  },
+  "gate_sim_reverted": {
+    "message": "लेनदेन विफल हो जाएगा (revert)"
+  },
+  "gate_sim_unavailable": {
+    "message": "इस चेन / अनुरोध के लिए सिमुलेशन उपलब्ध नहीं"
+  },
+  "gate_sim_no_changes": {
+    "message": "आपके पते के लिए कोई संपत्ति बदलाव नहीं"
+  },
+  "gate_sim_unlimited": {
+    "message": "असीमित"
+  },
+  "gate_sim_all_nfts": {
+    "message": "सभी NFT"
+  },
+  "gate_sim_sol_failed": {
+    "message": "लेन-देन विफल हो जाएगा"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "टोकन डेलीगेट दिया गया: $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "आपके खाते पर किसका नियंत्रण है, यह बदलता है"
+  },
+  "gate_impact_delegate": {
+    "message": "आपका खाता सौंपता है: $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "अज्ञात कॉन्ट्रैक्ट"
+  },
+  "gate_word_plain_wallet": {
+    "message": "सामान्य वॉलेट पता"
+  },
+  "gate_impact_call": {
+    "message": "कॉल $1: $2"
   },
   "seed_title": {
     "message": "रुकें: यह पेज आपका रिकवरी फ्रेज़ माँग रहा है"

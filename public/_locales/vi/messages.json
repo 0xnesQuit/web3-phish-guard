@@ -149,6 +149,18 @@
   "verdict_dangerous": {
     "message": "Nguy hiểm"
   },
+  "verdict_malicious": {
+    "message": "Độc hại"
+  },
+  "verdict_clean": {
+    "message": "Không thấy tấn công"
+  },
+  "popup_sandbox_title": {
+    "message": "Hộp cát (ví mồi)"
+  },
+  "popup_sandbox_sub": {
+    "message": "Chúng tôi mở trang bằng ví dùng một lần và xem nó yêu cầu gì."
+  },
   "verdict_suspicious": {
     "message": "Đáng ngờ"
   },
@@ -169,6 +181,12 @@
   },
   "opt_warn_note": {
     "message": "Trang nguy hiểm (70+) luôn mở cảnh báo toàn trang."
+  },
+  "opt_sim_heading": {
+    "message": "Mô phỏng giao dịch"
+  },
+  "opt_simulate": {
+    "message": "Mô phỏng giao dịch bị giữ qua RPC công khai (giao dịch đang chờ được gửi tới publicnode / 1rpc / dRPC)"
   },
   "opt_api_heading": {
     "message": "Máy chủ quét sâu và báo cáo"
@@ -505,6 +523,108 @@
   },
   "gate_kind_unknown_payable": {
     "message": "Trả ETH vào một lệnh gọi hợp đồng không rõ"
+  },
+  "gate_impact_title": {
+    "message": "Điều này có thể làm gì với ví của bạn"
+  },
+  "gate_checking": {
+    "message": "Đang kiểm tra thông tin on-chain…"
+  },
+  "gate_impact_all": {
+    "message": "Có thể lấy TOÀN BỘ $1 của bạn (hiện có $2)"
+  },
+  "gate_impact_all_zero": {
+    "message": "$1 không giới hạn: mọi thứ bạn nắm giữ sau này đều có thể bị lấy"
+  },
+  "gate_impact_amount": {
+    "message": "Số lượng: $1 $2"
+  },
+  "gate_impact_balance": {
+    "message": "Số dư của bạn: $1 $2"
+  },
+  "gate_impact_nfts": {
+    "message": "Bộ sưu tập: $1 — bạn đang giữ $2"
+  },
+  "gate_impact_sends": {
+    "message": "Gửi $1 $2 đến $3"
+  },
+  "gate_impact_deadline": {
+    "message": "Có hiệu lực trong: $1"
+  },
+  "gate_impact_no_expiry": {
+    "message": "Không bao giờ hết hạn"
+  },
+  "gate_impact_tokens": {
+    "message": "Token: $1"
+  },
+  "gate_impact_give": {
+    "message": "Bạn trao: $1"
+  },
+  "gate_impact_get": {
+    "message": "Bạn nhận: $1"
+  },
+  "gate_impact_get_nothing": {
+    "message": "Bạn nhận: không gì cả"
+  },
+  "gate_known": {
+    "message": "Hợp đồng đã biết: $1"
+  },
+  "gate_unknown_contract": {
+    "message": "Hợp đồng không xác định"
+  },
+  "gate_simulating": {
+    "message": "Đang mô phỏng giao dịch…"
+  },
+  "gate_sim_title": {
+    "message": "Mô phỏng (điều thực sự sẽ xảy ra)"
+  },
+  "gate_sim_out": {
+    "message": "Rời khỏi ví của bạn: $1"
+  },
+  "gate_sim_in": {
+    "message": "Quay lại với bạn: $1"
+  },
+  "gate_sim_nothing_back": {
+    "message": "Không có gì quay lại với bạn"
+  },
+  "gate_sim_approval": {
+    "message": "Phê duyệt mới: $1"
+  },
+  "gate_sim_reverted": {
+    "message": "Giao dịch sẽ thất bại (revert)"
+  },
+  "gate_sim_unavailable": {
+    "message": "Không có mô phỏng cho chuỗi / yêu cầu này"
+  },
+  "gate_sim_no_changes": {
+    "message": "Không có thay đổi tài sản cho địa chỉ của bạn"
+  },
+  "gate_sim_unlimited": {
+    "message": "không giới hạn"
+  },
+  "gate_sim_all_nfts": {
+    "message": "tất cả NFT"
+  },
+  "gate_sim_sol_failed": {
+    "message": "Giao dịch sẽ thất bại"
+  },
+  "gate_sim_sol_delegate": {
+    "message": "Cấp quyền ủy quyền token: $1"
+  },
+  "gate_sim_sol_owner": {
+    "message": "Thay đổi người kiểm soát tài khoản của bạn"
+  },
+  "gate_impact_delegate": {
+    "message": "Giao tài khoản của bạn cho: $1"
+  },
+  "gate_word_unknown_contract": {
+    "message": "hợp đồng không xác định"
+  },
+  "gate_word_plain_wallet": {
+    "message": "địa chỉ ví thông thường"
+  },
+  "gate_impact_call": {
+    "message": "Lệnh gọi $1: $2"
   },
   "seed_title": {
     "message": "Dừng lại: trang này muốn cụm từ khôi phục của bạn"

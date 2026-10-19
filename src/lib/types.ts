@@ -130,6 +130,23 @@ export interface DeepReport {
   markers: string[];
   goplus?: { phishing?: boolean };
   ai: { verdict?: string; confidence?: number; summary?: string; reasons?: string[]; advice?: string[]; impersonates?: string; model?: string; cached?: boolean; error?: string; goplus?: { phishing?: boolean } };
+  /** server-side sandbox result: the page was opened with a throw-away wallet and watched. Absent when disabled/unreachable. */
+  sandbox?: SandboxReport;
+}
+
+export interface SandboxReport {
+  ok: boolean;
+  error?: string;
+  score: number;
+  verdict: "malicious" | "suspicious" | "clean" | "unknown";
+  flags: string[];
+  findings: string[];
+  requests?: Array<{ method: string; kind: string; unprompted: boolean; counterparty?: string; chainId?: string }>;
+  simulations?: Array<{ kind: string; chainId?: string; sim?: { out: string[]; in: string[]; approvals: string[]; reverted: boolean } }>;
+  scriptMarkers?: string[];
+  badHosts?: string[];
+  seedForm?: boolean;
+  durationMs?: number;
 }
 
 export interface ProviderEvent {

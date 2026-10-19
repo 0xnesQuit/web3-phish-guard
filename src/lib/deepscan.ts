@@ -4,7 +4,7 @@
  * (verdict, RDAP age, X intel, provider events), optionally asks GoPlus, scans a few
  * external scripts for drainer markers, then asks the API (which holds the AI key) for a verdict.
  */
-import type { DeepReport, PageSnapshot, Verdict, OriginContext, XIntel } from "./types";
+import type { DeepReport, PageSnapshot, SandboxReport, Verdict, OriginContext, XIntel } from "./types";
 import { signalText } from "./i18n";
 
 /** The only server the extension talks to for deep scans, reports and X lookups. Not user-configurable. */
@@ -87,6 +87,31 @@ export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { 
   } catch {
     clearTimeout(t);
     return { error: "unreachable" };
+  }
+}
+
+/**
+ * Ask the server-side sandbox to open the url in a throw-away headless browser and report what the page tried to
+ * do to a wallet. The sandbox's URL and token live in the Worker, never here. Slow (up to ~40 s); the caller runs
+ * it in parallel with the AI scan and tolerates its absence.
+ */
+export async function askSandbox(url: string): Promise<SandboxReport | undefined> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 43_000);
+  try {
+    const res = await fetch(`${API_BASE}/v1/sandbox`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: url.replace(/[?#].*$/, "") }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) return undefined; // disabled (503), rate-limited (429) or unreachable: silently skip
+    const r = (await res.json()) as SandboxReport & { error?: string };
+    return r && typeof r.score === "number" ? r : undefined;
+  } catch {
+    clearTimeout(t);
+    return undefined;
   }
 }
 
