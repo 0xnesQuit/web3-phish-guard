@@ -416,8 +416,11 @@ describe("brand under attack (learned from blocklists)", () => {
   it("scoring: attacked brand + claim + X + shortener blocks; the real site stays clean", () => {
     const attacked = { token: "pharos", count: 14, example: "pharosnetwork-tge.com" };
     const v = run("https://claim.pharosnet.xyz/", { attacked, origin: { source: "x", at: 0, poster: "LiLiHadid", shortener: "tr.ee" } });
-    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["attacked-brand", "action-strong", "shortener", "origin-social"]));
+    // Pharos is a seed brand now, so the token already yields brand-impersonation; the attacked-brand signal never stacks on the same token
+    expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["brand-impersonation", "action-strong", "shortener", "origin-social"]));
+    expect(v.signals.some((s) => s.id === "attacked-brand")).toBe(false);
     expect(v.band).toBe("block");
+
     expect(run("https://pharosnetwork.xyz/", { attacked }).band).toBe("none");
     expect(run("https://testnet.pharosnetwork.xyz/", { attacked }).band).toBe("none");
   });

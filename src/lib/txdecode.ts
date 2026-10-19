@@ -140,7 +140,7 @@ export function decodeTx(tx: TxLike | undefined): TxIntent {
 /** EIP-5792 wallet_sendCalls params[0].calls[] */
 export function decodeSendCalls(p: { calls?: TxLike[] } | undefined): TxIntent {
   const calls = p?.calls ?? [];
-  const inner = calls.slice(0, 20).map(decodeTx).filter((i) => i.kind !== "none");
+  const inner = calls.slice(0, 64).map(decodeTx).filter((i) => i.kind !== "none");
   return { kind: "multicall", inner };
 }
 

@@ -308,6 +308,9 @@
   "sig_brand_path": {
     "message": "Page on a shared platform named after $1 ($2)"
   },
+  "sig_redirect_cloaked": {
+    "message": "The link sends visitors somewhere else than it showed our checker ($1)"
+  },
   "sig_display_mismatch": {
     "message": "The address shown on X ($1) differs from the one opened"
   },
@@ -478,6 +481,9 @@
   },
   "gate_kind_solana_sign": {
     "message": "Solana signature request"
+  },
+  "gate_kind_undecodable": {
+    "message": "Signing request the extension could not read (the page interfered)"
   },
   "gate_kind_transfer": {
     "message": "Token transfer"

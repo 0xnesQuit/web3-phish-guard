@@ -67,6 +67,9 @@ function brandTokenSet(brands: Brand[]): Set<string> {
   return s;
 }
 
+/** labels that say nothing about a site: never the "second token" that lets a short brand name match */
+const HOST_NOISE = new Set(["www", "m", "mail", "app", "api", "web", "my", "go", "en", "de", "fr", "es", "it", "ru", "cn", "jp", "shop", "store", "blog", "docs", "help", "support"]);
+
 const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "shop", "home", "info", "base", "blast", "scroll", "across", "blur", "eigen", "pudgy", "jupiter", "linea", "zama", "zora", "tensor", "highlight", "manifold", "optimism"]);
 
 /** ASCII look-alikes drainer kits use in hostnames: rn->m, vv->w, cl->d, 1->l, 0->o */
@@ -171,7 +174,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
           break outer;
         }
         // exact label match for short/generic tokens (catches blur-claim.xyz, not database.xyz)
-        if (generic && tokens.includes(tok) && tokens.length > 1) {
+        if (generic && tokens.includes(tok) && tokens.filter((x) => !HOST_NOISE.has(x)).length > 1) {
           matchedBrand = b;
           brandSignalKind = b.domains.length ? "impersonation" : "unverified";
           break outer;
@@ -313,8 +316,11 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // ...and the token must name something that exists: a known brand token, or one so widely phished (>=12 listed
   // roots) that it is a brand in practice. Ordinary words that happen to recur in feeds (admin, assets) never count.
   let attackedFlagged = false;
-  const attackedIsBrand = !!ctx.attacked && (brandTokenSet(ctx.brands).has(ctx.attacked.token) || ctx.attacked.count >= 12);
-  if (ctx.attacked && attackedIsBrand && !ctx.blocklistHit && !ctx.siblingHit && (hasAction || p.freeHost || fresh || ctx.origin?.shortener)) {
+  // the token must be a known brand token (ordinary words recur in feeds too: "global", "finder", "bakery"), and it
+  // must not be the very token that already produced a brand signal on this host (no double counting)
+  const attackedIsBrand = !!ctx.attacked && brandTokenSet(ctx.brands).has(ctx.attacked.token);
+  const sameAsBrand = !!ctx.attacked && !!matchedBrand && matchedBrand.tokens.some((t) => stripCloneAffixes(t.toLowerCase()) === ctx.attacked!.token || t.toLowerCase() === ctx.attacked!.token);
+  if (ctx.attacked && attackedIsBrand && !sameAsBrand && !ctx.blocklistHit && !ctx.siblingHit && (hasAction || p.freeHost || fresh || ctx.origin?.shortener)) {
     signals.push({ id: "attacked-brand", weight: 40, key: "sig_attacked_brand", sub: [ctx.attacked.token, String(ctx.attacked.count), ctx.attacked.example] });
     attackedFlagged = true;
   }
@@ -384,7 +390,12 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     // Not deception: the text shows a redirector (t.co, amzn.to, forms.gle...) or any host the link actually passed
     // through on its way here; only a domain that was never part of the chain is a lie.
     const disp = o.display?.toLowerCase();
-    const inChain = !!disp && (isRedirector(disp) || (o.hops ?? []).some((h) => h === disp || isUnderDomain(h, disp) || isUnderDomain(disp, h)));
+    // The chain is only evidence when it ends where the user actually landed: a cloaker that showed our server (and
+    // X's crawler) a decoy while sending the user elsewhere gets a signal of its own instead of a pass.
+    const last = o.hops?.length ? o.hops[o.hops.length - 1] : undefined;
+    const chainMatches = !!last && (isUnderDomain(p.host, last) || isUnderDomain(last, p.registrable));
+    const inChain = !!disp && (isRedirector(disp) || (chainMatches && (o.hops ?? []).some((h) => h === disp || isUnderDomain(h, disp) || isUnderDomain(disp, h))));
+    if (last && !chainMatches && !isRedirector(last)) signals.push({ id: "redirect-cloaked", weight: 30, key: "sig_redirect_cloaked", sub: [last] });
     if (disp && !inChain && disp !== p.host && !isUnderDomain(p.host, disp) && !isUnderDomain(disp, p.registrable)) {
       signals.push({ id: "display-mismatch", weight: 40, key: "sig_display_mismatch", sub: [o.display!] });
       // The card borrowed a real project's domain ("Kaynak: artblocks.io" -> qql-desk.com): impersonation by proxy.

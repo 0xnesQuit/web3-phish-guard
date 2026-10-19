@@ -308,6 +308,9 @@
   "sig_brand_path": {
     "message": "공유 플랫폼의 $1 이름을 쓴 페이지 ($2)"
   },
+  "sig_redirect_cloaked": {
+    "message": "이 링크는 검사기에 보여준 곳과 다른 곳으로 방문자를 보냅니다 ($1)"
+  },
   "sig_display_mismatch": {
     "message": "X에 표시된 주소($1)와 열린 주소가 다름"
   },
@@ -478,6 +481,9 @@
   },
   "gate_kind_solana_sign": {
     "message": "Solana 서명 요청"
+  },
+  "gate_kind_undecodable": {
+    "message": "확장 프로그램이 읽을 수 없는 서명 요청 (페이지가 방해함)"
   },
   "gate_kind_transfer": {
     "message": "토큰 전송"

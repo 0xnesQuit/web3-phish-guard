@@ -16,7 +16,7 @@ interface GateDetails { id: string; method: string; kind: string; counterparty?:
 type Decision = { ask: boolean; reason?: string; score?: number };
 interface InspectMsg { type: "inspect"; id: string; method: string; params: unknown; chain: "evm" | "solana"; hadGesture: boolean; msSinceLoad: number }
 
-const ALWAYS_HOLD = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation", "delegation-7702", "eth_sign", "seaport-order", "blur-order", "transfer-auth", "safe-delegatecall", "agent-approval"]);
+const ALWAYS_HOLD = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation", "delegation-7702", "eth_sign", "seaport-order", "blur-order", "transfer-auth", "safe-delegatecall", "agent-approval", "undecodable"]);
 
 // ---- private channel -------------------------------------------------------------------
 const channel = new MessageChannel();
@@ -88,6 +88,13 @@ async function inspect(m: InspectMsg): Promise<boolean> {
     if (!g) post({ kind: "chain-switch", method, detail: "", msSinceLoad, hadGesture: g });
     ack(false); return true;
   }
+  // the guard could not snapshot a signing request (a page broke structuredClone, or params carry live getters):
+  // never let an undecodable signing request through unseen
+  if ((params as { w3pgUndecodable?: boolean } | null)?.w3pgUndecodable) {
+    post({ kind: "risky-sign", method, detail: "undecodable", msSinceLoad, hadGesture: g });
+    ack(true);
+    return gate({ id: m.id, method, kind: "undecodable", hadGesture: g });
+  }
   if (method === "eth_sign") {
     post({ kind: "risky-sign", method, detail: "eth_sign", msSinceLoad, hadGesture: g });
     ack(true);
@@ -107,6 +114,11 @@ async function inspect(m: InspectMsg): Promise<boolean> {
     const intent: TxIntent = method === "wallet_sendCalls" ? decodeSendCalls(p[0] as { calls?: never[] }) : decodeTx(p[0] as never);
     const flat = intent.kind === "multicall" ? intent.inner ?? [] : [intent];
     const risky = flat.filter((i) => ["approve-unlimited", "approve", "setApprovalForAll", "permit2", "transfer", "transferFrom", "delegation-7702", "unknown-payable", "eth-send"].includes(i.kind));
+    if (intent.kind === "multicall" && (intent.inner?.length ?? 0) === 0 && method === "wallet_sendCalls" && ((p[0] as { calls?: unknown[] })?.calls?.length ?? 0) > 20) {
+      // more calls than the decoder reads: hold rather than wave through
+      ack(true);
+      return gate({ id: m.id, method, kind: "undecodable", batch: ["calls>20"], hadGesture: g });
+    }
     if (!risky.length) { ack(false); return true; }
     const top = risky.find((i) => i.kind === "delegation-7702") ?? risky.find((i) => i.kind === "setApprovalForAll") ?? risky.find((i) => i.kind === "approve-unlimited") ?? risky[0];
     ack(ALWAYS_HOLD.has(top.kind));
@@ -132,6 +144,8 @@ async function gate(g: GateDetails): Promise<boolean> {
     decision = { ask: ALWAYS_HOLD.has(g.kind) || g.counterpartyEoa === true || !!g.poisonedTwin };
   }
   if (!decision.ask) return true;
+  // the modal is about to open: tell the guard to hold the request for as long as it takes
+  port.postMessage({ type: "ack", id: g.id, hold: true });
   let allow: boolean;
   if (window.top !== window) {
     try {

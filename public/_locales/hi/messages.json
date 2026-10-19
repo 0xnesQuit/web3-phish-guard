@@ -308,6 +308,9 @@
   "sig_brand_path": {
     "message": "साझा प्लेटफ़ॉर्म पर $1 के नाम वाला पेज ($2)"
   },
+  "sig_redirect_cloaked": {
+    "message": "लिंक आगंतुकों को वहाँ नहीं भेजता जहाँ उसने हमारे जाँचकर्ता को दिखाया ($1)"
+  },
   "sig_display_mismatch": {
     "message": "X पर दिखाया पता ($1) खुले पते से अलग है"
   },
@@ -478,6 +481,9 @@
   },
   "gate_kind_solana_sign": {
     "message": "Solana हस्ताक्षर अनुरोध"
+  },
+  "gate_kind_undecodable": {
+    "message": "हस्ताक्षर अनुरोध जिसे एक्सटेंशन पढ़ नहीं सका (पेज ने हस्तक्षेप किया)"
   },
   "gate_kind_transfer": {
     "message": "टोकन ट्रांसफर"

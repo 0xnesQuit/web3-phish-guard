@@ -308,6 +308,9 @@
   "sig_brand_path": {
     "message": "Trang trên nền tảng dùng chung mang tên $1 ($2)"
   },
+  "sig_redirect_cloaked": {
+    "message": "Liên kết đưa khách đến nơi khác với nơi đã hiển thị cho trình kiểm tra của chúng tôi ($1)"
+  },
   "sig_display_mismatch": {
     "message": "Địa chỉ hiển thị trên X ($1) khác với địa chỉ mở"
   },
@@ -478,6 +481,9 @@
   },
   "gate_kind_solana_sign": {
     "message": "Yêu cầu ký Solana"
+  },
+  "gate_kind_undecodable": {
+    "message": "Yêu cầu ký mà tiện ích không đọc được (trang đã can thiệp)"
   },
   "gate_kind_transfer": {
     "message": "Chuyển token"

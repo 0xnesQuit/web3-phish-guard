@@ -38,7 +38,7 @@ const MM_DIFFS = "https://phishing-detection.api.cx.metamask.io/v2/diffsSince/";
 
 /** legacy storage shape (list:<id>), still read once for migration */
 interface StoredList { domains: string[]; updatedAt: number; mmLastUpdated?: number }
-interface ListMeta { count: number; updatedAt: number; mmLastUpdated?: number }
+interface ListMeta { count: number; updatedAt: number; mmLastUpdated?: number; /** salt the index was built with; a mismatch means the index is unusable */ salt?: string }
 
 // ---------------------------------------------------------------------------
 // 64-bit hash index
@@ -46,9 +46,11 @@ interface ListMeta { count: number; updatedAt: number; mmLastUpdated?: number }
 /** Two independent 32-bit FNV-1a style passes make a 64-bit key: collisions are ~1 in 1.8e19, far below the feeds' own noise. */
 /** Per-install random salt: a hash collision engineered against one victim domain would have to target each install separately. */
 let salt = "";
-export function setHashSalt(s: string): void { salt = s; }
-
+let saltRequired = false;
+export function setHashSalt(s: string): void { salt = s; saltRequired = true; }
+/** Production code must never hash before warmLists loaded the salt (an alarm-woken worker would write unsalted hashes). */
 export function hash64(s: string): bigint {
+  if (!salt && saltRequired) throw new Error("w3pg: hash before salt");
   let a = 0x811c9dc5 >>> 0, b = 0x01000193 >>> 0;
   if (salt) s = salt + "|" + s;
   for (let i = 0; i < s.length; i++) {
@@ -340,6 +342,20 @@ function deriveFor(domains: string[], freeHosts: string[]): DerivedIndexes {
   return { sibling: [...sib].map(([k, m]) => [k, [...m]]), attack: [...atk.values()] };
 }
 
+/** Union of two derived sets (sibling entries first-wins, attack counts max). */
+function mergeDerivedInto(base: DerivedIndexes | undefined, extra: DerivedIndexes): DerivedIndexes {
+  if (!base) return extra;
+  const sib = new Map<string, Map<string, string>>(base.sibling.map(([k, m]) => [k, new Map(m)]));
+  for (const [suffix, entries] of extra.sibling) {
+    let m = sib.get(suffix);
+    if (!m) sib.set(suffix, (m = new Map()));
+    for (const [t, host] of entries) if (!m.has(t)) m.set(t, host);
+  }
+  const atk = new Map<string, AttackedBrand>(base.attack.map((a) => [a.token, a]));
+  for (const a of extra.attack) { const cur = atk.get(a.token); if (!cur || a.count > cur.count) atk.set(a.token, a); }
+  return { sibling: [...sib].map(([k, m]) => [k, [...m]]), attack: [...atk.values()] };
+}
+
 /** Merge every source's derived indexes into the live ones. Attack counts take the max across sources (lists overlap heavily). */
 function mergeDerived(): void {
   const sib: SiblingIndex = new Map();
@@ -422,7 +438,7 @@ async function storeSource(id: string, domains: string[], meta: Omit<ListMeta, "
   const src = SOURCES.find((s) => s.id === id);
   const idx = buildIndex(domains);
   const tail = src?.tail ? domains.slice(Math.max(0, domains.length - src.tail)) : [];
-  const m: ListMeta = { ...meta, count: idx.length };
+  const m: ListMeta = { ...meta, count: idx.length, salt };
   const d = deriveFor(domains, siblingHosts);
   mem.set(id, idx);
   tails.set(id, tail);
@@ -532,15 +548,16 @@ export async function refreshMetaMaskDiffs(): Promise<void> {
   for (const p of ops.addPaths) paths.add(p);
   pathList = [...paths];
   pathMem = buildPathIndex(pathList);
-  const m: ListMeta = { count: next.length, updatedAt: Date.now(), mmLastUpdated: ops.last };
+  const m: ListMeta = { count: next.length, updatedAt: Date.now(), mmLastUpdated: ops.last, salt };
   await chrome.storage.local.set({
     "hidx:metamask": encodeIndex(next), "tail:metamask": tail, "meta:metamask": m,
     "list:metamask-paths": { domains: pathList, updatedAt: Date.now() } satisfies StoredList,
   });
   if (warmed) { mem.set("metamask", next); tails.set("metamask", tail); metas.set("metamask", m); }
-  // hotlist additions are the freshest phishing there is: fold them into the derived indexes right away
+  // hotlist additions are the freshest phishing there is: fold them into the derived indexes right away,
+  // merged into (not replacing) what the full feed produced
   if (ops.addHosts.length) {
-    const d = deriveFor(tail, siblingHosts);
+    const d = mergeDerivedInto(derived.get("metamask"), deriveFor(ops.addHosts, siblingHosts));
     derived.set("metamask", d);
     await chrome.storage.local.set({ "didx:metamask": d });
     mergeDerived();
@@ -578,24 +595,32 @@ export async function warmLists(freeHosts: string[] = [], shared: string[] = [])
   const saltGot = (await chrome.storage.local.get("hsalt")).hsalt as string | undefined;
   if (saltGot) setHashSalt(saltGot);
   else {
-    // first run with salted hashes: any index stored under the unsalted hash is useless, drop it and refetch
     const fresh = crypto.randomUUID();
     await chrome.storage.local.set({ hsalt: fresh });
     setHashSalt(fresh);
-    await chrome.storage.local.remove(SOURCES.map((s) => `hidx:${s.id}`)).catch(() => undefined);
     needsRefresh = true;
   }
   const keys = SOURCES.flatMap((s) => [`hidx:${s.id}`, `tail:${s.id}`, `meta:${s.id}`, `didx:${s.id}`, `list:${s.id}`]).concat(["list:metamask-allow", "list:metamask-paths"]);
   const got = await chrome.storage.local.get(keys);
   for (const s of SOURCES) {
     const h = got[`hidx:${s.id}`] as string | undefined;
-    if (h) {
+    const meta = got[`meta:${s.id}`] as ListMeta | undefined;
+    if (h && meta?.salt === salt) {
       const idx = decodeIndex(h);
       mem.set(s.id, idx);
       tails.set(s.id, (got[`tail:${s.id}`] as string[] | undefined) ?? []);
-      metas.set(s.id, (got[`meta:${s.id}`] as ListMeta | undefined) ?? { count: idx.length, updatedAt: 0 });
+      metas.set(s.id, meta);
       const d = got[`didx:${s.id}`] as DerivedIndexes | undefined;
       if (d) derived.set(s.id, d);
+      continue;
+    }
+    if (h) {
+      // an index built under another salt (or none) is unusable; keep the newest entries protective from the tail
+      // until the full feed is fetched again
+      const tail = (got[`tail:${s.id}`] as string[] | undefined) ?? [];
+      if (tail.length) await storeSource(s.id, tail, { updatedAt: meta?.updatedAt ?? 0, mmLastUpdated: meta?.mmLastUpdated });
+      else await chrome.storage.local.remove([`hidx:${s.id}`, `meta:${s.id}`]).catch(() => undefined);
+      needsRefresh = true;
       continue;
     }
     // one-time migration from the string-array format (the shared-platform filter applies on the way)

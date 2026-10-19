@@ -308,6 +308,9 @@
   "sig_brand_path": {
     "message": "共有プラットフォーム上の $1 を名乗るページ ($2)"
   },
+  "sig_redirect_cloaked": {
+    "message": "このリンクは当方の検査に見せた先とは別の場所へ訪問者を送ります ($1)"
+  },
   "sig_display_mismatch": {
     "message": "X に表示されたアドレス（$1）と開いたものが異なる"
   },
@@ -478,6 +481,9 @@
   },
   "gate_kind_solana_sign": {
     "message": "Solana 署名リクエスト"
+  },
+  "gate_kind_undecodable": {
+    "message": "拡張機能が読めなかった署名リクエスト（ページが妨害しました）"
   },
   "gate_kind_transfer": {
     "message": "トークン送金"

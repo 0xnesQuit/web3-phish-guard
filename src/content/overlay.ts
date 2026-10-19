@@ -34,7 +34,7 @@ function render(v: Verdict) {
   root.getElementById("close")?.addEventListener("click", (e) => { if (e.isTrusted) { closed = true; keep.disconnect(); host.remove(); } });
   const mount = () => (document.documentElement || document.body).appendChild(host);
   // a page that deletes the banner gets it back; only the user's own click closes it
-  const keep = new MutationObserver(() => { if (!closed && !host.isConnected && document.getElementById(ID) === null) mount(); });
+  const keep = new MutationObserver(() => { if (!closed && !host.isConnected) mount(); });
   keep.observe(document.documentElement, { childList: true });
   mount();
 }

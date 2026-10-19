@@ -1,4 +1,4 @@
-import { parseHost } from "./lib/hostname";
+import { parseHost, isUnderDomain } from "./lib/hostname";
 import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
 import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle, brandByToken } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, blocklistPathHit, allowlistHit, siblingHit, attackedBrandHit, listStatus, newestDomains, newestPaths } from "./lib/blocklist";
@@ -40,6 +40,8 @@ chrome.runtime.onStartup.addListener(() => void ensureAlarms());
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   const id = alarm.name.replace("refresh:", "");
   try {
+    // an alarm usually wakes a cold worker: load the salt, the shared hosts and the indexes before touching any list
+    await ensureReady();
     if (alarm.name === "prune") { await pruneCaches(); return; }
     if (id === "metamask-diffs") { await refreshMetaMaskDiffs(); if (isWarm()) await syncDnr(); }
     else if (id === "data") {
@@ -203,15 +205,6 @@ async function xIntelFor(v: Verdict, origin?: OriginContext): Promise<XIntel | u
 /** Full pipeline for one navigation: local score -> RDAP age -> X resolver. Later passes are dropped if the tab moved on. */
 async function evaluateAndApply(tabId: number, url: string, origin?: OriginContext): Promise<void> {
   await chrome.storage.session.remove([`soc:${tabId}`, `pev:${tabId}`]);
-  // a click from X that showed one domain and landed on another: learn the redirect chain before judging it
-  if (origin?.display && origin.href && !origin.hops) {
-    let landed = "";
-    try { landed = new URL(url).hostname.toLowerCase(); } catch { /* ignore */ }
-    if (landed && landed !== origin.display.toLowerCase()) {
-      const res = await resolveRedirect(origin.href);
-      if (res) { origin = { ...origin, hops: res.hops, shortener: origin.shortener ?? res.hops.find((h) => h !== "t.co" && isShortener(h)) }; }
-    }
-  }
   let v = await evaluate(url, { origin });
   if (!v) {
     await resetTab(tabId);
@@ -220,6 +213,19 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
   if (!(await stillOn(tabId, v.host))) return; // the tab moved on while the lists were warming
   await applyVerdict(tabId, v);
   if (v.band === "block") return;
+  // a click from X that showed one domain and landed on another: learn the redirect chain and re-judge (the first
+  // verdict is already on screen; this only ever adds or removes the deception signals)
+  if (origin?.display && origin.href && !origin.hops) {
+    const disp = origin.display.toLowerCase();
+    if (v.host !== disp && !isUnderDomain(v.host, disp) && !isUnderDomain(disp, v.registrable)) {
+      const res = await resolveRedirect(origin.href);
+      if (res && (await stillOn(tabId, v.host))) {
+        origin = { ...origin, hops: res.hops, shortener: origin.shortener ?? res.hops.find((h) => h !== "t.co" && isShortener(h)) };
+        const v2 = await evaluate(url, { origin });
+        if (v2) { await applyVerdict(tabId, v2); v = v2; if (v.band === "block") return; }
+      }
+    }
+  }
   let ageDays: number | undefined;
   if (v.needsAgeCheck) {
     ageDays = await domainAgeDays(v.registrable);
@@ -548,7 +554,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (safeSite) weight = Math.min(weight, 30);
         if (foreign) weight = Math.min(weight, 30);
         if (!weight) return;
-        const id = `provider-${ev.kind}${ev.detail && ["eoa-spender", "poisoning", "delegation"].includes(ev.detail) ? "-" + ev.detail : ""}`;
+        const id = `${foreign ? "frame-" : ""}provider-${ev.kind}${ev.detail && ["eoa-spender", "poisoning", "delegation"].includes(ev.detail) ? "-" + ev.detail : ""}`;
         if (prev.signals.some((s) => s.id === id)) return;
         const signals = [...prev.signals, { id, weight, ...providerKey(ev) }];
         try {
@@ -558,7 +564,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           await chrome.storage.session.set({ [k]: list.slice(-20) });
         } catch { /* ignore */ }
         let total = Math.max(0, Math.min(100, signals.reduce((s, x) => s + x.weight, 0)));
-        if (foreign && total >= BLOCK_THRESHOLD) total = BLOCK_THRESHOLD - 1; // frame-only evidence stops at "warn"
+        // evidence from third-party frames may raise a warning but never tips the top page into a block
+        const ownTotal = Math.max(0, Math.min(100, signals.filter((s) => !s.id.startsWith("frame-")).reduce((s, x) => s + x.weight, 0)));
+        if (total >= BLOCK_THRESHOLD && ownTotal < BLOCK_THRESHOLD) total = BLOCK_THRESHOLD - 1;
         const v: Verdict = { ...prev, signals, score: total, band: bandOf(total), at: Date.now() };
         await applyVerdict(tabId, v);
         sendResponse(v);
@@ -758,7 +766,7 @@ function gateDecision(v: Verdict | null, g: Record<string, unknown>): { ask: boo
   if (eoa || poisoned || kind === "delegation-7702" || kind === "eth_sign") return { ask: true, score: v?.score };
   if (safeSite) return { ask: false };
   // unknown or suspicious sites: hold anything that can move assets later without another click
-  const alwaysHold = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation", "seaport-order", "blur-order", "transfer-auth", "safe-delegatecall", "agent-approval"]);
+  const alwaysHold = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation", "seaport-order", "blur-order", "transfer-auth", "safe-delegatecall", "agent-approval", "undecodable"]);
   // Solana signing on a page the heuristics already dislike: ask; on an unknown page let the wallet's own prompt do it
   if (kind === "solana-sign") return band !== "none" ? { ask: true, score: v?.score } : { ask: false };
   if (alwaysHold.has(kind)) return { ask: true, score: v?.score };

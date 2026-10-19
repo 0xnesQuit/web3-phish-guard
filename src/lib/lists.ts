@@ -185,7 +185,10 @@ export async function refreshRemoteData(force = false): Promise<{ updated: boole
       if ((await sha256Hex(text)) !== entry.sha256) { console.warn(`[w3pg] ${file}: hash mismatch, skipped`); continue; }
       const json = JSON.parse(text);
       if (json === null || typeof json !== "object") continue;
-      const prev = (await chrome.storage.local.get("data:" + file))["data:" + file];
+      // curated files are capped against the bundled copy (cumulative: a stolen key cannot grow the trusted list 50 at a
+      // time), the churny generated brand files against the last accepted copy
+      const churny = file === "brands.generated.json" || file === "brands.cmc.json" || file === "brands.nft.json";
+      const prev = churny ? (await chrome.storage.local.get("data:" + file))["data:" + file] : undefined;
       const why = remoteGuard(file, prev !== undefined ? prev : await loadBundled(file), json);
       if (why) { console.warn(`[w3pg] ${file} rejected (${why}), kept the previous copy`); continue; }
       updates["data:" + file] = json;
@@ -218,7 +221,7 @@ export async function loadStaticData(): Promise<{ brands: Brand[]; lists: Signal
     loadJson<{ hosts: string[] }>("shared-hosts.json"),
   ]);
   const shared = [...(sharedFile?.hosts ?? []), ...(hosts?.strong ?? []), ...(hosts?.weak ?? [])];
-  const trustedList = sanitizeTrusted(flattenTrusted(trusted), shared);
+  const trustedList = flattenTrusted(trusted); // curated by hand: marketplaces and social sites on it are deliberate
   const brands = sanitizeBrands(mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? []), ...(cmc ?? [])]), shared);
   cache = {
     brands,
@@ -249,10 +252,11 @@ export function brandsFromTrusted(trusted: string[]): Brand[] {
   for (const d of trusted) {
     const parts = d.split(".");
     const label = (parts.length > 2 && parts[0].length < 6 ? parts[1] : parts[0]).toLowerCase();
-    // short names (okx, htx, mexc, jup) only ever match as a whole label, which the curated loop enforces below 5 chars
+    // short names (okx, htx, mexc, jup, gmx, lido) are also ordinary words and other companies: they only count as a
+    // whole label next to a bait word / free host / fresh registration, which the generated tier already enforces
     if (label.length < 3 || TRUSTED_GENERIC.has(label) || seen.has(label) || !/^[a-z0-9]+$/.test(label)) continue;
     seen.add(label);
-    out.push({ name: label, tokens: [label], domains: [d], tier: "seed" });
+    out.push({ name: label, tokens: [label], domains: [d], tier: label.length < 6 ? "generated" : "seed" });
   }
   return out;
 }

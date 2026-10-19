@@ -7,7 +7,9 @@
     "domains": [
       "uniswap.org",
       "uniswap.exchange",
-      "uniswap.github.io"
+      "uniswap.github.io",
+      "uniswap.eth.limo",
+      "uniswap.eth.link"
     ],
     "x": "Uniswap"
   },
@@ -345,7 +347,8 @@
       "aave"
     ],
     "domains": [
-      "aave.com"
+      "aave.com",
+      "aave.eth.limo"
     ],
     "x": "aave"
   },
@@ -355,7 +358,8 @@
       "lido"
     ],
     "domains": [
-      "lido.fi"
+      "lido.fi",
+      "lido.eth.limo"
     ],
     "x": "LidoFinance"
   },
@@ -791,5 +795,16 @@
       "tylerxhobbs.com"
     ],
     "x": "tylerxhobbs"
+  },
+  {
+    "name": "Pharos",
+    "tokens": [
+      "pharos",
+      "pharosnetwork"
+    ],
+    "domains": [
+      "pharosnetwork.xyz"
+    ],
+    "x": "pharos_network"
   }
 ]

@@ -308,6 +308,9 @@
   "sig_brand_path": {
     "message": "Halaman di platform bersama dengan nama $1 ($2)"
   },
+  "sig_redirect_cloaked": {
+    "message": "Tautan mengirim pengunjung ke tempat lain dari yang ditunjukkan ke pemeriksa kami ($1)"
+  },
   "sig_display_mismatch": {
     "message": "Alamat yang ditampilkan di X ($1) berbeda dari yang dibuka"
   },
@@ -478,6 +481,9 @@
   },
   "gate_kind_solana_sign": {
     "message": "Permintaan tanda tangan Solana"
+  },
+  "gate_kind_undecodable": {
+    "message": "Permintaan tanda tangan yang tidak dapat dibaca ekstensi (halaman mengganggu)"
   },
   "gate_kind_transfer": {
     "message": "Transfer token"

@@ -308,6 +308,9 @@
   "sig_brand_path": {
     "message": "Seite auf einer geteilten Plattform mit dem Namen $1 ($2)"
   },
+  "sig_redirect_cloaked": {
+    "message": "Der Link schickt Besucher woandershin, als er unserem Prüfer zeigte ($1)"
+  },
   "sig_display_mismatch": {
     "message": "Die auf X angezeigte Adresse ($1) weicht von der geöffneten ab"
   },
@@ -478,6 +481,9 @@
   },
   "gate_kind_solana_sign": {
     "message": "Solana-Signaturanfrage"
+  },
+  "gate_kind_undecodable": {
+    "message": "Signaturanfrage, die die Erweiterung nicht lesen konnte (Seite hat eingegriffen)"
   },
   "gate_kind_transfer": {
     "message": "Token-Übertragung"

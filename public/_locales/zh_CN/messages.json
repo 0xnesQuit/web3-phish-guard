@@ -308,6 +308,9 @@
   "sig_brand_path": {
     "message": "共享平台上以 $1 命名的页面 ($2)"
   },
+  "sig_redirect_cloaked": {
+    "message": "该链接把访问者送到与展示给我们检查器不同的地方 ($1)"
+  },
   "sig_display_mismatch": {
     "message": "X 上显示的地址（$1）与实际打开的不同"
   },
@@ -478,6 +481,9 @@
   },
   "gate_kind_solana_sign": {
     "message": "Solana 签名请求"
+  },
+  "gate_kind_undecodable": {
+    "message": "扩展无法读取的签名请求（页面进行了干扰）"
   },
   "gate_kind_transfer": {
     "message": "代币转账"

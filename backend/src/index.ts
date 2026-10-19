@@ -27,7 +27,7 @@ import { parse as tldParse } from "tldts";
 import { resolveBrandRaw, resolveUserRaw } from "../../src/lib/xquik-core";
 import { score } from "../../src/lib/scoring";
 import { parseHost } from "../../src/lib/hostname";
-import { mergeBrands, brandsFromTrusted, flattenTrusted, sanitizeBrands, sanitizeTrusted } from "../../src/lib/lists";
+import { mergeBrands, brandsFromTrusted, flattenTrusted, sanitizeBrands } from "../../src/lib/lists";
 import { serverForTld, parseRegistration } from "../../src/lib/rdap";
 import type { Brand, SignalLists, Verdict } from "../../src/lib/types";
 import { W3pgState, type CommunityList } from "./state";
@@ -176,7 +176,7 @@ async function serverData(env: Env): Promise<ServerData> {
     get<{ strong: string[]; weak: string[] }>("tlds.json"), get<Record<string, string[] | string>>("trusted.json"), get<{ hosts: string[] }>("shared-hosts.json"),
   ]);
   const shared = [...(sharedFile?.hosts ?? []), ...(hosts?.strong ?? []), ...(hosts?.weak ?? [])];
-  const trustedList = sanitizeTrusted(flattenTrusted(trusted), shared);
+  const trustedList = flattenTrusted(trusted);
   const brands = sanitizeBrands(mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? []), ...(cmc ?? [])]), shared);
   const lists: SignalLists = {
     shared,
@@ -260,12 +260,14 @@ async function verifyPageEvidence(payload: ScanPayload): Promise<boolean> {
     const html = (await res.text()).slice(0, 400_000).toLowerCase();
     // the page must talk to a wallet AND show bait / the snapshot's own evidence; "claim" alone also matches
     // "disclaimer", so word boundaries and a second leg are required
+    // Everything below is judged on what the server fetched; the client's own lists of scripts and markers are not
+    // trusted (any 4-letter string present in the HTML would "confirm" them). Two independent server-side legs:
+    // the page talks to a wallet, and it carries drainer-shaped bait or drainer-only API usage.
     const wallet = /window\.ethereum|ethereum\.request|eth_requestaccounts|wallet_requestpermissions|walletconnect|@walletconnect|web3modal|rainbowkit|wagmi|appkit|window\.solana|solana\.connect|phantom|eip6963|wallet-standard|metamask/.test(html);
-    const bait = /\b(connect\s*wallet|claim\s+(your|now|rewards?|airdrop|tokens?)|airdrop|mint\s+(now|pass|nft)|check\s+eligib|eligibility|seed\s*phrase|recovery\s*phrase|private\s*key|mnemonic|import\s+wallet|restore\s+wallet|sync\s+wallet|validate\s+wallet)\b/.test(html);
-    const scriptHosts = payload.page.scripts.map((u) => { try { return new URL(u).hostname.toLowerCase(); } catch { return ""; } }).filter((h) => h && h !== payload.host);
-    const sameScripts = scriptHosts.length > 0 && scriptHosts.some((h) => html.includes(h));
-    const markers = payload.page.drainerMarkers.some((m) => m.length >= 4 && html.includes(m.toLowerCase()));
-    return wallet && (bait || sameScripts || markers);
+    const bait = /\b(claim\s+(your|now|rewards?|airdrop|tokens?|allocation)|airdrop\s+(claim|checker|eligib)|mint\s+(now|pass)|check\s+eligib|eligibility\s+check|seed\s*phrase|recovery\s*phrase|private\s*key|mnemonic|import\s+wallet|restore\s+wallet|sync\s+wallet|validate\s+wallet|verify\s+(your\s+)?wallet|wallet\s+verification)\b/.test(html);
+    const drainerApi = /setapprovalforall|permit2|eth_signtypeddata_v4|eth_sign\b|wallet_sendcalls|increaseallowance|seaport|safetransferfrom|0x095ea7b3|0xa22cb465|0xd505accf|0x2b67b570/.test(html);
+    const seedForm = /<input[^>]*(seed|mnemonic|phrase|private[-_ ]?key)[^>]*>/.test(html);
+    return wallet && (bait || drainerApi || seedForm);
   } catch {
     return false;
   }
