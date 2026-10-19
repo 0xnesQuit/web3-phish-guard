@@ -26,7 +26,8 @@ function render(v: Verdict) {
       .card{font:13px/1.45 system-ui,sans-serif;background:#2b1f00;color:#ffe6a8;border:1px solid #a97a1a;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.45);overflow:hidden}
       .head{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;user-select:none}
       .i{font-size:18px;line-height:1}
-      .t{font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .t{font-weight:700;flex:1;min-width:0}
+      .score{flex:none;background:#f5a524;color:#1a1200;font-weight:800;font-size:12px;border-radius:999px;padding:2px 8px}
       .x{background:transparent;border:1px solid #a97a1a;color:#ffe6a8;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit;font-size:12px}
       .body{padding:0 12px 10px 40px}
       ul{margin:0 0 6px;padding-left:16px}
@@ -34,13 +35,14 @@ function render(v: Verdict) {
       .s{opacity:.8;font-size:12px}
       .card.min .body{display:none}
       .card.min .head{padding:6px 10px}
-      .card.min .t{font-weight:600;font-size:12px}
+      .card.min .t{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .card.min .x{display:none}
     </style>
     <div class="card" id="card" role="alert" aria-live="polite">
       <div class="head" id="head">
         <div class="i" aria-hidden="true">⚠️</div>
-        <div class="t">${esc(t("overlay_title", [String(v.score)]))}</div>
+        <div class="t">${esc(t("overlay_short"))}</div>
+        <div class="score" aria-label="${esc(t("overlay_title", [String(v.score)]))}">${v.score}/100</div>
         <button class="x" id="close" aria-label="${esc(t("overlay_close"))}">${esc(t("overlay_close"))}</button>
       </div>
       <div class="body">

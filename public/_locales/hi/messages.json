@@ -71,6 +71,9 @@
   "overlay_title": {
     "message": "Web3 Phish Guard: यह साइट संदिग्ध लगती है (जोखिम $1/100)"
   },
+  "overlay_short": {
+    "message": "यह साइट संदिग्ध लगती है"
+  },
   "overlay_hint": {
     "message": "वॉलेट जोड़ने या कुछ भी साइन करने से पहले प्रोजेक्ट के आधिकारिक X/Discord पर पता सत्यापित करें।"
   },

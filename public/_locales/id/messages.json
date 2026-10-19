@@ -71,6 +71,9 @@
   "overlay_title": {
     "message": "Web3 Phish Guard: situs ini terlihat mencurigakan (risiko $1/100)"
   },
+  "overlay_short": {
+    "message": "Situs ini tampak mencurigakan"
+  },
   "overlay_hint": {
     "message": "Verifikasi alamat di X/Discord resmi proyek sebelum menghubungkan dompet atau menandatangani apa pun."
   },

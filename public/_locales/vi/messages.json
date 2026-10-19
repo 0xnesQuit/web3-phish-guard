@@ -71,6 +71,9 @@
   "overlay_title": {
     "message": "Web3 Phish Guard: trang này có vẻ đáng ngờ (rủi ro $1/100)"
   },
+  "overlay_short": {
+    "message": "Trang này trông đáng ngờ"
+  },
   "overlay_hint": {
     "message": "Hãy xác minh địa chỉ trên X/Discord chính thức của dự án trước khi kết nối ví hoặc ký bất cứ gì."
   },

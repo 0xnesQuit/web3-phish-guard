@@ -71,6 +71,9 @@
   "overlay_title": {
     "message": "Web3 Phish Guard: Diese Seite wirkt verdächtig (Risiko $1/100)"
   },
+  "overlay_short": {
+    "message": "Diese Seite wirkt verdächtig"
+  },
   "overlay_hint": {
     "message": "Prüfen Sie die Adresse über das offizielle X/Discord des Projekts, bevor Sie Ihre Wallet verbinden oder etwas signieren."
   },

@@ -71,6 +71,9 @@
   "overlay_title": {
     "message": "Web3 Phish Guard：このサイトは疑わしいです（リスク $1/100）"
   },
+  "overlay_short": {
+    "message": "このサイトは疑わしく見えます"
+  },
   "overlay_hint": {
     "message": "ウォレットを接続したり署名したりする前に、プロジェクト公式の X/Discord でアドレスを確認してください。"
   },

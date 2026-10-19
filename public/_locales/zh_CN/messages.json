@@ -71,6 +71,9 @@
   "overlay_title": {
     "message": "Web3 Phish Guard：此网站看起来可疑（风险 $1/100）"
   },
+  "overlay_short": {
+    "message": "此网站看起来可疑"
+  },
   "overlay_hint": {
     "message": "在连接钱包或签名之前，请在项目官方 X/Discord 上核实该地址。"
   },
