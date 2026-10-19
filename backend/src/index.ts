@@ -44,6 +44,11 @@ export interface Env {
   ALLOWED_ORIGINS: string;
   SCANS_PER_IP_PER_DAY: string;
   REPORTS_PER_IP_PER_DAY: string;
+  SIGNALS_PER_IP_PER_DAY?: string;
+  CROWD_WINDOW_DAYS?: string;
+  CROWD_MIN_INSTALLS?: string;
+  CROWD_MIN_INSTALLS_YOUNG?: string;
+  CROWD_MIN_IPS?: string;
   SCANS_GLOBAL_PER_DAY: string;
   SCANS_PER_HOST_PER_DAY: string;
   SCAN_HOST_COOLDOWN_MIN: string;
@@ -934,6 +939,49 @@ async function handleReport(req: Request, env: Env): Promise<Response> {
   return json({ ok: true, id: report.id });
 }
 
+/** Crowd auto-report: the extension pings this when a user rejects a dangerous request on an already-risky, non-trusted
+ *  page. We aggregate distinct installs + IPs per host; once several independent reporters agree, add the host to the
+ *  community "auto" set (warn-tier, revocable) and queue it for human moderation. Host only — no wallet or tx data. */
+async function handleSignal(req: Request, env: Env): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  const text = await req.text();
+  if (text.length > 4000) return json({ error: "payload_too_large" }, 413);
+  let raw: Record<string, unknown>;
+  try { raw = JSON.parse(text); } catch { return json({ error: "bad_json" }, 400); }
+  const url = str(raw.url, 2048).split("#")[0].split("?")[0];
+  let host = "";
+  try { host = new URL(url).hostname.toLowerCase(); } catch { return json({ error: "bad_payload" }, 400); }
+  if (!/^https?:\/\//.test(url) || !host) return json({ error: "bad_payload" }, 400);
+  const data = await serverData(env);
+  const registrable = registrableOf(host, data.freeHosts) ?? host;
+  if (data.lists.trusted.some((d) => host === d || host.endsWith("." + d))) return json({ ok: true, skipped: "trusted" });
+  if (await neverBlock(env, registrable, data)) return json({ ok: true, skipped: "trusted" });
+  const ik = await ipKey(req, env);
+  if (!(await allow(env, `signal:${ik}`, Number(env.SIGNALS_PER_IP_PER_DAY) || 40))) return json({ error: "rate_limited" }, 429);
+  const iid = await sbxInstall(req, env, raw.installId);
+  if (!iid) return json({ error: "bad_install_id" }, 400);
+  const windowSec = (Number(env.CROWD_WINDOW_DAYS) || 7) * 86400;
+  const { installs, ips } = await state(env).crowdSignal(registrable, iid, ik, windowSec);
+  bump(env, ["crowd"]);
+  let ageDays: number | undefined;
+  try { ageDays = await serverAgeDays(env, registrable); } catch { /* age optional */ }
+  const young = ageDays !== undefined && ageDays < 45;
+  const minInstalls = young ? Number(env.CROWD_MIN_INSTALLS_YOUNG) || 2 : Number(env.CROWD_MIN_INSTALLS) || 3;
+  const minIps = Number(env.CROWD_MIN_IPS) || 2;
+  let listed = false;
+  if (installs >= minInstalls && ips >= minIps) {
+    const list = await communityList(env);
+    if (!list.domains.includes(registrable) && !list.auto.includes(registrable)) {
+      await updateCommunity(env, (l) => { if (!l.domains.includes(registrable) && !l.auto.includes(registrable)) l.auto.push(registrable); });
+      await enqueueReport(env, { id: crypto.randomUUID(), url, host, registrable, score: Math.max(0, Math.min(100, num(raw.score) ?? 50)), signals: strArr(raw.signals, 30, 100), note: `[auto-crowd] ${installs} installs / ${ips} IPs rejected a dangerous request${young && ageDays !== undefined ? `; domain ${Math.floor(ageDays)}d old` : ""}`, at: Date.now(), status: "auto", ipHash: ik });
+      bump(env, ["crowd_listed"]);
+      logEv(env, { host, outcome: "crowd_listed" });
+      listed = true;
+    }
+  }
+  return json({ ok: true, listed });
+}
+
 /** domains = human-approved (block); auto = AI-confirmed on a server-suspicious page (warn only, revocable). Lives in the Durable Object; migrated from KV once. */
 async function communityList(env: Env): Promise<CommunityList> {
   const st = state(env);
@@ -1425,6 +1473,7 @@ export default {
     if (req.method === "GET" && url.pathname === "/v1/sandbox/job") return wrap(() => handleJob(req, env));
     if (req.method === "POST" && url.pathname === "/v1/sandbox/job/cancel") return wrap(() => handleJobCancel(req, env));
     if (req.method === "POST" && url.pathname === "/v1/report") return wrap(() => handleReport(req, env));
+    if (req.method === "POST" && url.pathname === "/v1/signal") return wrap(() => handleSignal(req, env));
     if (req.method === "GET" && url.pathname === "/v1/x/brand") return wrap(() => handleX(req, env, "brand"));
     if (req.method === "GET" && url.pathname === "/v1/x/user") return wrap(() => handleX(req, env, "user"));
     if (req.method === "GET" && url.pathname === "/v1/resolve") return wrap(() => handleResolve(req, env));

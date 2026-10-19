@@ -6,7 +6,7 @@ import { domainAgeDays } from "./lib/rdap";
 import { simulateEnabled, setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning, consumeWarning } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener, isAdHop } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
-import { pollPendingJobs, getJobs, ensureSbxAlarm, getDone, SBX_ALARM } from "./lib/sandboxq";
+import { pollPendingJobs, getJobs, ensureSbxAlarm, getDone, getInstallId, SBX_ALARM } from "./lib/sandboxq";
 import type { SandboxReport } from "./lib/types";
 import { scanExternalScripts, askApi, askSandbox, sendReport, API_BASE } from "./lib/deepscan";
 import { buildRules, applyRules, addBypassRule } from "./lib/dnr";
@@ -833,6 +833,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const signals = [...prev.signals, { id: "provider-gate-rejected", weight: 40, key: "sig_gate_rejected" }];
         const total = Math.max(0, Math.min(100, signals.reduce((s, x) => s + x.weight, 0)));
         await applyVerdict(tabId, { ...prev, signals, score: total, band: bandOf(total), at: Date.now() });
+        // Crowd signal: a real user (who already passed any bot-challenge) rejected a dangerous request on a page that
+        // was ALREADY risky on its own merits. One de-identified ping lets the Worker auto-warn others once several
+        // independent installs/IPs agree. Trusted/official/allow-listed pages never qualify.
+        const safeSig = prev.signals.some((s) => ["trusted", "brand-official", "allowlist", "user-allow"].includes(s.id));
+        if (!safeSig && prev.band !== "none") void reportCrowdSignal(sender.url, total, signals.map((s) => s.id));
         return;
       }
       case "w3pg:simulate": {
@@ -966,6 +971,15 @@ function providerWeight(ev: ProviderEvent): number {
     case "gate-rejected":
       return 40;
   }
+}
+
+/** Fire-and-forget crowd signal to the Worker. Host only (query stripped) — never a wallet address or tx data. */
+async function reportCrowdSignal(pageUrl: string, score: number, signals: string[]): Promise<void> {
+  try {
+    const installId = await getInstallId();
+    const url = pageUrl.replace(/[?#].*$/, "");
+    await fetch(`${API_BASE}/v1/signal`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url, installId, score, signals: signals.slice(0, 20) }), signal: AbortSignal.timeout(8000), credentials: "omit" }).catch(() => undefined);
+  } catch { /* best effort */ }
 }
 
 /** Should a held wallet request be shown to the user before it reaches the wallet? */

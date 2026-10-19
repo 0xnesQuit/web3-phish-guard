@@ -149,6 +149,22 @@ export class W3pgState extends DurableObject {
     return e && e.exp > Date.now() ? e.d : null;
   }
 
+  /** Crowd-report aggregation: distinct install ids + distinct IP hashes that rejected a dangerous request on `host`,
+   *  within a rolling window. Self-prunes stale entries on each write and caps the maps, so a host record stays tiny. */
+  async crowdSignal(host: string, iid: string, ip: string, windowSec: number, cap = 40): Promise<{ installs: number; ips: number }> {
+    const key = await this.vk("cr:", host);
+    const now = Date.now();
+    const rec = (await this.ctx.storage.get<{ iids: Record<string, number>; ips: Record<string, number> }>(key)) ?? { iids: {}, ips: {} };
+    const cutoff = now - windowSec * 1000;
+    const prune = (m: Record<string, number>) => { for (const k of Object.keys(m)) if (m[k] < cutoff) delete m[k]; };
+    const capMap = (m: Record<string, number>) => { const ks = Object.keys(m); if (ks.length > cap) ks.sort((a, b) => m[a] - m[b]).slice(0, ks.length - cap).forEach((k) => delete m[k]); };
+    prune(rec.iids); prune(rec.ips);
+    rec.iids[iid] = now; rec.ips[ip] = now;
+    capMap(rec.iids); capMap(rec.ips);
+    await this.ctx.storage.put(key, rec);
+    return { installs: Object.keys(rec.iids).length, ips: Object.keys(rec.ips).length };
+  }
+
   // ---- sandbox job queue ("Queue it"): FIFO in one storage key (<= 36 small records). No dedicated worker: a request that
   // touches the queue (enqueue / poll) gets a `dispatch` directive when a slot is free and runs the scan inline in the Worker;
   // the alarm (every 5s while non-empty) only re-queues expired leases and reaps, the next request then re-dispatches. ----
