@@ -20,6 +20,32 @@ interface SbxJob {
 
 export class W3pgState extends DurableObject {
   /** Atomic check-and-increment: true when the key had fewer than `limit` hits; the bucket expires after ttlSec. */
+  /** Sandbox stats: plain names are top-level counters, `day:<x>` -> days[x], `backend:<x>` -> backends[x]. Single-threaded DO, so race-free. */
+  async bumpStats(fields: string[]): Promise<void> {
+    const s = (await this.ctx.storage.get<Record<string, any>>("stat:sbx")) ?? {};
+    const days: Record<string, number> = s.days ?? {}, backends: Record<string, number> = s.backends ?? {};
+    for (const f of fields) {
+      if (f.startsWith("day:")) { const k = f.slice(4); days[k] = (days[k] ?? 0) + 1; }
+      else if (f.startsWith("backend:")) { const k = f.slice(8); backends[k] = (backends[k] ?? 0) + 1; }
+      else s[f] = (Number(s[f]) || 0) + 1;
+    }
+    s.days = Object.fromEntries(Object.entries(days).sort(([a], [b]) => (a < b ? -1 : 1)).slice(-31));
+    s.backends = Object.fromEntries(Object.entries(backends).sort(([, a], [, b]) => b - a).slice(0, 20));
+    await this.ctx.storage.put("stat:sbx", s);
+  }
+  /** Recent sandbox requests: last 50, host only. */
+  async logEvent(entry: Record<string, unknown>): Promise<void> {
+    const l = (await this.ctx.storage.get<Record<string, unknown>[]>("log:sbx")) ?? [];
+    l.push(entry);
+    await this.ctx.storage.put("log:sbx", l.slice(-50));
+  }
+  async getLog(): Promise<Record<string, unknown>[]> {
+    return ((await this.ctx.storage.get<Record<string, unknown>[]>("log:sbx")) ?? []).slice().reverse();
+  }
+  async getStats(): Promise<Record<string, unknown>> {
+    return (await this.ctx.storage.get<Record<string, unknown>>("stat:sbx")) ?? {};
+  }
+
   async incr(key: string, limit: number, ttlSec: number): Promise<boolean> {
     const now = Date.now();
     const cur = (await this.ctx.storage.get<Counter>(`c:${key}`)) ?? { n: 0, exp: now + ttlSec * 1000 };

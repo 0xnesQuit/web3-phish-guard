@@ -561,6 +561,25 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
 // ---------------------------------------------------------------------------
 // Backend pool: SANDBOX_URL may be a comma list. Round-robin start, then every other backend once; a backend that
 // failed is skipped for 30s (module-level, per isolate: a hint, not an accounting).
+/** Sandbox stats (admin panel): fire-and-forget increments in the Durable Object; never delays or fails a scan.
+ *  Accounting: `total`+`day` once per client request (handleSandbox, or handleQueue); exactly one outcome per request
+ *  (cache/blocklist/busy/fresh/queued); a queued job's dispatched scan counts `fresh` (runDispatch) but never another `total`;
+ *  verdict_x + autolist in storeSandboxResult, fresh or fail_x in scanStat; `backend:<host>` only for the backend that answered (sandboxFetch). */
+const bump = (env: Env, fields: string[]) => { try { state(env).bumpStats(fields).catch(() => {}); } catch { /* stats are best effort */ } };
+/** Recent-requests log (host only, never a full URL). */
+const logEv = (env: Env, e: { host?: string; outcome: string; reason?: string; verdict?: string; backend?: string }) => { try { state(env).logEvent({ ts: Date.now(), host: e.host ?? "", ...e }).catch(() => {}); } catch { /* best effort */ } };
+/** A request that did not end in a usable verdict: one fail_<reason> counter + one log row. */
+const failStat = (env: Env, reason: string, host = "") => { bump(env, [`fail_${reason}`]); logEv(env, { host, outcome: "fail", reason }); };
+/** A request rejected before the normal flow counted it: also count it in total/day. */
+const earlyFail = (env: Env, reason: string, host = "") => { bump(env, ["total", `day:${dayKey()}`]); failStat(env, reason, host); };
+/** The outcome of a scan that actually ran: chain_unsupported / sandbox error are failures, anything else is `fresh`. */
+function scanStat(env: Env, report: Record<string, unknown>, host: string): void {
+  const backend = (report as { __backend?: string }).__backend;
+  if (report.chainUnsupported === true) return failStat(env, "chain", host);
+  if (report.ok === false) return failStat(env, "error", host);
+  bump(env, ["fresh"]);
+  logEv(env, { host, outcome: "fresh", verdict: str(report.verdict, 20) || undefined, backend });
+}
 let sbxRr = 0;
 const sbxDown = new Map<string, number>();
 async function sandboxFetch(env: Env, url: string): Promise<Record<string, unknown> | null> {
@@ -583,7 +602,9 @@ async function sandboxFetch(env: Env, url: string): Promise<Record<string, unkno
         signal: AbortSignal.timeout(timeout),
       });
       if (!res.ok) { sbxDown.set(urls[i], Date.now() + 30_000); continue; } // incl. the sandbox's own 429 "busy"
-      return (await res.json()) as Record<string, unknown>;
+      const out = (await res.json()) as Record<string, unknown>;
+      try { const bh = new URL(urls[i]).hostname; bump(env, [`backend:${bh}`]); Object.defineProperty(out, "__backend", { value: bh, enumerable: false }); } catch { /* ignore */ }
+      return out;
     } catch { sbxDown.set(urls[i], Date.now() + 30_000); }
   }
   return null;
@@ -621,6 +642,7 @@ async function storeSandboxResult(env: Env, url: string, host: string, report: R
   const k = sbxParse(url);
   const verdict = str(report.verdict, 20);
   const sc = num(report.score) ?? 0;
+  if (verdict === "malicious" || verdict === "suspicious" || verdict === "clean") bump(env, [`verdict_${verdict}`]);
   const ttl = verdict === "malicious" ? Number(env.SBX_CACHE_TTL_MALICIOUS) || 86400
     : verdict === "suspicious" ? Number(env.SBX_CACHE_TTL_SUSPICIOUS) || 21600
     : verdict === "clean" ? Number(env.SBX_CACHE_TTL_CLEAN) || 3600 : 0;
@@ -630,6 +652,7 @@ async function storeSandboxResult(env: Env, url: string, host: string, report: R
   }
   // auto-list (warn-only tier); failures here must never break the scan response
   if (report.ok !== false && (verdict === "malicious" || sc >= (Number(env.SBX_AUTOLIST_MIN) || 70))) {
+    bump(env, ["autolist"]);
     try { await sandboxAutoList(env, url, host, report, sc, ik); } catch { /* best effort */ }
   }
   return report;
@@ -649,19 +672,20 @@ async function storeSandboxResult(env: Env, url: string, host: string, report: R
  */
 async function handleSandbox(req: Request, env: Env): Promise<Response> {
   if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
-  if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) return json({ error: "sandbox_disabled", state: "disabled" }, 503);
+  if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) { earlyFail(env, "disabled"); return json({ error: "sandbox_disabled", state: "disabled" }, 503); }
   const text = await req.text();
-  if (text.length > 4000) return json({ error: "payload_too_large" }, 413);
+  if (text.length > 4000) { earlyFail(env, "badurl"); return json({ error: "payload_too_large" }, 413); }
   let raw: unknown;
-  try { raw = JSON.parse(text); } catch { return json({ error: "bad_json" }, 400); }
+  try { raw = JSON.parse(text); } catch { earlyFail(env, "badurl"); return json({ error: "bad_json" }, 400); }
   const url = str((raw as Record<string, unknown>).url, 2048);
   const k = sbxParse(url);
-  if (!k) return json({ error: "bad_url" }, 400);
+  if (!k) { earlyFail(env, "badurl"); return json({ error: "bad_url" }, 400); }
   const host = k.host;
 
   // 1. verdict store
   const known = await sbxLookup(env, k, url);
-  if (known) return json(withState(known.report, known.state, { cached: true }));
+  bump(env, ["total", `day:${dayKey()}`, known ? known.state === "blocklist" ? "blocklist" : "cache" : ""].filter(Boolean));
+  if (known) { logEv(env, { host, outcome: known.state === "blocklist" ? "blocklist" : "cache", verdict: str(known.report.verdict, 20) || undefined }); return json(withState(known.report, known.state, { cached: true })); }
 
   // 2. single-flight (hashed: DO storage keys are length-limited)
   const lockKey = await sha256(k.urlKey);
@@ -671,8 +695,9 @@ async function handleSandbox(req: Request, env: Env): Promise<Response> {
     for (let waited = 0; waited < 45_000; waited += 1500) {
       await new Promise((r) => setTimeout(r, 1500));
       const done = (await st.getVerdict(k.urlKey)) ?? (await cacheGet<Record<string, unknown>>(k.urlKey));
-      if (done) return json(withState(done, "coalesced", { cached: true }));
+      if (done) { bump(env, ["cache"]); logEv(env, { host, outcome: "cache", reason: "coalesced", verdict: str(done.verdict, 20) || undefined }); return json(withState(done, "coalesced", { cached: true })); }
     }
+    bump(env, ["busy"]); failStat(env, "busy", host);
     return json({ ok: false, reason: "busy", state: "busy" }, 503);
   }
 
@@ -681,18 +706,20 @@ async function handleSandbox(req: Request, env: Env): Promise<Response> {
     const ik = await ipKey(req, env);
     const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
     const ip64 = ipRaw.includes(":") ? ipRaw.split(":").slice(0, 4).join(":") + "::/64" : ipRaw;
-    if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `sb:${ip64}` })).success) return json({ error: "rate_limited" }, 429);
+    if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `sb:${ip64}` })).success) { failStat(env, "rate", host); return json({ error: "rate_limited" }, 429); }
     const admission = await st.admitScan({
       ip: `sb:${ik}`, host: await sha256(`sb:${host}`),
       ipLimit: Number(env.SANDBOX_PER_IP_PER_DAY) || 30, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: Number(env.SANDBOX_GLOBAL_PER_DAY) || 2000,
       cooldownSec: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60),
     });
-    if (!admission.ok) return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429);
+    if (!admission.ok) { failStat(env, admission.error === "host_cooldown" ? "cooldown" : "rate", host); return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429); }
 
     // 4. scan via the backend pool
     const report = await sandboxFetch(env, url);
-    if (!report) return json({ error: "sandbox_unreachable", state: "unreachable" }, 502);
-    return json(withState(await storeSandboxResult(env, url, host, report, ik), "fresh"));
+    if (!report) { failStat(env, "unreachable", host); return json({ error: "sandbox_unreachable", state: "unreachable" }, 502); }
+    const stored = await storeSandboxResult(env, url, host, report, ik);
+    scanStat(env, report, host);
+    return json(withState(stored, "fresh"));
   } finally {
     await st.endScan(lockKey).catch(() => {});
   }
@@ -728,12 +755,14 @@ async function runDispatch(env: Env, d: { jobId: string; url: string }, ik: stri
     const host = sbxParse(d.url)?.host ?? "";
     const g = Number(env.SANDBOX_GLOBAL_PER_DAY) || 2000;
     const adm = await st.admitScan({ ip: "sbq", host: await sha256(`sb:${host}`), ipLimit: g, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: g, cooldownSec: 1 });
-    if (!adm.ok) out = { ok: false, error: adm.error };
+    if (!adm.ok) { failStat(env, adm.error === "host_cooldown" ? "cooldown" : "rate", host); out = { ok: false, error: adm.error }; }
     else {
       const report = await sandboxFetch(env, d.url);
+      if (!report) failStat(env, "unreachable", host);
       out = report ? withState(await storeSandboxResult(env, d.url, host, report, ik), "fresh") : { ok: false, reason: "unreachable", state: "unreachable" };
+      if (report) scanStat(env, report, host);
     }
-  } catch { out = { ok: false, reason: "unreachable", state: "unreachable" }; }
+  } catch { failStat(env, "error"); out = { ok: false, reason: "unreachable", state: "unreachable" }; }
   await st.completeJob(d.jobId, out).catch(() => {});
 }
 /** Run a `dispatch` directive if the DO returned one, re-read the job (without leasing again), and drop the directive from the reply. */
@@ -746,23 +775,24 @@ async function settleJob(env: Env, ik: string, jobId: string, r: Record<string, 
 
 async function handleQueue(req: Request, env: Env): Promise<Response> {
   if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
-  if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) return json({ error: "sandbox_disabled", state: "disabled" }, 503);
+  if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) { earlyFail(env, "disabled"); return json({ error: "sandbox_disabled", state: "disabled" }, 503); }
   const b = await sbxBody(req);
-  if (b instanceof Response) return b;
+  if (b instanceof Response) { earlyFail(env, "badurl"); return b; }
   const url = str(b.url, 2048);
   const k = sbxParse(url);
-  if (!k) return json({ error: "bad_url" }, 400);
+  if (!k) { earlyFail(env, "badurl"); return json({ error: "bad_url" }, 400); }
   const iid = await sbxInstall(req, env, b.installId);
-  if (!iid) return json({ error: "bad_install_id" }, 400);
+  if (!iid) { earlyFail(env, "badurl", k.host); return json({ error: "bad_install_id" }, 400); }
   // never queue what is already known
   const known = await sbxLookup(env, k, url);
-  if (known) return json({ state: known.state, report: withState(known.report, known.state, { cached: true }) });
+  if (known) { bump(env, ["total", `day:${dayKey()}`, known.state === "blocklist" ? "blocklist" : "cache"]); logEv(env, { host: k.host, outcome: known.state === "blocklist" ? "blocklist" : "cache", verdict: str(known.report.verdict, 20) || undefined }); return json({ state: known.state, report: withState(known.report, known.state, { cached: true }) }); }
   const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
   const ip64 = ipRaw.includes(":") ? ipRaw.split(":").slice(0, 4).join(":") + "::/64" : ipRaw;
-  if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `q:${ip64}` })).success) return json({ state: "queue_full", reason: "rate_limited", retryAfter: 20 }, 429, { "retry-after": "20" });
+  if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `q:${ip64}` })).success) { earlyFail(env, "rate", k.host); return json({ state: "queue_full", reason: "rate_limited", retryAfter: 20 }, 429, { "retry-after": "20" }); }
   const jobId = await sha256(k.urlKey);
   const r = (await state(env).enqueueJob({ jobId, url, host: k.host, installId: iid, cfg: qcfg(env) })) as Record<string, unknown>;
-  if (r.state === "queue_full") return json(r, 429, { "retry-after": String(r.retryAfter ?? 20) });
+  if (r.state === "queue_full") { earlyFail(env, "queuefull", k.host); return json(r, 429, { "retry-after": String(r.retryAfter ?? 20) }); }
+  bump(env, ["total", `day:${dayKey()}`, "queued"]); logEv(env, { host: k.host, outcome: "queued" });
   return json({ jobId, ...(await settleJob(env, await ipKey(req, env), jobId, r)) });
 }
 
@@ -950,6 +980,7 @@ const ADMIN_SHELL = `<!doctype html><meta charset="utf-8"><title>W3PG moderation
 <h1>W3PG moderation</h1>
 <div id="login"><p>Admin token:</p><input id="tok" type="password"> <button onclick="save()">Open</button></div>
 <div id="app"></div>
+<div id="sbx" style="margin-top:28px"></div>
 <script>
   const KEY = "w3pg_admin_token";
   function save(){ sessionStorage.setItem(KEY, document.getElementById("tok").value.trim()); load(); }
@@ -959,6 +990,25 @@ const ADMIN_SHELL = `<!doctype html><meta charset="utf-8"><title>W3PG moderation
     const r = await api("/admin/data"); if(!r.ok){ sessionStorage.removeItem(KEY); alert("unauthorized"); return; }
     document.getElementById("login").style.display="none";
     document.getElementById("app").innerHTML = await r.text();
+    sbxLoad();
+  }
+  const esc = (x)=>String(x==null?"":x).replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const tbl = (head, rows)=>"<table style='width:auto;margin:6px 0'><tr>"+head.map((h)=>"<th>"+esc(h)+"</th>").join("")+"</tr>"+(rows.length?rows.map((r)=>"<tr>"+r.map((c)=>"<td>"+esc(c)+"</td>").join("")+"</tr>").join(""):"<tr><td colspan='"+head.length+"'>none</td></tr>")+"</table>";
+  async function sbxLoad(){
+    const el = document.getElementById("sbx");
+    const [a,b] = await Promise.all([api("/admin/stats"), api("/admin/log")]);
+    if(!a.ok||!b.ok){ el.innerHTML="<p>sandbox stats unavailable</p>"; return; }
+    const s = await a.json(), log = await b.json(), n = (k)=>Number(s[k])||0;
+    const fails = Object.keys(s).filter((k)=>k.indexOf("fail_")===0).sort((x,y)=>n(y)-n(x));
+    const failed = fails.reduce((t,k)=>t+n(k),0);
+    const days = Object.entries(s.days||{}).sort().slice(-14).reverse();
+    const bks = Object.entries(s.backends||{}).sort((x,y)=>y[1]-x[1]);
+    el.innerHTML = "<h2>Sandbox stats <button onclick='sbxLoad()'>refresh</button></h2>"
+      + tbl(["total","succeeded (fresh)","from cache","blocklist","failed","busy","queued","malicious","suspicious","clean","autolisted"],[[n("total"),n("fresh"),n("cache"),n("blocklist"),failed,n("busy"),n("queued"),n("verdict_malicious"),n("verdict_suspicious"),n("verdict_clean"),n("autolist")]])
+      + "<h3>Failed by reason</h3>" + tbl(["reason","count"], fails.map((k)=>[k.slice(5),n(k)]))
+      + "<h3>Per backend</h3>" + tbl(["host","scans"], bks)
+      + "<h3>Per day (last 14)</h3>" + tbl(["day","requests"], days)
+      + "<h2>Recent sandbox requests</h2>" + tbl(["time","host","outcome","reason / verdict","backend"], (log||[]).map((e)=>[new Date(e.ts).toLocaleString(),e.host,e.outcome,e.reason||e.verdict||"",e.backend||""]));
   }
   async function add(){ const r = await api("/admin/add", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ domains: document.getElementById("add").value, note: document.getElementById("addnote").value }) }); const j = await r.json().catch(()=>({})); if(r.ok){ document.getElementById("add").value=""; alert("added: "+(j.added||[]).join(", ")+(j.skipped&&j.skipped.length?" | skipped: "+j.skipped.join(", "):"")); load(); } else alert("failed: "+r.status+" "+(j.error||"")); }
   async function decide(id, action){ const r = await api("/admin/decide", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id, action}) }); if(r.ok) load(); else alert("failed: "+r.status); }
@@ -1170,6 +1220,14 @@ export default {
     if (req.method === "GET" && url.pathname === "/v1/community.json") return wrap(async () => { const l = await communityList(env); const keep = (d: string) => !NEVER_BLOCK.has(d); return json({ updatedAt: l.updatedAt, domains: l.domains.filter(keep), auto: l.auto.filter(keep) }, 200, { "cache-control": "public, max-age=300" }); });
     if (req.method === "GET" && url.pathname === "/admin") return new Response(ADMIN_SHELL, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     if (req.method === "GET" && url.pathname === "/admin/data") return handleAdminData(req, env);
+    if (req.method === "GET" && url.pathname === "/admin/log") {
+      if (!adminAuthed(req, env)) return json({ error: "unauthorized" }, 401);
+      return json(await state(env).getLog());
+    }
+    if (req.method === "GET" && url.pathname === "/admin/stats") {
+      if (!adminAuthed(req, env)) return json({ error: "unauthorized" }, 401);
+      return json(await state(env).getStats());
+    }
     if (req.method === "GET" && url.pathname === "/admin/age") {
       if (!adminAuthed(req, env)) return json({ error: "unauthorized" }, 401);
       const d = (url.searchParams.get("d") ?? "").toLowerCase();
