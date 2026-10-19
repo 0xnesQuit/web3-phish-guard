@@ -4,8 +4,9 @@
 import { readFileSync } from "node:fs";
 
 const freeHosts = JSON.parse(readFileSync("data/free-hosts.json", "utf8"));
+const sharedFile = JSON.parse(readFileSync("data/shared-hosts.json", "utf8"));
 export const SHARED_HOSTS = new Set([
-  ...freeHosts.strong, ...freeHosts.weak,
+  ...freeHosts.strong, ...freeHosts.weak, ...sharedFile.hosts,
   // ENS / IPFS gateways and shared storage
   "eth.limo", "eth.link", "ipfs.io", "dweb.link", "w3s.link", "nftstorage.link", "mypinata.cloud", "pinata.cloud", "4everland.app", "fleek.co", "on-fleek.app", "arweave.net", "ar-io.dev",
   // social / link pages / docs

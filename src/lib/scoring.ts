@@ -1,5 +1,6 @@
 import type { Band, Brand, OriginContext, PageSocials, ParsedHost, Signal, SignalLists, Verdict, XIntel } from "./types";
 import { isUnderDomain, levenshtein, tokenize } from "./hostname";
+import { isRedirector } from "./origin";
 import { homographHost } from "./idn";
 
 /** token -> generated-tier brand, built once per brands array (the array is replaced, never mutated). */
@@ -54,6 +55,18 @@ const SOURCE_LABEL: Record<OriginContext["source"], string> = {
 };
 
 /** Hostname tokens that are too generic to count as a brand on their own */
+const brandTokens = new WeakMap<Brand[], Set<string>>();
+/** every brand token (plain and affix-stripped), cached per brand array */
+function brandTokenSet(brands: Brand[]): Set<string> {
+  let s = brandTokens.get(brands);
+  if (!s) {
+    s = new Set();
+    for (const b of brands) for (const t of b.tokens) { const k = t.toLowerCase(); s.add(k); s.add(stripCloneAffixes(k)); }
+    brandTokens.set(brands, s);
+  }
+  return s;
+}
+
 const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "shop", "home", "info", "base", "blast", "scroll", "across", "blur", "eigen", "pudgy", "jupiter", "linea", "zama", "zora", "tensor", "highlight", "manifold", "optimism"]);
 
 /** ASCII look-alikes drainer kits use in hostnames: rn->m, vv->w, cl->d, 1->l, 0->o */
@@ -213,7 +226,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   }
 
   if (ctx.siblingHit && !ctx.blocklistHit) {
-    signals.push({ id: "blocklist-sibling", weight: 45, key: "sig_blocklist_sibling", sub: [ctx.siblingHit] });
+    // a listed neighbour on the same free host with a structurally similar label: strong hint, not proof
+    signals.push({ id: "blocklist-sibling", weight: 25, key: "sig_blocklist_sibling", sub: [ctx.siblingHit] });
   }
   // deferred: the attacked-brand signal needs hasAction / freeHost / fresh, computed below
 
@@ -223,7 +237,12 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   const old = ctx.ageDays !== undefined && ctx.ageDays > 365;
 
   // ---- hostname heuristics ---------------------------------------------------
-  const strongActions = tokens.filter((t) => ctx.lists.actionStrong.includes(t));
+  // bait words also count when glued into one label (checkeligibility, claimone, freemintclaim) and when the TLD
+  // itself is the bait (.claims, .rewards); ordinary English words that merely contain one (disclaimer) do not
+  const NOT_BAIT = new Set(["disclaimer", "disclaimers", "proclaim", "acclaim", "exclaim", "reclaimed", "unclaimed", "mintage", "peppermint", "spearmint", "badminton", "rewardsprogram"]);
+  const glued = (t: string) => !NOT_BAIT.has(t) && ctx.lists.actionStrong.some((a) => a.length >= 4 && t !== a && t.includes(a) && t.length - a.length >= 3);
+  const strongActions = tokens.filter((t) => ctx.lists.actionStrong.includes(t) || glued(t));
+  if (p.tld && ctx.lists.actionStrong.includes(p.tld)) strongActions.push(p.tld);
   const mediumActions = tokens.filter((t) => ctx.lists.actionMedium.includes(t));
   const hasAction = strongActions.length > 0 || mediumActions.length > 0;
 
@@ -291,10 +310,29 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   // brand under attack: the token is shared by several listed phishing domains. Never alone (the real project's
   // own site carries the same token), only next to a bait word, free host, fresh registration or a shortener.
+  // ...and the token must name something that exists: a known brand token, or one so widely phished (>=12 listed
+  // roots) that it is a brand in practice. Ordinary words that happen to recur in feeds (admin, assets) never count.
   let attackedFlagged = false;
-  if (ctx.attacked && !ctx.blocklistHit && !ctx.siblingHit && (hasAction || p.freeHost || fresh || ctx.origin?.shortener)) {
+  const attackedIsBrand = !!ctx.attacked && (brandTokenSet(ctx.brands).has(ctx.attacked.token) || ctx.attacked.count >= 12);
+  if (ctx.attacked && attackedIsBrand && !ctx.blocklistHit && !ctx.siblingHit && (hasAction || p.freeHost || fresh || ctx.origin?.shortener)) {
     signals.push({ id: "attacked-brand", weight: 40, key: "sig_attacked_brand", sub: [ctx.attacked.token, String(ctx.attacked.count), ctx.attacked.example] });
     attackedFlagged = true;
+  }
+
+  // a shared platform page named after a brand: sites.google.com/view/metamask-support, github.io/<org>/uniswap-claim
+  if (p.freeHost && !matchedBrand) {
+    const path = (url.split("://")[1]?.slice(p.host.length) ?? "").split(/[?#]/)[0].toLowerCase();
+    const pathTokens = tokenize(path.split("/").filter(Boolean).slice(0, 2));
+    for (const b of ctx.brands) {
+      if (b.tier === "generated") continue;
+      const tok = b.tokens.find((t) => t.length >= 5 && !GENERIC.has(t.toLowerCase()) && pathTokens.some((x) => x === t.toLowerCase() || (x.length >= t.length + 3 && x.includes(t.toLowerCase()))));
+      if (tok) {
+        matchedBrand = b;
+        brandFlagged = true;
+        signals.push({ id: "brand-path", weight: hasAction || pathTokens.some((x) => ctx.lists.actionStrong.includes(x) || ctx.lists.actionMedium.includes(x)) ? 40 : 30, key: "sig_brand_path", sub: [b.name, "/" + path.split("/").filter(Boolean).slice(0, 2).join("/")] });
+        break;
+      }
+    }
   }
 
   // bait word in the path of an already suspicious host: coinmarketcap.evil.app/vote, brand-clone.xyz/claim, 0-day-old.xyz/register
@@ -343,8 +381,11 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       signals.push({ id: "poster-reply", weight: 10, key: "sig_poster_reply" });
     }
     // Link text named one domain, the page opened on another: deliberate deception, near-certain scam.
+    // Not deception: the text shows a redirector (t.co, amzn.to, forms.gle...) or any host the link actually passed
+    // through on its way here; only a domain that was never part of the chain is a lie.
     const disp = o.display?.toLowerCase();
-    if (disp && disp !== p.host && !isUnderDomain(p.host, disp) && !isUnderDomain(disp, p.registrable)) {
+    const inChain = !!disp && (isRedirector(disp) || (o.hops ?? []).some((h) => h === disp || isUnderDomain(h, disp) || isUnderDomain(disp, h)));
+    if (disp && !inChain && disp !== p.host && !isUnderDomain(p.host, disp) && !isUnderDomain(disp, p.registrable)) {
       signals.push({ id: "display-mismatch", weight: 40, key: "sig_display_mismatch", sub: [o.display!] });
       // The card borrowed a real project's domain ("Kaynak: artblocks.io" -> qql-desk.com): impersonation by proxy.
       const borrowed = ctx.brands.find((b) => b.domains.some((d) => isUnderDomain(disp, d))) ?? (ctx.lists.trusted.some((d) => isUnderDomain(disp, d)) ? { name: disp } : undefined);

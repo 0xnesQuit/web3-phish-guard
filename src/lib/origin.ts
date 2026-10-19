@@ -8,6 +8,13 @@ export function isShortener(host: string): boolean {
   return SHORTENERS.has(host.toLowerCase());
 }
 
+/** Brand-owned short links: the text X shows is the link's own domain, not deception. */
+export const BRAND_SHORTLINKS = new Set(["amzn.to", "amzn.eu", "a.co", "nyti.ms", "bloom.bg", "spoti.fi", "forms.gle", "apple.co", "g.co", "goo.gl", "wp.me", "fb.me", "fb.watch", "youtu.be", "redd.it", "lnk.to", "ffm.to", "smarturl.it", "on.wsj.com", "reut.rs", "cnn.it", "bbc.in", "nyp.st", "wapo.st", "econ.st", "ift.tt", "flip.it", "tmblr.co", "pin.it", "etsy.me", "ebay.us", "ebay.to", "go.shr.lc", "trib.al", "huff.to", "on.ft.com", "ow.ly", "dlvr.it", "lnkd.in", "msft.it", "aka.ms", "cfl.re", "cloudflare.tv", "ethereum.foundation", "go.coinbase.com", "ok.ru", "vk.cc", "t.me", "telegram.me", "wa.me", "discord.gg", "x.ai", "ai.x", "shorturl.at", "l.facebook.com", "lm.facebook.com", "l.instagram.com", "linktr.ee", "bio.site"]);
+export function isRedirector(host: string): boolean {
+  const h = host.toLowerCase();
+  return SHORTENERS.has(h) || BRAND_SHORTLINKS.has(h);
+}
+
 /** Map a referrer / redirector hostname to a social source. */
 export function sourceFromHost(host: string): OriginContext["source"] | null {
   const h = host.toLowerCase();

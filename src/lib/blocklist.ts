@@ -44,8 +44,13 @@ interface ListMeta { count: number; updatedAt: number; mmLastUpdated?: number }
 // 64-bit hash index
 // ---------------------------------------------------------------------------
 /** Two independent 32-bit FNV-1a style passes make a 64-bit key: collisions are ~1 in 1.8e19, far below the feeds' own noise. */
+/** Per-install random salt: a hash collision engineered against one victim domain would have to target each install separately. */
+let salt = "";
+export function setHashSalt(s: string): void { salt = s; }
+
 export function hash64(s: string): bigint {
   let a = 0x811c9dc5 >>> 0, b = 0x01000193 >>> 0;
+  if (salt) s = salt + "|" + s;
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i);
     a = Math.imul(a ^ c, 0x01000193) >>> 0;
@@ -119,7 +124,7 @@ let pathList: string[] = [];
 /** set only by warmLists(): a single hotlist diff must not make the worker think every list is loaded */
 let warmed = false;
 /** strongest source first: reviewed lists beat the broad PhishDestroy feed */
-const SOURCE_ORDER = ["metamask", "scamsniffer", "community", "community-auto", "phishdestroy"];
+const SOURCE_ORDER = ["metamask", "scamsniffer", "community", "phishdestroy", "community-auto"];
 
 /**
  * Shared platforms that feeds sometimes list bare (ScamSniffer carries "sites.google.com", "r2.dev"; MetaMask's
@@ -195,8 +200,24 @@ let siblingHosts: string[] = [];
 
 const SIBLING_STOP = new Set(["start", "desktop", "suite", "learn", "cloud", "clone", "listing", "launchpad", "launch", "governance", "votes", "refund", "ether", "ethereum", "bitcoin", "mobile", "online", "secure", "center", "centre", "help", "official", "download", "install", "extension", "browser", "register", "registration", "allocation", "allocations", "quest", "quests", "signup", "proposal", "proposals", "distribution", "dashboard", "collab", "foundation", "enter", "chain", "check", "voting", "vote", "migrate", "migration", "trust", "casino", "community", "eligibility", "eligible", "treasury", "layer", "event", "events", "login", "account", "accounts", "support", "service", "services", "update", "security", "verification", "verify", "promo", "pages", "github", "vercel", "netlify", "webflow", "weebly", "wixsite", "portfolio", "project", "projects", "program", "programs", "campaign", "season", "round", "phase", "testnet", "mainnet", "alpha", "beta", "early", "access", "points", "rewards", "reward", "bonus", "prize", "winners", "lottery", "giveaway", "holders", "holder", "staking", "stake", "restake", "bridge", "swap", "trade", "trading", "exchange", "market", "markets", "finance", "capital", "invest", "investment", "fund", "funds", "token", "tokens", "coin", "coins", "crypto", "cryptos", "wallet", "wallets", "connect", "dapp", "dapps", "defi", "nft", "nfts", "airdrop", "airdrops", "claim", "claims", "mint", "minting", "checker", "drop", "drops", "portal", "app", "web", "www", "sign", "presale", "whitelist", "free", "live", "site", "page", "network", "protocol"]);
 
+/** Ordinary English and developer words: a listed "react-admin-demo.vercel.app" says nothing about "react-admin-panel.vercel.app". */
+const BENIGN = new Set(["react", "nextjs", "next", "vue", "nuxt", "svelte", "angular", "astro", "remix", "gatsby", "vite", "webpack", "tailwind", "bootstrap", "landing", "store", "music", "admin", "assets", "website", "calculator", "tracker", "dashboard", "portfolio", "resume", "blog", "demo", "sample", "example", "template", "starter", "boilerplate", "clone", "frontend", "backend", "fullstack", "server", "client", "static", "preview", "staging", "production", "develop", "development", "testing", "sandbox", "playground", "weather", "todo", "notes", "chat", "quiz", "game", "games", "shop", "store", "cart", "checkout", "restaurant", "recipe", "recipes", "fitness", "health", "travel", "hotel", "booking", "movie", "movies", "video", "photo", "photos", "gallery", "image", "images", "editor", "viewer", "player", "studio", "design", "designs", "agency", "company", "business", "school", "students", "student", "course", "courses", "learning", "academy", "university", "college", "church", "charity", "clinic", "dental", "lawyer", "legal", "realty", "estate", "animation", "animations", "effects", "canvas", "three", "threejs", "shader", "particles", "generator", "converter", "counter", "timer", "clock", "calendar", "planner", "budget", "expense", "expenses", "invoice", "accounting", "inventory", "library", "docs", "documentation", "wiki", "forum", "social", "profile", "login", "signup", "register", "auth", "users", "contact", "about", "pricing", "features", "products", "product", "service", "services", "support", "status", "monitor", "analytics", "report", "reports", "search", "filter", "table", "chart", "charts", "graph", "maps", "weather", "news", "radio", "podcast", "stream", "streaming", "world", "earth", "space", "robot", "machine", "model", "models", "vision", "voice", "speech", "translate", "language", "english", "spanish", "french", "german", "turkish", "japanese", "chinese", "korean", "hindi", "arabic", "russian", "portuguese", "italian", "dutch", "polish", "sweden", "india", "nigeria", "brazil", "mexico", "canada", "london", "paris", "berlin", "tokyo", "dubai", "istanbul", "values", "editor", "consent", "enroll", "multiplier", "industries", "accounting", "restaurant", "facebook", "spotify", "netflix", "amazon", "google", "apple", "microsoft", "github", "linkedin", "instagram", "tiktok", "youtube", "twitter", "whatsapp", "telegram", "discord", "reddit", "pinterest", "snapchat", "zoom", "slack", "notion", "figma", "canva", "shopify", "stripe", "paypal", "airbnb", "uber", "tesla", "nvidia", "openai", "chatgpt", "gemini", "claude", "llama", "mistral", "pytorch", "tensorflow", "keras", "pandas", "numpy", "python", "django", "flask", "fastapi", "spring", "laravel", "rails", "golang", "rust", "kotlin", "swift", "flutter", "unity", "unreal", "godot", "blender", "arduino", "raspberry", "docker", "kubernetes", "terraform", "ansible", "jenkins", "gitlab", "bitbucket", "jira", "trello", "asana"]);
+
 export function siblingTokens(label: string): string[] {
-  return label.toLowerCase().split(/[-_.]+|(?<=\D)(?=\d)|(?<=\d)(?=\D)/).filter((t) => t.length >= 5 && /[a-z]/.test(t) && !SIBLING_STOP.has(t));
+  return label.toLowerCase().split(/[-_.]+|(?<=\D)(?=\d)|(?<=\d)(?=\D)/).filter((t) => t.length >= 5 && /[a-z]/.test(t) && !SIBLING_STOP.has(t) && !BENIGN.has(t));
+}
+
+/** label shape without digits and separators, for structural comparison */
+const shape = (label: string) => label.toLowerCase().replace(/[0-9]/g, "").replace(/[-_.]+/g, "-").replace(/^-|-$/g, "");
+function editDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
 }
 
 export function buildSiblingIndex(domains: Iterable<string>, freeHosts: string[]): SiblingIndex {
@@ -215,15 +236,26 @@ export function buildSiblingIndex(domains: Iterable<string>, freeHosts: string[]
   return idx;
 }
 
-/** Returns the listed host that shares a distinctive token with `host` on the same free host, if any. */
+/**
+ * Returns the listed host that shares a distinctive token with `host` on the same free host AND looks like a
+ * rotation of it: same label shape within two edits once digits are stripped (drop-onsolana-2 ~ drop-onsolana),
+ * or at least two distinctive tokens in common. One shared word is not enough.
+ */
 export function findSibling(host: string, idx: SiblingIndex): string | undefined {
   for (const [suffix, m] of idx) {
     if (!host.endsWith(suffix)) continue;
     const label = host.slice(0, -suffix.length).split(".").pop() ?? "";
-    for (const t of siblingTokens(label)) {
+    const toks = siblingTokens(label);
+    const mine = shape(label);
+    const shared = new Map<string, number>();
+    for (const t of toks) {
       const listed = m.get(t);
-      if (listed && listed !== host) return listed;
+      if (!listed || listed === host) continue;
+      const theirs = shape(listed.slice(0, -suffix.length).split(".").pop() ?? "");
+      if (editDistance(mine, theirs) <= Math.max(2, Math.floor(Math.max(mine.length, theirs.length) / 4))) return listed;
+      shared.set(listed, (shared.get(listed) ?? 0) + 1);
     }
+    for (const [listed, n] of shared) if (n >= 2) return listed;
   }
   return undefined;
 }
@@ -259,7 +291,7 @@ export function buildAttackIndex(domains: Iterable<string>, minCount = ATTACK_MI
     for (const l of labels) {
       for (const t of siblingTokens(l)) {
         const stem = stemToken(t);
-        if (stem.length < 5 || SIBLING_STOP.has(stem)) continue;
+        if (stem.length < 6 || SIBLING_STOP.has(stem) || BENIGN.has(stem)) continue;
         if (seen.has(stem)) continue;
         seen.add(stem);
         const c = counts.get(stem) ?? { count: 0, example: d, hosts: new Set<string>() };
@@ -302,8 +334,9 @@ const derived = new Map<string, DerivedIndexes>();
 
 function deriveFor(domains: string[], freeHosts: string[]): DerivedIndexes {
   const sib = buildSiblingIndex(domains, freeHosts);
-  // keep stems seen at least twice per source; the merged threshold is applied at load
-  const atk = buildAttackIndex(domains, 2, freeHosts);
+  // a token has to recur in proportion to the feed's size (5 of 100k says more than 5 of 400k); the merged
+  // threshold is applied again at load
+  const atk = buildAttackIndex(domains, Math.max(ATTACK_MIN, Math.round(domains.length / 20_000)), freeHosts);
   return { sibling: [...sib].map(([k, m]) => [k, [...m]]), attack: [...atk.values()] };
 }
 
@@ -429,12 +462,14 @@ export async function refreshSource(src: ListSource): Promise<number> {
 }
 
 /** Pure: split MetaMask diff entries into host and path additions/removals. */
-export function metaMaskDiffOps(entries: Array<Record<string, unknown>>, since: number): { addHosts: string[]; delHosts: string[]; addPaths: string[]; delPaths: string[]; last: number } {
-  const r = { addHosts: [] as string[], delHosts: [] as string[], addPaths: [] as string[], delPaths: [] as string[], last: since };
+export function metaMaskDiffOps(entries: Array<Record<string, unknown>>, since: number): { addHosts: string[]; delHosts: string[]; addPaths: string[]; delPaths: string[]; addAllow: string[]; delAllow: string[]; last: number } {
+  const r = { addHosts: [] as string[], delHosts: [] as string[], addPaths: [] as string[], delPaths: [] as string[], addAllow: [] as string[], delAllow: [] as string[], last: since };
   for (const e of entries) {
     const raw = typeof e.url === "string" ? e.url : "";
     const target = String(e.targetList ?? "");
     const ts = typeof e.timestamp === "number" ? e.timestamp : 0;
+    // every entry advances the cursor, even the ones we do not use (fuzzylist), or the same diff comes back forever
+    if (ts > r.last) r.last = ts;
     if (!raw) continue;
     if (target === "eth_phishing_detect_config.blocklist") {
       const url = normalizeDomain(raw);
@@ -444,8 +479,12 @@ export function metaMaskDiffOps(entries: Array<Record<string, unknown>>, since: 
       const v = normalizePath(raw);
       if (!v) continue;
       if (e.isRemoval) r.delPaths.push(v); else r.addPaths.push(v);
-    } else continue;
-    if (ts > r.last) r.last = ts;
+    } else if (target === "eth_phishing_detect_config.allowlist") {
+      // MetaMask's own false-positive fixes land here first
+      const url = normalizeDomain(raw);
+      if (!url) continue;
+      if (e.isRemoval) r.delAllow.push(url); else r.addAllow.push(url);
+    }
   }
   return r;
 }
@@ -470,7 +509,19 @@ export async function refreshMetaMaskDiffs(): Promise<void> {
   const json = (await fetchJson(MM_DIFFS + meta.mmLastUpdated)) as { data?: unknown[] };
   const entries = Array.isArray(json?.data) ? json.data : [];
   const ops = metaMaskDiffOps(entries as Array<Record<string, unknown>>, meta.mmLastUpdated);
-  if (!entries.length && ops.last === meta.mmLastUpdated) return; // nothing changed: skip the write
+  const changed = ops.addHosts.length + ops.delHosts.length + ops.addPaths.length + ops.delPaths.length + ops.addAllow.length + ops.delAllow.length > 0;
+  if (!changed) {
+    // only the cursor moved (fuzzylist entries or the like): remember it without rewriting the index
+    if (ops.last !== meta.mmLastUpdated) { const m: ListMeta = { ...meta, mmLastUpdated: ops.last }; metas.set("metamask", m); await chrome.storage.local.set({ "meta:metamask": m }); }
+    return;
+  }
+  if (ops.addAllow.length || ops.delAllow.length) {
+    const cur = new Set(allowMem ?? ((await chrome.storage.local.get("list:metamask-allow"))["list:metamask-allow"] as StoredList | undefined)?.domains ?? []);
+    for (const d of ops.delAllow) cur.delete(d);
+    for (const d of ops.addAllow) cur.add(d);
+    allowMem = cur;
+    await chrome.storage.local.set({ "list:metamask-allow": { domains: [...cur], updatedAt: Date.now() } satisfies StoredList });
+  }
   const got = await chrome.storage.local.get(["hidx:metamask", "tail:metamask", "list:metamask-paths"]);
   const idx = mem.get("metamask") ?? (got["hidx:metamask"] ? decodeIndex(got["hidx:metamask"] as string) : buildIndex([]));
   const next = indexUpdate(idx, ops.addHosts, ops.delHosts);
@@ -487,6 +538,13 @@ export async function refreshMetaMaskDiffs(): Promise<void> {
     "list:metamask-paths": { domains: pathList, updatedAt: Date.now() } satisfies StoredList,
   });
   if (warmed) { mem.set("metamask", next); tails.set("metamask", tail); metas.set("metamask", m); }
+  // hotlist additions are the freshest phishing there is: fold them into the derived indexes right away
+  if (ops.addHosts.length) {
+    const d = deriveFor(tail, siblingHosts);
+    derived.set("metamask", d);
+    await chrome.storage.local.set({ "didx:metamask": d });
+    mergeDerived();
+  }
 }
 
 let mergeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -513,9 +571,20 @@ function findNumber(json: unknown, key: string, depth = 0): number | undefined {
 }
 
 /** Load lists from storage into memory (called on service worker start). */
-export async function warmLists(freeHosts: string[] = []): Promise<void> {
-  setSharedHosts(freeHosts);
+export async function warmLists(freeHosts: string[] = [], shared: string[] = []): Promise<{ needsRefresh: boolean }> {
+  setSharedHosts([...freeHosts, ...shared]);
   siblingHosts = freeHosts;
+  let needsRefresh = false;
+  const saltGot = (await chrome.storage.local.get("hsalt")).hsalt as string | undefined;
+  if (saltGot) setHashSalt(saltGot);
+  else {
+    // first run with salted hashes: any index stored under the unsalted hash is useless, drop it and refetch
+    const fresh = crypto.randomUUID();
+    await chrome.storage.local.set({ hsalt: fresh });
+    setHashSalt(fresh);
+    await chrome.storage.local.remove(SOURCES.map((s) => `hidx:${s.id}`)).catch(() => undefined);
+    needsRefresh = true;
+  }
   const keys = SOURCES.flatMap((s) => [`hidx:${s.id}`, `tail:${s.id}`, `meta:${s.id}`, `didx:${s.id}`, `list:${s.id}`]).concat(["list:metamask-allow", "list:metamask-paths"]);
   const got = await chrome.storage.local.get(keys);
   for (const s of SOURCES) {
@@ -541,6 +610,7 @@ export async function warmLists(freeHosts: string[] = []): Promise<void> {
   await chrome.storage.local.remove(["idx:sibling", "idx:attack", "idx:at"]).catch(() => undefined); // pre-index-format leftovers
   mergeDerived();
   warmed = true;
+  return { needsRefresh: needsRefresh || SOURCES.every((s) => !mem.get(s.id)?.length) };
 }
 
 export async function listStatus(): Promise<Record<string, { count: number; updatedAt: number }>> {

@@ -6,7 +6,8 @@
     ],
     "domains": [
       "uniswap.org",
-      "uniswap.exchange"
+      "uniswap.exchange",
+      "uniswap.github.io"
     ],
     "x": "Uniswap"
   },
@@ -17,7 +18,10 @@
     ],
     "domains": [
       "metamask.com",
-      "metamask.io"
+      "metamask.io",
+      "metamask.github.io",
+      "metamask.app.link",
+      "metamask-institutional.io"
     ],
     "x": "MetaMask"
   },
@@ -30,7 +34,8 @@
       "opensea.io",
       "opensea.com",
       "opensea.pro",
-      "opensea.foundation"
+      "opensea.foundation",
+      "opensea.github.io"
     ],
     "x": "opensea"
   },
@@ -478,7 +483,9 @@
     "domains": [
       "solana.com",
       "solana.org",
-      "solanamobile.com"
+      "solanamobile.com",
+      "solana-labs.github.io",
+      "solanalabs.com"
     ],
     "x": "solana"
   },
@@ -489,7 +496,8 @@
     ],
     "domains": [
       "ethereum.org",
-      "ethereum.foundation"
+      "ethereum.foundation",
+      "ethereum.github.io"
     ],
     "x": "ethereum"
   },

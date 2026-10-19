@@ -290,17 +290,23 @@ describe("free-host rotation and bait URLs", () => {
     expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["brand-impersonation", "free-host", "address-in-url"]));
     expect(v.band).toBe("block");
   });
-  it("sibling of a listed host on the same free host is near-block even without a brand", () => {
+  it("sibling of a listed host on the same free host warns on its own and blocks with a bait word", () => {
     const v = run("https://drop-xyzproj.netlify.app/", { siblingHit: "airdrop-xyzproj.netlify.app" });
     expect(v.signals.some((s) => s.id === "blocklist-sibling")).toBe(true);
-    expect(v.band).toBe("block");
+    expect(v.band).toBe("warn");
+    expect(run("https://claim-xyzproj.netlify.app/", { siblingHit: "airdrop-xyzproj.netlify.app" }).band).toBe("block");
   });
   it("sibling index: shared distinctive token on the same free host", () => {
     const idx = buildSiblingIndex(["airdrop-onsolana.netlify.app", "claim-zamaai.pages.dev", "example.com"], ["netlify.app", "pages.dev"]);
     expect(findSibling("drop-onsolana.netlify.app", idx)).toBe("airdrop-onsolana.netlify.app");
-    expect(findSibling("zamaai-rewards.pages.dev", idx)).toBe("claim-zamaai.pages.dev");
+    expect(findSibling("airdrop-onsolana-2.netlify.app", idx)).toBe("airdrop-onsolana.netlify.app");
     expect(findSibling("my-portfolio.netlify.app", idx)).toBeUndefined();
     expect(findSibling("claim-other.netlify.app", idx)).toBeUndefined(); // "claim" alone is not distinctive
+    // one shared ordinary word is not a rotation: a hobby site next to a listed one stays clean
+    const dev = buildSiblingIndex(["react-admin-demo.vercel.app", "todo-app-nextjs.vercel.app", "zamaai-rewards.pages.dev"], ["vercel.app", "pages.dev"]);
+    expect(findSibling("react-admin-panel.vercel.app", dev)).toBeUndefined();
+    expect(findSibling("nextjs-blog.vercel.app", dev)).toBeUndefined();
+    expect(findSibling("zamaai-rewards-2.pages.dev", dev)).toBe("zamaai-rewards.pages.dev");
   });
   it("address in URL only counts on bait-ish pages", () => {
     expect(run("https://github.com/0x1234567890123456789012345678901234567890/").signals.some((s) => s.id === "address-in-url")).toBe(false);
@@ -408,15 +414,25 @@ describe("brand under attack (learned from blocklists)", () => {
     expect(hit?.token).toBe("pharos");
   });
   it("scoring: attacked brand + claim + X + shortener blocks; the real site stays clean", () => {
-    const attacked = { token: "pharos", count: 5, example: "pharosnetwork-tge.com" };
+    const attacked = { token: "pharos", count: 14, example: "pharosnetwork-tge.com" };
     const v = run("https://claim.pharosnet.xyz/", { attacked, origin: { source: "x", at: 0, poster: "LiLiHadid", shortener: "tr.ee" } });
     expect(v.signals.map((s) => s.id)).toEqual(expect.arrayContaining(["attacked-brand", "action-strong", "shortener", "origin-social"]));
     expect(v.band).toBe("block");
     expect(run("https://pharosnetwork.xyz/", { attacked }).band).toBe("none");
     expect(run("https://testnet.pharosnetwork.xyz/", { attacked }).band).toBe("none");
   });
-  it("attacked brand alone with only a bait word is already a warning", () => {
-    expect(run("https://claim.pharosnet.xyz/", { attacked: { token: "pharos", count: 5, example: "x" } }).band).toBe("warn");
+  it("attacked brand alone with only a bait word is already a warning; an ordinary word that recurs in feeds is not a brand", () => {
+    expect(run("https://claim.pharosnet.xyz/", { attacked: { token: "pharos", count: 14, example: "x" } }).band).toBe("warn");
+    expect(run("https://claim-admin.xyz/", { attacked: { token: "admin", count: 7, example: "x" } }).signals.some((s) => s.id === "attacked-brand")).toBe(false);
+  });
+  it("glued bait words, bait TLDs and brand-named pages on shared platforms are caught", () => {
+    expect(run("https://checkeligibility.website/").signals.some((s) => s.id === "action-strong")).toBe(true);
+    expect(run("https://freemintclaim.com/").signals.some((s) => s.id === "action-strong")).toBe(true);
+    expect(run("https://legal-disclaimer.com/").signals.some((s) => s.id === "action-strong")).toBe(false);
+    expect(run("https://avyc.claims/").signals.some((s) => s.id === "action-strong")).toBe(true);
+    const gs = run("https://sites.google.com/view/metamask-support/home");
+    expect(gs.signals.some((s) => s.id === "brand-path")).toBe(true);
+    expect(gs.band).not.toBe("none");
   });
 });
 

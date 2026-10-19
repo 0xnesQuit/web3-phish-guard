@@ -1,3 +1,15 @@
+import { readFileSync as _rf } from "node:fs";
+{
+  // refuse to ship data that calls a shared platform someone's official domain
+  const shared = new Set([...JSON.parse(_rf("data/shared-hosts.json", "utf8")).hosts, ...Object.values(JSON.parse(_rf("data/free-hosts.json", "utf8"))).flat()]);
+  for (const f of ["brands.generated.json", "brands.nft.json", "brands.cmc.json"]) {
+    let list = [];
+    try { list = JSON.parse(_rf(`data/${f}`, "utf8")); } catch { continue; }
+    const owns = (b, d) => { const label = d.split(".")[0].replace(/[^a-z0-9]/g, ""); return label.length >= 4 && String(b.name).toLowerCase().replace(/[^a-z0-9]/g, "").includes(label); };
+    const bad = list.flatMap((b) => (b.domains ?? []).filter((d) => !owns(b, d) && [...shared].some((s) => d === s || d.endsWith("." + s))).map((d) => `${b.name}: ${d}`));
+    if (bad.length) { console.error(`${f} names shared platforms as official domains:\n  ${bad.slice(0, 20).join("\n  ")}`); process.exit(1); }
+  }
+}
 import * as esbuild from "esbuild";
 import { cpSync, mkdirSync, rmSync, existsSync } from "node:fs";
 

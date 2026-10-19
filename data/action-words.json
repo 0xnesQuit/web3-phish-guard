@@ -81,6 +81,18 @@
     "beta",
     "alpha",
     "signup",
-    "waitlist"
+    "waitlist",
+    "governance",
+    "otc",
+    "invite",
+    "meeting",
+    "meet",
+    "proposal",
+    "validate",
+    "validation",
+    "sync",
+    "resync",
+    "revoke",
+    "recovery"
   ]
 }

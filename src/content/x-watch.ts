@@ -38,8 +38,16 @@ function textHost(a: HTMLAnchorElement): string | null {
   if (!m) {
     // link-preview cards: the only domain-like text is the "From coinmarketcap.com" / "Kaynak: ..." line,
     // which X fills from the page's own metadata and scammers spoof
+    // Only an element whose entire text is a bare domain counts (X's "From example.com" / "Kaynak: example.com"
+    // line); a headline that merely mentions "Pump.fun" must not become the displayed address.
     const card = a.closest('[data-testid="card.wrapper"]') ?? a;
-    m = (card.textContent || "").match(/(?:^|\s)((?:[a-z0-9-]+\.)+[a-z]{2,})(?=\s|$)/i);
+    let found: string | null = null;
+    for (const el of Array.from(card.querySelectorAll("span, div"))) {
+      if (el.children.length) continue;
+      const t = (el.textContent || "").trim().replace(/^(from|kaynak|von|de|da|источник|स्रोत|来源|出典|출처|nguồn|sumber)\s*:?\s*/i, "");
+      if (/^(?:[a-z0-9-]+\.)+[a-z]{2,}$/i.test(t)) found = t;
+    }
+    if (found) m = [found, found];
   }
   if (!m) return null;
   const h = m[1].toLowerCase();

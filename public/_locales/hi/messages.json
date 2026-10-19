@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "असली गंतव्य एक लिंक शॉर्टनर ($1) के पीछे छिपा है"
   },
+  "sig_brand_path": {
+    "message": "साझा प्लेटफ़ॉर्म पर $1 के नाम वाला पेज ($2)"
+  },
   "sig_display_mismatch": {
     "message": "X पर दिखाया पता ($1) खुले पते से अलग है"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: कच्चा हस्ताक्षर जो कुछ भी अधिकृत कर सकता है"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "ऐसा हस्ताक्षर जो रिलेयर को आपके टोकन ले जाने देता है (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "delegatecall वाला Safe लेनदेन (Safe को ही बदल सकता है)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "ट्रेडिंग एजेंट / निकासी स्वीकृति (Hyperliquid शैली)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Solana हस्ताक्षर अनुरोध"
   },
   "gate_kind_transfer": {
     "message": "टोकन ट्रांसफर"

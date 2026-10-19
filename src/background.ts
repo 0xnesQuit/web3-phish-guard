@@ -64,14 +64,29 @@ async function ensureReady() {
     readyPromise = (async () => {
       const data = await loadStaticData();
       if (!isWarm()) {
-        await warmLists([...data.lists.freeHostsStrong, ...data.lists.freeHostsWeak]);
+        const w = await warmLists([...data.lists.freeHostsStrong, ...data.lists.freeHostsWeak], data.lists.shared ?? []);
         await syncDnr();
         void ensureAlarms();
+        if (w.needsRefresh) void refreshAllSources();
       }
       return data;
     })().catch((e) => { readyPromise = null; throw e; });
   }
   return readyPromise;
+}
+
+let refreshing: Promise<void> | null = null;
+/** Fetch every feed now (first run, salt rotation, or the user's "refresh" button); concurrent calls share one run. */
+function refreshAllSources(): Promise<void> {
+  if (!refreshing) {
+    refreshing = (async () => {
+      for (const s of SOURCES) {
+        try { await refreshSource(s); } catch (e) { console.warn(`[w3pg] ${s.id} refresh failed`, e); }
+      }
+      await syncDnr();
+    })().finally(() => { refreshing = null; });
+  }
+  return refreshing;
 }
 
 /** Push the freshest known-phishing hosts into declarativeNetRequest so they are cancelled before any request. */
@@ -126,6 +141,10 @@ async function pruneSession(): Promise<void> {
 // ---------------------------------------------------------------------------
 function safePath(url: string): string {
   try { return new URL(url).pathname; } catch { return "/"; }
+}
+/** host + the first two path segments: the granularity MetaMask's blocklistPaths use */
+function pathEntryFor(host: string, pathname: string): string {
+  return host + "/" + pathname.split("/").filter(Boolean).slice(0, 2).join("/");
 }
 
 async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext; x?: XIntel; socials?: PageSocials } = {}): Promise<Verdict | null> {
@@ -184,6 +203,15 @@ async function xIntelFor(v: Verdict, origin?: OriginContext): Promise<XIntel | u
 /** Full pipeline for one navigation: local score -> RDAP age -> X resolver. Later passes are dropped if the tab moved on. */
 async function evaluateAndApply(tabId: number, url: string, origin?: OriginContext): Promise<void> {
   await chrome.storage.session.remove([`soc:${tabId}`, `pev:${tabId}`]);
+  // a click from X that showed one domain and landed on another: learn the redirect chain before judging it
+  if (origin?.display && origin.href && !origin.hops) {
+    let landed = "";
+    try { landed = new URL(url).hostname.toLowerCase(); } catch { /* ignore */ }
+    if (landed && landed !== origin.display.toLowerCase()) {
+      const res = await resolveRedirect(origin.href);
+      if (res) { origin = { ...origin, hops: res.hops, shortener: origin.shortener ?? res.hops.find((h) => h !== "t.co" && isShortener(h)) }; }
+    }
+  }
   let v = await evaluate(url, { origin });
   if (!v) {
     await resetTab(tabId);
@@ -210,19 +238,21 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
 }
 
 /** Follow a short-link to its final URL. Resolved by the API (our IP, not the user's); local fetch only as a fallback. */
-const redirectCache = new Map<string, string>();
-async function resolveRedirect(url: string): Promise<string | null> {
-  const hit = redirectCache.get(url);
-  if (hit !== undefined) return hit || null;
+interface Resolved { url: string; hops: string[] }
+const redirectCache = new Map<string, Resolved | null>();
+async function resolveRedirect(url: string): Promise<Resolved | null> {
+  if (redirectCache.has(url)) return redirectCache.get(url) ?? null;
   if (redirectCache.size > 500) redirectCache.delete(redirectCache.keys().next().value as string);
+  const hostOf = (u: string) => { try { return new URL(u).hostname.toLowerCase(); } catch { return ""; } };
   try {
     const r = await fetch(`${API_BASE}/v1/resolve?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) });
     if (r.ok) {
-      const j = (await r.json()) as { url?: string | null };
-      redirectCache.set(url, j.url ?? "");
-      return j.url ?? null;
+      const j = (await r.json()) as { url?: string | null; hops?: string[] };
+      const out = j.url ? { url: j.url, hops: Array.isArray(j.hops) && j.hops.length ? j.hops : [hostOf(url)] } : null;
+      redirectCache.set(url, out);
+      return out;
     }
-    if (r.status === 400 || r.status === 429) { redirectCache.set(url, ""); return null; }
+    if (r.status === 400 || r.status === 429) { redirectCache.set(url, null); return null; }
   } catch { /* API unreachable: resolve locally */ }
   try {
     const ctrl = new AbortController();
@@ -237,10 +267,11 @@ async function resolveRedirect(url: string): Promise<string | null> {
       if (m) finalUrl = m[1];
     }
     clearTimeout(tmr);
-    redirectCache.set(url, finalUrl);
-    return finalUrl || null;
+    const out = finalUrl ? { url: finalUrl, hops: [hostOf(url), hostOf(res.url)].filter(Boolean) } : null;
+    redirectCache.set(url, out);
+    return out;
   } catch {
-    redirectCache.set(url, "");
+    redirectCache.set(url, null);
     return null;
   }
 }
@@ -295,7 +326,7 @@ async function scoreHostOnly(host: string, ctx: Partial<OriginContext>): Promise
   let v = await evaluate(`https://${host}/`, { origin });
   if (!v) return null;
   if (v.needsAgeCheck || v.band === "warn") {
-    const ageDays = await domainAgeDays(v.registrable).catch(() => undefined);
+    const ageDays = await domainAgeDays(v.registrable, { priority: false }).catch(() => undefined); // timeline badge: behind the current page
     if (ageDays !== undefined) v = (await evaluate(`https://${host}/`, { origin, ageDays })) ?? v;
   }
   return { band: v.band, score: v.score, signals: v.signals.filter((s) => s.weight > 0) };
@@ -307,7 +338,7 @@ async function applyVerdict(tabId: number, v: Verdict) {
   await chrome.action.setBadgeBackgroundColor({ tabId, color }).catch(() => undefined);
   await chrome.action.setBadgeText({ tabId, text: v.band === "none" ? "" : String(v.score) }).catch(() => undefined);
 
-  if (v.band === "block" && !(await isBypassed(v.host))) {
+  if (v.band === "block" && !(await isBypassed(v.host, safePath(v.url)))) {
     await showWarning(tabId, v);
     return;
   }
@@ -322,7 +353,8 @@ async function showWarning(tabId: number, v: Verdict) {
   const { brands } = await ensureReady();
   const brand = v.brand ? brands.find((b) => b.name === v.brand) : undefined;
   const reviewed = v.signals.some((s) => s.id === "blocklist" && s.sub?.[0] !== undefined && REVIEWED.has(s.sub[0]));
-  const nonce = await putWarning({ url: v.url, host: v.host, score: v.score, signals: v.signals, brandDomain: brand?.domains[0], reviewed, tabId });
+  const pathEntry = !blocklistHit(v.host) && blocklistPathHit(v.host, safePath(v.url)) ? pathEntryFor(v.host, safePath(v.url)) : undefined;
+  const nonce = await putWarning({ url: v.url, host: v.host, score: v.score, signals: v.signals, brandDomain: brand?.domains[0], reviewed, tabId, pathEntry });
   await chrome.tabs.update(tabId, { url: `${WARNING_PAGE}?n=${nonce}` }).catch(() => undefined);
 }
 
@@ -458,10 +490,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!fromExtension(sender)) return;
         const p = await getWarning(String(msg.nonce));
         if (!p) { sendResponse(false); return; }
-        await addBypass(p.host);
+        // a path-level hit (one Google Sites page) is bypassed for that page only, never for the whole platform
+        const entry = p.pathEntry ?? p.host;
+        await addBypass(entry);
         await consumeWarning(String(msg.nonce)); // a bypass is a one-shot use of the nonce
-        bypassedHosts.push(p.host);
-        await addBypassRule(p.host);
+        if (!p.pathEntry) bypassedHosts.push(p.host);
+        await addBypassRule(entry);
         sendResponse(true);
         return;
       }
@@ -501,13 +535,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         try { frameHost = new URL(sender.url).hostname; } catch { /* ignore */ }
         // a cross-origin iframe is judged by its own host (an embedded drainer is not cleared by a trusted top page);
         // its events still surface on the tab the user is looking at
-        const frameV = sender.frameId !== 0 && frameHost !== prev.host ? await evaluate(sender.url) : null;
+        const foreign = sender.frameId !== 0 && frameHost !== prev.host;
+        const frameV = foreign ? await evaluate(sender.url) : null;
         const judge = frameV ?? prev;
+        // A third-party frame (an ad, an embed) can post whatever it likes through its own guard. Its events are only
+        // worth a bounded warning on the tab, never a block, and only when the frame's own host already looks risky.
+        if (foreign && (!frameV || frameV.band === "none")) return;
         const safeSite = judge.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted");
         const alwaysCounts = ev.kind === "seed-input" || ev.kind === "clickfix" || ev.kind === "clipboard-swap" || ev.kind === "fake-wallet" || ev.detail === "eoa-spender" || ev.detail === "poisoning" || ev.detail === "delegation";
         if (safeSite && !alwaysCounts) return;
         let weight = providerWeight(ev);
         if (safeSite) weight = Math.min(weight, 30);
+        if (foreign) weight = Math.min(weight, 30);
         if (!weight) return;
         const id = `provider-${ev.kind}${ev.detail && ["eoa-spender", "poisoning", "delegation"].includes(ev.detail) ? "-" + ev.detail : ""}`;
         if (prev.signals.some((s) => s.id === id)) return;
@@ -518,7 +557,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           list.push(`${ev.method}${ev.param ? " " + ev.param : ""} ${ev.hadGesture ? "(after click)" : "(no click)"} +${ev.msSinceLoad}ms`);
           await chrome.storage.session.set({ [k]: list.slice(-20) });
         } catch { /* ignore */ }
-        const total = Math.max(0, Math.min(100, signals.reduce((s, x) => s + x.weight, 0)));
+        let total = Math.max(0, Math.min(100, signals.reduce((s, x) => s + x.weight, 0)));
+        if (foreign && total >= BLOCK_THRESHOLD) total = BLOCK_THRESHOLD - 1; // frame-only evidence stops at "warn"
         const v: Verdict = { ...prev, signals, score: total, band: bandOf(total), at: Date.now() };
         await applyVerdict(tabId, v);
         sendResponse(v);
@@ -576,7 +616,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "w3pg:gateRejected": {
         const tabId = sender.tab?.id;
-        if (tabId === undefined || !sender.url) return;
+        if (tabId === undefined || !sender.url || sender.frameId !== 0) return; // a frame's rejection is the frame's business
         const prev = (await getTabVerdict(tabId)) ?? (await evaluate(sender.url));
         if (!prev || prev.signals.some((s) => s.id === "provider-gate-rejected")) return;
         const signals = [...prev.signals, { id: "provider-gate-rejected", weight: 40, key: "sig_gate_rejected" }];
@@ -606,7 +646,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "w3pg:xclick": {
         const c = (msg.ctx ?? {}) as Partial<OriginContext>;
-        await setPendingClick({ source: "x", at: Date.now(), poster: c.poster, posterVerified: c.posterVerified, isReply: c.isReply, display: c.display, target: c.target });
+        await setPendingClick({ source: "x", at: Date.now(), poster: c.poster, posterVerified: c.posterVerified, isReply: c.isReply, display: c.display, target: c.target, href: typeof msg.href === "string" ? msg.href : undefined });
         sendResponse(true);
         return;
       }
@@ -620,10 +660,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         try { target = new URL(href).hostname.toLowerCase(); } catch { sendResponse(null); return; }
         const ctx = { ...((msg.ctx ?? {}) as Partial<OriginContext>) };
         if (isShortener(target)) {
-          const finalUrl = await resolveRedirect(href);
-          if (!finalUrl) { sendResponse(null); return; }
-          ctx.shortener = target;
-          try { target = new URL(finalUrl).hostname.toLowerCase(); } catch { sendResponse(null); return; }
+          const res = await resolveRedirect(href);
+          if (!res) { sendResponse(null); return; }
+          ctx.hops = res.hops;
+          // t.co wraps every link on X; only a *second* hop through a shortener hides the destination
+          ctx.shortener = res.hops.find((h) => h !== "t.co" && isShortener(h));
+          try { target = new URL(res.url).hostname.toLowerCase(); } catch { sendResponse(null); return; }
         }
         const r = await scoreHostOnly(target, ctx);
         sendResponse(r ? { ...r, host: target } : null);
@@ -666,10 +708,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case "w3pg:refreshNow": {
         if (!fromExtension(sender)) return;
         try { await refreshRemoteData(true); } catch (e) { console.warn(e); }
-        for (const s of SOURCES) {
-          try { await refreshSource(s); } catch (e) { console.warn(e); }
-        }
-        await syncDnr();
+        await refreshAllSources();
         sendResponse(await listStatus());
         return;
       }
@@ -701,6 +740,8 @@ function providerWeight(ev: ProviderEvent): number {
       return 60;
     case "wc-modal":
       return 15;
+    case "wallet-standard":
+      return 0; // informational: a Wallet Standard wallet registered and was wrapped
     case "gate-rejected":
       return 40;
   }
@@ -717,7 +758,9 @@ function gateDecision(v: Verdict | null, g: Record<string, unknown>): { ask: boo
   if (eoa || poisoned || kind === "delegation-7702" || kind === "eth_sign") return { ask: true, score: v?.score };
   if (safeSite) return { ask: false };
   // unknown or suspicious sites: hold anything that can move assets later without another click
-  const alwaysHold = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation", "seaport-order", "blur-order", "transfer-auth"]);
+  const alwaysHold = new Set(["setApprovalForAll", "approve-unlimited", "permit2", "permit", "permit-batch", "permit-for-all", "delegation", "seaport-order", "blur-order", "transfer-auth", "safe-delegatecall", "agent-approval"]);
+  // Solana signing on a page the heuristics already dislike: ask; on an unknown page let the wallet's own prompt do it
+  if (kind === "solana-sign") return band !== "none" ? { ask: true, score: v?.score } : { ask: false };
   if (alwaysHold.has(kind)) return { ask: true, score: v?.score };
   if (band !== "none") return { ask: true, score: v?.score };
   return { ask: false };

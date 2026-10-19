@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "本当のリンク先が短縮リンク ($1) の裏に隠されています"
   },
+  "sig_brand_path": {
+    "message": "共有プラットフォーム上の $1 を名乗るページ ($2)"
+  },
   "sig_display_mismatch": {
     "message": "X に表示されたアドレス（$1）と開いたものが異なる"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign：何でも承認できる生署名"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "リレイヤーがあなたのトークンを移動できる署名 (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "delegatecall を含む Safe トランザクション（Safe 自体を書き換え可能）"
+  },
+  "gate_kind_agent_approval": {
+    "message": "取引エージェント / 出金承認（Hyperliquid 型）"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Solana 署名リクエスト"
   },
   "gate_kind_transfer": {
     "message": "トークン送金"

@@ -23,10 +23,37 @@ const FAIL_TTL = 6 * 3600 * 1000;
 const BOOT_TTL = 7 * 24 * 3600 * 1000;
 const MIN_INTERVAL = 600;
 let lastCall = 0;
-let chain: Promise<unknown> = Promise.resolve();
 let bootMem: Bootstrap | null = null;
 
-export async function domainAgeDays(registrable: string): Promise<number | undefined> {
+/**
+ * One registry call at a time, spaced MIN_INTERVAL apart. The page the user actually opened (priority) jumps ahead
+ * of the X timeline badges, so a busy feed never delays the verdict for the current navigation.
+ */
+interface Job { run: () => Promise<unknown>; priority: boolean }
+const jobs: Job[] = [];
+let draining = false;
+async function drain(): Promise<void> {
+  if (draining) return;
+  draining = true;
+  try {
+    while (jobs.length) {
+      const i = jobs.findIndex((j) => j.priority);
+      const job = jobs.splice(i >= 0 ? i : 0, 1)[0];
+      const wait = lastCall + MIN_INTERVAL - Date.now();
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      lastCall = Date.now();
+      try { await job.run(); } catch { /* reported through the job's own promise */ }
+    }
+  } finally { draining = false; }
+}
+function queued<T>(fn: () => Promise<T>, priority: boolean): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    jobs.push({ priority, run: () => fn().then(resolve, reject) });
+    void drain();
+  });
+}
+
+export async function domainAgeDays(registrable: string, opts: { priority?: boolean } = {}): Promise<number | undefined> {
   const key = `rdap:${registrable}`;
   const cached = (await chrome.storage.local.get(key))[key] as AgeCache | undefined;
   const now = Date.now();
@@ -34,21 +61,9 @@ export async function domainAgeDays(registrable: string): Promise<number | undef
     if (cached.registeredAt && now - cached.checkedAt < OK_TTL) return (now - cached.registeredAt) / 86400000;
     if (cached.failed && now - cached.checkedAt < FAIL_TTL) return undefined;
   }
-  const registeredAt = await queued(() => fetchRegistration(registrable));
+  const registeredAt = await queued(() => fetchRegistration(registrable), opts.priority !== false);
   await chrome.storage.local.set({ [key]: { registeredAt, checkedAt: now, failed: registeredAt === undefined } satisfies AgeCache });
   return registeredAt ? (now - registeredAt) / 86400000 : undefined;
-}
-
-function queued<T>(fn: () => Promise<T>): Promise<T> {
-  const run = async () => {
-    const wait = lastCall + MIN_INTERVAL - Date.now();
-    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-    lastCall = Date.now();
-    return fn();
-  };
-  const p = chain.then(run, run);
-  chain = p.catch(() => undefined);
-  return p;
 }
 
 async function bootstrap(): Promise<Bootstrap | null> {

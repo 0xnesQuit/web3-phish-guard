@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "The real destination was hidden behind a link shortener ($1)"
   },
+  "sig_brand_path": {
+    "message": "Page on a shared platform named after $1 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "The address shown on X ($1) differs from the one opened"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: raw signature that can authorize anything"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "Signature that lets a relayer move your tokens (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "Safe transaction with delegatecall (can rewrite the Safe itself)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "Trading-agent / withdrawal approval (Hyperliquid-style)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Solana signature request"
   },
   "gate_kind_transfer": {
     "message": "Token transfer"

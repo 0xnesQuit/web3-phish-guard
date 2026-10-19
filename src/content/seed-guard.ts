@@ -65,10 +65,20 @@ function allInputs(): Array<{ text: string; el: Element | null }> {
   return out;
 }
 
+/** Only the field that changed is examined (a password manager rendering stored secrets elsewhere on the page is not the user typing them). */
+let lastTarget: Element | null = null;
 function check() {
   if (fired || suppressed) return;
+  if (lastTarget) {
+    const el = lastTarget as HTMLElement;
+    const v = "value" in el ? String((el as HTMLInputElement).value ?? "") : (el.textContent ?? "");
+    const kind = looksLikeSeed(v, keyContextOf(el));
+    if (kind) { fired = true; stop(kind); return; }
+  }
+  // the 12-separate-boxes layout
   for (const { text, el } of allInputs()) {
-    const kind = looksLikeSeed(text, keyContextOf(el));
+    if (el !== null) continue;
+    const kind = looksLikeSeed(text, true);
     if (kind) { fired = true; stop(kind); return; }
   }
 }
@@ -113,14 +123,14 @@ function stop(kind: "mnemonic" | "private-key") {
         </div>
       </div>
     </div>`;
-  root.getElementById("leave")!.addEventListener("click", () => { chrome.runtime.sendMessage({ type: "w3pg:leaveTab" }).catch(() => undefined); });
+  root.getElementById("leave")!.addEventListener("click", (e) => { if (e.isTrusted) chrome.runtime.sendMessage({ type: "w3pg:leaveTab" }).catch(() => undefined); });
   root.getElementById("stay")!.addEventListener("click", (e) => { if (!e.isTrusted) return; host.remove(); suppressed = true; });
   (document.documentElement || document.body).appendChild(host);
   (root.getElementById("leave") as HTMLButtonElement | null)?.focus();
 }
 
 let timer: number | undefined;
-const schedule = () => { if (timer === undefined) timer = window.setTimeout(() => { timer = undefined; check(); }, 250); };
+const schedule = (e?: Event) => { if (e) lastTarget = (e.composedPath?.()[0] as Element | undefined) ?? (e.target as Element | null); if (timer === undefined) timer = window.setTimeout(() => { timer = undefined; check(); }, 250); };
 window.addEventListener("input", schedule, true);
 window.addEventListener("paste", onPaste, true);
 window.addEventListener("submit", check, true);

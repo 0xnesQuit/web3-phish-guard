@@ -33,8 +33,10 @@ export function buildRules(block: string[], allow: string[], paths: string[] = [
   // host+path entries: "sites.google.com/view/foo" -> urlFilter "||sites.google.com/view/foo" (prefix match on the path)
   let pid = RULE_PATH_BASE;
   for (const entry of [...new Set(paths)].slice(-MAX_PATH_RULES)) {
-    if (!/^[a-z0-9.-]+\/[\x21-\x7e]*$/.test(entry) || allowSet.has(entry.split("/")[0])) continue;
-    rules.push({ id: pid++, priority: 1, action: { type: "block" as chrome.declarativeNetRequest.RuleActionType }, condition: { urlFilter: "||" + entry, resourceTypes: FRAMES } });
+    // "^" ends the match at a separator or the end of the URL, so /view/foo does not cover /view/foobar; entries with
+    // urlFilter metacharacters are skipped (the post-commit path check still catches them)
+    if (!/^[a-z0-9.-]+\/[\x21-\x7e]*$/.test(entry) || /[*^|]/.test(entry) || allowSet.has(entry.split("/")[0])) continue;
+    rules.push({ id: pid++, priority: 1, action: { type: "block" as chrome.declarativeNetRequest.RuleActionType }, condition: { urlFilter: "||" + entry + "^", resourceTypes: FRAMES } });
   }
   if (allow.length) {
     rules.push({
@@ -65,14 +67,18 @@ export async function applyRules(rules: Rule[]): Promise<void> {
 }
 
 /** Let the user through to one host for the session (after "I understand the risk"). */
-export async function addBypassRule(host: string): Promise<void> {
+export async function addBypassRule(entry: string): Promise<void> {
   const dnr = chrome.declarativeNetRequest;
   if (!dnr?.updateSessionRules) return;
   const existing = await dnr.getSessionRules();
   const used = new Set(existing.map((r) => r.id));
   let id = RULE_BYPASS_BASE;
   while (used.has(id) && id < RULE_BLOCK_BASE - 1) id++;
+  // "host/path" entries allow that page prefix only; a bare host allows the host
+  const condition = entry.includes("/")
+    ? { urlFilter: "||" + entry + "^", resourceTypes: FRAMES }
+    : { requestDomains: [entry], resourceTypes: FRAMES };
   await dnr.updateSessionRules({
-    addRules: [{ id, priority: 20, action: { type: "allow" as chrome.declarativeNetRequest.RuleActionType }, condition: { requestDomains: [host], resourceTypes: FRAMES } }],
+    addRules: [{ id, priority: 20, action: { type: "allow" as chrome.declarativeNetRequest.RuleActionType }, condition }],
   }).catch(() => undefined);
 }

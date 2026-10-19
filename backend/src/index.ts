@@ -27,7 +27,7 @@ import { parse as tldParse } from "tldts";
 import { resolveBrandRaw, resolveUserRaw } from "../../src/lib/xquik-core";
 import { score } from "../../src/lib/scoring";
 import { parseHost } from "../../src/lib/hostname";
-import { mergeBrands, brandsFromTrusted, flattenTrusted } from "../../src/lib/lists";
+import { mergeBrands, brandsFromTrusted, flattenTrusted, sanitizeBrands, sanitizeTrusted } from "../../src/lib/lists";
 import { serverForTld, parseRegistration } from "../../src/lib/rdap";
 import type { Brand, SignalLists, Verdict } from "../../src/lib/types";
 import { W3pgState, type CommunityList } from "./state";
@@ -71,7 +71,7 @@ function cors(req: Request, env: Env): Record<string, string> {
   const ok = EXT_ORIGIN.test(origin) && (!allowed.length || allowed.includes(origin));
   return {
     vary: "origin",
-    "access-control-allow-origin": ok ? origin : "null",
+    ...(ok ? { "access-control-allow-origin": origin } : {}),
     "access-control-allow-methods": "GET, POST, OPTIONS",
     "access-control-allow-headers": "content-type, x-admin-token",
     "access-control-max-age": "86400",
@@ -88,6 +88,21 @@ function originAllowed(req: Request, env: Env): boolean {
   return allowed.includes(origin);
 }
 
+/** Edge-cache helpers for things that are merely cached (verdicts, RDAP, X lookups, resolved links): KV's free tier allows
+ *  1,000 writes a day, the Cache API is unmetered. Entries are per-colo, which is fine for a cache. */
+const CACHE_ORIGIN = "https://cache.w3pg.internal/";
+async function cacheGet<T>(key: string): Promise<T | null> {
+  try {
+    const r = await caches.default.match(new Request(CACHE_ORIGIN + encodeURIComponent(key)));
+    return r ? ((await r.json()) as T) : null;
+  } catch { return null; }
+}
+async function cachePut(key: string, value: unknown, ttlSec: number): Promise<void> {
+  try {
+    await caches.default.put(new Request(CACHE_ORIGIN + encodeURIComponent(key)), new Response(JSON.stringify(value), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${ttlSec}` } }));
+  } catch { /* cache unavailable */ }
+}
+
 const enc = new TextEncoder();
 async function sha256(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", enc.encode(s));
@@ -95,11 +110,11 @@ async function sha256(s: string): Promise<string> {
 }
 /** Daily-rotating keyed hash of the client IP: unlinkable across days, not reversible without the secret. */
 /** Daily-rotating keyed hash of the client address. IPv6 is bucketed by /64 so one host cannot spread across a prefix. */
-async function ipKey(req: Request, env: Env): Promise<string> {
+async function ipKey(req: Request, env: Env, override?: string): Promise<string> {
   const secret = env.IP_HASH_SECRET || `derived|${env.ADMIN_TOKEN}`;
   const key = await crypto.subtle.importKey("raw", enc.encode(`${secret}|${dayKey()}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  let ip = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
-  if (ip.includes(":")) ip = ip.split(":").slice(0, 4).join(":") + "::/64";
+  let ip = override ?? req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+  if (!override && ip.includes(":")) ip = ip.split(":").slice(0, 4).join(":") + "::/64";
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(ip));
   return [...new Uint8Array(sig)].slice(0, 16).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -132,20 +147,20 @@ function timingSafeEqual(a: string, b: string): boolean {
 // ---------------------------------------------------------------------------
 // server-side copy of the scoring data (brand lists, signal lists, MetaMask blocklist), cached in KV
 // ---------------------------------------------------------------------------
-interface ServerData { brands: Brand[]; lists: SignalLists; freeHosts: string[]; at: number }
+interface ServerData { brands: Brand[]; lists: SignalLists; freeHosts: string[]; shared: string[]; at: number }
 let dataMem: ServerData | null = null;
 let mmMem: { set: Set<string>; at: number } | null = null;
 
-async function fetchJsonCached<T>(env: Env, url: string, kvKey: string, ttl: number): Promise<T | null> {
-  const cached = await env.W3PG_KV.get(kvKey);
-  if (cached) return JSON.parse(cached) as T;
+async function fetchJsonCached<T>(_env: Env, url: string, key: string, ttl: number): Promise<T | null> {
+  const cached = await cacheGet<T>(key);
+  if (cached) return cached;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     if (!res.ok) return null;
     const text = await res.text();
-    JSON.parse(text);
-    await env.W3PG_KV.put(kvKey, text, { expirationTtl: ttl });
-    return JSON.parse(text) as T;
+    const parsed = JSON.parse(text) as T;
+    await cachePut(key, parsed, ttl);
+    return parsed;
   } catch {
     return null;
   }
@@ -155,20 +170,22 @@ async function serverData(env: Env): Promise<ServerData> {
   if (dataMem && Date.now() - dataMem.at < 6 * 3600_000) return dataMem;
   const base = env.LISTS_BASE || LISTS_DEFAULT;
   const get = <T,>(f: string) => fetchJsonCached<T>(env, `${base}/${f}`, `data:${f}`, 6 * 3600);
-  const [seed, generated, nft, cmc, actions, hosts, tlds, trusted] = await Promise.all([
+  const [seed, generated, nft, cmc, actions, hosts, tlds, trusted, sharedFile] = await Promise.all([
     get<Brand[]>("brands.seed.json"), get<Brand[]>("brands.generated.json"), get<Brand[]>("brands.nft.json"), get<Brand[]>("brands.cmc.json"),
     get<{ strong: string[]; medium: string[] }>("action-words.json"), get<{ strong: string[]; weak: string[] }>("free-hosts.json"),
-    get<{ strong: string[]; weak: string[] }>("tlds.json"), get<Record<string, string[] | string>>("trusted.json"),
+    get<{ strong: string[]; weak: string[] }>("tlds.json"), get<Record<string, string[] | string>>("trusted.json"), get<{ hosts: string[] }>("shared-hosts.json"),
   ]);
-  const trustedList = flattenTrusted(trusted);
-  const brands = mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? []), ...(cmc ?? [])]);
+  const shared = [...(sharedFile?.hosts ?? []), ...(hosts?.strong ?? []), ...(hosts?.weak ?? [])];
+  const trustedList = sanitizeTrusted(flattenTrusted(trusted), shared);
+  const brands = sanitizeBrands(mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? []), ...(cmc ?? [])]), shared);
   const lists: SignalLists = {
+    shared,
     trusted: trustedList,
     actionStrong: actions?.strong ?? [], actionMedium: actions?.medium ?? [],
     freeHostsStrong: hosts?.strong ?? [], freeHostsWeak: hosts?.weak ?? [],
     tldStrong: tlds?.strong ?? [], tldWeak: tlds?.weak ?? [],
   };
-  dataMem = { brands, lists, freeHosts: [...lists.freeHostsStrong, ...lists.freeHostsWeak], at: Date.now() };
+  dataMem = { brands, lists, freeHosts: shared, shared, at: Date.now() };
   return dataMem;
 }
 
@@ -187,8 +204,8 @@ const RDAP_HEADERS = { accept: "application/rdap+json, application/json", "user-
 /** RDAP registration age in days, via the IANA bootstrap; cached 7 days. */
 async function serverAgeDays(env: Env, registrable: string): Promise<number | undefined> {
   const k = `rdap:${registrable}`;
-  const cached = await env.W3PG_KV.get(k);
-  if (cached) { const ms = Number(cached); return ms > 0 ? (Date.now() - ms) / 86400000 : undefined; }
+  const cachedAge = await cacheGet<{ ms: number }>(k);
+  if (cachedAge) { const ms = cachedAge.ms; return ms > 0 ? (Date.now() - ms) / 86400000 : undefined; }
   let ms = 0;
   try {
     const boot = await fetchJsonCached<{ services: Array<[string[], string[]]> }>(env, "https://data.iana.org/rdap/dns.json", "rdap:bootstrap", 7 * 86400);
@@ -200,7 +217,7 @@ async function serverAgeDays(env: Env, registrable: string): Promise<number | un
       if (res.ok && (res.headers.get("content-type") ?? "").includes("json")) { ms = parseRegistration(await res.json()) ?? 0; if (ms) break; }
     }
   } catch { /* unknown */ }
-  await env.W3PG_KV.put(k, String(ms), { expirationTtl: ms ? 7 * 86400 : 6 * 3600 });
+  await cachePut(k, { ms }, ms ? 7 * 86400 : 6 * 3600);
   return ms > 0 ? (Date.now() - ms) / 86400000 : undefined;
 }
 
@@ -241,11 +258,14 @@ async function verifyPageEvidence(payload: ScanPayload): Promise<boolean> {
     if (!res.ok) return false;
     if (new URL(res.url).hostname.toLowerCase() !== payload.host) return false;
     const html = (await res.text()).slice(0, 400_000).toLowerCase();
-    const bait = /connect\s*wallet|claim|airdrop|mint|eligib|seed\s*phrase|recovery\s*phrase|private\s*key|mnemonic|walletconnect|ethereum\.request|window\.ethereum|solana/.test(html);
-    const scriptHosts = payload.page.scripts.map((u) => { try { return new URL(u).hostname.toLowerCase(); } catch { return ""; } }).filter(Boolean);
+    // the page must talk to a wallet AND show bait / the snapshot's own evidence; "claim" alone also matches
+    // "disclaimer", so word boundaries and a second leg are required
+    const wallet = /window\.ethereum|ethereum\.request|eth_requestaccounts|wallet_requestpermissions|walletconnect|@walletconnect|web3modal|rainbowkit|wagmi|appkit|window\.solana|solana\.connect|phantom|eip6963|wallet-standard|metamask/.test(html);
+    const bait = /\b(connect\s*wallet|claim\s+(your|now|rewards?|airdrop|tokens?)|airdrop|mint\s+(now|pass|nft)|check\s+eligib|eligibility|seed\s*phrase|recovery\s*phrase|private\s*key|mnemonic|import\s+wallet|restore\s+wallet|sync\s+wallet|validate\s+wallet)\b/.test(html);
+    const scriptHosts = payload.page.scripts.map((u) => { try { return new URL(u).hostname.toLowerCase(); } catch { return ""; } }).filter((h) => h && h !== payload.host);
     const sameScripts = scriptHosts.length > 0 && scriptHosts.some((h) => html.includes(h));
     const markers = payload.page.drainerMarkers.some((m) => m.length >= 4 && html.includes(m.toLowerCase()));
-    return bait || sameScripts || markers;
+    return wallet && (bait || sameScripts || markers);
   } catch {
     return false;
   }
@@ -404,8 +424,8 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   // cache: host + page content fingerprint + language (a forged "safe" snapshot cannot poison the real page's entry)
   const fp = await sha256(JSON.stringify([payload.host, payload.page.title, payload.page.text.slice(0, 3000), payload.page.scripts, payload.page.walletButtons, payload.page.providerEvents, language]));
   const cacheKey = `scan:${fp}`;
-  const cached = await env.W3PG_KV.get(cacheKey);
-  if (cached) return json({ ...JSON.parse(cached), cached: true });
+  const cachedScan = await cacheGet<Record<string, unknown>>(cacheKey);
+  if (cachedScan) return json({ ...cachedScan, cached: true });
 
   // rate limits: valid, uncached requests only. Order: burst (atomic, per IP per minute) -> the caller's own
   // daily bucket -> one scan of the same host per caller per cooldown window -> per-host daily cap (one site
@@ -413,9 +433,14 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   // only ever used through the fixed verdict prompt below.
   const ik = await ipKey(req, env);
   const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+  // IPv6 callers are bucketed by /64 (one host) and additionally by /48 (one allocation): rotating addresses
+  // inside a prefix must not multiply the budget
+  const ip64 = ipRaw.includes(":") ? ipRaw.split(":").slice(0, 4).join(":") + "::/64" : ipRaw;
+  const ik48 = ipRaw.includes(":") ? await ipKey(req, env, ipRaw.split(":").slice(0, 3).join(":") + "::/48") : null;
   // The binding is permissive and eventually consistent (counters sync asynchronously per machine), so it only
-  // brakes real floods; the KV counters below are the accounting, and the Anthropic console spend limit the backstop.
-  if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: ipRaw })).success) return json({ error: "rate_limited" }, 429);
+  // brakes real floods; the Durable Object counters below are the accounting, and the Anthropic console spend limit the backstop.
+  if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: ip64 })).success) return json({ error: "rate_limited" }, 429);
+  if (ik48 && !(await allow(env, `scan48:${ik48}`, (Number(env.SCANS_PER_IP_PER_DAY) || 20) * 4))) return json({ error: "rate_limited" }, 429);
   const admission = await state(env).admitScan({
     ip: ik, host: await sha256(payload.host),
     ipLimit: Number(env.SCANS_PER_IP_PER_DAY) || 20, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: Number(env.SCANS_GLOBAL_PER_DAY) || 1500,
@@ -427,6 +452,8 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   const data = await serverData(env);
   const parsed = parseHost(payload.url, data.freeHosts);
   const registrable = registrableOf(payload.host, data.freeHosts);
+  // the most common phishing hosting is a free host; those pages are listed by their full host, never the platform
+  const listEntry = registrable ?? (parsed?.freeHost && payload.host !== parsed.freeHost ? payload.host : null);
   const [ageDays, metamask, gp] = await Promise.all([
     registrable ? serverAgeDays(env, registrable) : Promise.resolve(undefined),
     metamaskHit(env, payload.host),
@@ -486,7 +513,7 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
     model: response.model,
     at: Date.now(),
   };
-  await env.W3PG_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 });
+  await cachePut(cacheKey, result, 3600);
 
   // Auto-list (warn-only "auto" set, no network block until a moderator confirms). Every leg is server-side:
   //   - the server's own score without any client-supplied context is in the warn band or above,
@@ -496,12 +523,13 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   //   - the model is confident it is dangerous.
   const official = !!serverOnly && serverOnly.signals.some((s) => s.id === "brand-official" || s.id === "brand-official-generated" || s.id === "trusted" || s.id === "allowlist");
   const young = ageDays !== undefined && ageDays < 60;
-  if (result.verdict === "dangerous" && result.confidence >= 0.9 && serverOnly && serverOnly.score >= 35 && (young || serverOnly.score >= 70) && registrable && !official && !(await neverBlock(env, registrable, data))) {
+  const youngOrFree = young || !registrable; // free-host pages have no registration date of their own
+  if (result.verdict === "dangerous" && result.confidence >= 0.9 && serverOnly && serverOnly.score >= 35 && (youngOrFree || serverOnly.score >= 70) && listEntry && !official && !(await neverBlock(env, listEntry, data))) {
     const list = await communityList(env);
-    if (!list.domains.includes(registrable) && !list.auto.includes(registrable) && (await verifyPageEvidence(payload))) {
-      await updateCommunity(env, (l) => { if (!l.domains.includes(registrable) && !l.auto.includes(registrable)) l.auto.push(registrable); });
+    if (!list.domains.includes(listEntry) && !list.auto.includes(listEntry) && (await verifyPageEvidence(payload))) {
+      await updateCommunity(env, (l) => { if (!l.domains.includes(listEntry) && !l.auto.includes(listEntry)) l.auto.push(listEntry); });
       await enqueueReport(env, {
-        id: crypto.randomUUID(), url: payload.url.replace(/[?#].*$/, ""), host: payload.host, registrable, score: serverOnly.score,
+        id: crypto.randomUUID(), url: payload.url.replace(/[?#].*$/, ""), host: payload.host, registrable: listEntry, score: serverOnly.score,
         signals: [`AI: dangerous ${Math.round(result.confidence * 100)}%`, `server: ${serverOnly.score}/100`, ...serverOnly.signals.filter((s) => s.weight > 0).map((s) => s.key)],
         note: `[auto] ${result.summary}`, at: Date.now(), status: "auto", ipHash: ik,
       });
@@ -737,15 +765,15 @@ async function handleX(req: Request, env: Env, kind: "brand" | "user"): Promise<
   const q = (url.searchParams.get(kind === "brand" ? "token" : "handle") ?? "").trim().toLowerCase().replace(/^@/, "");
   if (!/^[a-z0-9_.-]{2,40}$/.test(q)) return json({ error: "bad_query" }, 400);
   const cacheKey = `x:${kind}:${q}`;
-  const cached = await env.W3PG_KV.get(cacheKey);
-  if (cached) return json(JSON.parse(cached), 200, { "cache-control": "public, max-age=3600" });
+  const cachedX = await cacheGet<unknown>(cacheKey);
+  if (cachedX) return json(cachedX, 200, { "cache-control": "public, max-age=3600" });
   const ik = await ipKey(req, env);
   if (!(await allow(env, `x:${ik}`, 80))) return json({ error: "rate_limited" }, 429);
   if (!(await allowShared(env, "x:global", 5000))) return json({ error: "daily_capacity_reached" }, 429);
   const fetcher = xquikFetcher(env);
   const result = kind === "brand" ? await resolveBrandRaw(q, fetcher) : await resolveUserRaw(q, fetcher);
   if (!result) return json({ error: "not_found" }, 404);
-  await env.W3PG_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: kind === "brand" ? 7 * 86400 : 86400 });
+  await cachePut(cacheKey, result, kind === "brand" ? 7 * 86400 : 86400);
   return json(result, 200, { "cache-control": "public, max-age=3600" });
 }
 
@@ -760,27 +788,37 @@ async function handleResolve(req: Request, env: Env): Promise<Response> {
   try { u = new URL(target); } catch { return json({ error: "bad_url" }, 400); }
   if (!/^https?:$/.test(u.protocol) || !SHORTENERS.has(u.hostname.toLowerCase())) return json({ error: "not_a_shortener" }, 400);
   const cacheKey = `resolve:${await sha256(u.href)}`;
-  const cached = await env.W3PG_KV.get(cacheKey);
-  if (cached) return json({ url: cached || null }, 200, { "cache-control": "public, max-age=3600" });
+  const cached = await cacheGet<{ url: string; hops: string[] }>(cacheKey);
+  if (cached) return json(cached, 200, { "cache-control": "public, max-age=3600" });
   const ik = await ipKey(req, env);
   if (!(await allow(env, `resolve:${ik}`, 300))) return json({ error: "rate_limited" }, 429);
-  let finalUrl = "", err = "";
-  // Some shorteners (tr.ee) answer 405/406 to non-browser clients; look like a browser.
+  // Follow the chain one hop at a time so the extension learns every host the link passed through (a displayed
+  // "amzn.to" that really is a hop is not deception). Some shorteners (tr.ee) answer 405/406 to non-browser
+  // clients; look like a browser.
   const headers = { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", accept: "text/html,application/xhtml+xml,*/*;q=0.8", "accept-language": "en-US,en;q=0.8" };
+  const hops: string[] = [];
+  let cur = u.href, finalUrl = "", err = "";
   try {
-    let res = await fetch(u.href, { method: "HEAD", headers, redirect: "follow", signal: AbortSignal.timeout(6000) });
-    const stuck = (r: Response) => SHORTENERS.has(new URL(r.url).hostname.toLowerCase());
-    if (stuck(res)) res = await fetch(u.href, { method: "GET", headers, redirect: "follow", signal: AbortSignal.timeout(6000) });
-    err = `status=${res.status} url=${res.url} redirected=${res.redirected}`;
-    if (!stuck(res)) finalUrl = res.url;
-    else if (res.ok) {
-      const body = (await res.text()).slice(0, 20000);
-      const m = body.match(/(?:http-equiv="refresh"[^>]*url=|window\.location(?:\.href)?\s*=\s*["'])(https?:[^"'>\s]+)/i);
-      if (m) finalUrl = m[1];
+    for (let i = 0; i < 8; i++) {
+      const host = new URL(cur).hostname.toLowerCase();
+      if (!hops.includes(host)) hops.push(host);
+      let res = await fetch(cur, { method: "HEAD", headers, redirect: "manual", signal: AbortSignal.timeout(6000) });
+      if (res.status === 405 || res.status === 406 || (res.status === 200 && SHORTENERS.has(host))) res = await fetch(cur, { method: "GET", headers, redirect: "manual", signal: AbortSignal.timeout(6000) });
+      const loc = res.headers.get("location");
+      if (res.status >= 300 && res.status < 400 && loc) { cur = new URL(loc, cur).href; continue; }
+      if (res.ok && SHORTENERS.has(host)) {
+        const body = (await res.text()).slice(0, 20000);
+        const m = body.match(/(?:http-equiv="refresh"[^>]*url=|window\.location(?:\.href)?\s*=\s*["'])(https?:[^"'>\s]+)/i);
+        if (m) { cur = new URL(m[1], cur).href; continue; }
+      }
+      err = `status=${res.status} url=${cur}`;
+      break;
     }
+    if (!SHORTENERS.has(new URL(cur).hostname.toLowerCase())) finalUrl = cur;
   } catch (e) { err = String((e as Error)?.message ?? e); }
-  if (finalUrl) await env.W3PG_KV.put(cacheKey, finalUrl, { expirationTtl: 86400 });
-  return json({ url: finalUrl || null, ...(err && new URL(req.url).searchParams.has("debug") ? { err } : {}) }, 200, { "cache-control": finalUrl ? "public, max-age=3600" : "no-store" });
+  const out = finalUrl ? { url: finalUrl, hops: [...hops, new URL(finalUrl).hostname.toLowerCase()].filter((h, i, a) => a.indexOf(h) === i) } : null;
+  if (out) await cachePut(cacheKey, out, 86400);
+  return json(out ?? { url: null, hops, ...(err && new URL(req.url).searchParams.has("debug") ? { err } : {}) }, 200, { "cache-control": out ? "public, max-age=3600" : "no-store" });
 }
 
 // ---------------------------------------------------------------------------

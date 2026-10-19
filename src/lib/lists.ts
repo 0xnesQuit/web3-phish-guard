@@ -7,7 +7,7 @@ let cache: { brands: Brand[]; lists: SignalLists } | null = null;
  * where a daily GitHub Action publishes regenerated copies. Remote copies live in chrome.storage.local
  * and win over the bundled ones. Only JSON data is fetched, never code.
  */
-export const DATA_FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json"] as const;
+export const DATA_FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "shared-hosts.json"] as const;
 export const REMOTE_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data";
 
 interface RemoteManifest { updatedAt: number; files: Record<string, { bytes: number; sha256?: string }>; sig?: string }
@@ -46,10 +46,10 @@ export function remoteGuard(file: string, bundled: unknown, remote: unknown): st
     if (removedBrands > 50) return `${removedBrands} brands removed`;
     return null;
   }
-  if (file === "free-hosts.json") {
+  if (file === "free-hosts.json" || file === "shared-hosts.json") {
     const b = strs(bundled), r = new Set(strs(remote));
     const removed = b.filter((h) => !r.has(h)).length;
-    return removed > 5 ? `${removed} free hosts removed` : null;
+    return removed > 5 ? `${removed} hosts removed` : null;
   }
   if (file === "action-words.json" || file === "tlds.json") {
     const b = strs(bundled), r = new Set(strs(remote));
@@ -185,7 +185,8 @@ export async function refreshRemoteData(force = false): Promise<{ updated: boole
       if ((await sha256Hex(text)) !== entry.sha256) { console.warn(`[w3pg] ${file}: hash mismatch, skipped`); continue; }
       const json = JSON.parse(text);
       if (json === null || typeof json !== "object") continue;
-      const why = remoteGuard(file, await loadBundled(file), json);
+      const prev = (await chrome.storage.local.get("data:" + file))["data:" + file];
+      const why = remoteGuard(file, prev !== undefined ? prev : await loadBundled(file), json);
       if (why) { console.warn(`[w3pg] ${file} rejected (${why}), kept the previous copy`); continue; }
       updates["data:" + file] = json;
       n++;
@@ -205,7 +206,7 @@ export async function refreshRemoteData(force = false): Promise<{ updated: boole
 /** Bundled static data (brands + signal word lists). Cached per service-worker lifetime. */
 export async function loadStaticData(): Promise<{ brands: Brand[]; lists: SignalLists }> {
   if (cache) return cache;
-  const [seed, generated, nft, cmc, actions, hosts, tlds, trusted] = await Promise.all([
+  const [seed, generated, nft, cmc, actions, hosts, tlds, trusted, sharedFile] = await Promise.all([
     loadJson<Brand[]>("brands.seed.json"),
     loadJson<Brand[]>("brands.generated.json"),
     loadJson<Brand[]>("brands.nft.json"),
@@ -214,12 +215,15 @@ export async function loadStaticData(): Promise<{ brands: Brand[]; lists: Signal
     loadJson<{ strong: string[]; weak: string[] }>("free-hosts.json"),
     loadJson<{ strong: string[]; weak: string[] }>("tlds.json"),
     loadJson<Record<string, string[] | string>>("trusted.json"),
+    loadJson<{ hosts: string[] }>("shared-hosts.json"),
   ]);
-  const trustedList = flattenTrusted(trusted);
-  const brands = mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? []), ...(cmc ?? [])]);
+  const shared = [...(sharedFile?.hosts ?? []), ...(hosts?.strong ?? []), ...(hosts?.weak ?? [])];
+  const trustedList = sanitizeTrusted(flattenTrusted(trusted), shared);
+  const brands = sanitizeBrands(mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? []), ...(cmc ?? [])]), shared);
   cache = {
     brands,
     lists: {
+      shared,
       trusted: trustedList,
       actionStrong: actions?.strong ?? [],
       actionMedium: actions?.medium ?? [],
@@ -245,11 +249,26 @@ export function brandsFromTrusted(trusted: string[]): Brand[] {
   for (const d of trusted) {
     const parts = d.split(".");
     const label = (parts.length > 2 && parts[0].length < 6 ? parts[1] : parts[0]).toLowerCase();
-    if (label.length < 6 || TRUSTED_GENERIC.has(label) || seen.has(label)) continue;
+    // short names (okx, htx, mexc, jup) only ever match as a whole label, which the curated loop enforces below 5 chars
+    if (label.length < 3 || TRUSTED_GENERIC.has(label) || seen.has(label) || !/^[a-z0-9]+$/.test(label)) continue;
     seen.add(label);
     out.push({ name: label, tokens: [label], domains: [d], tier: "seed" });
   }
   return out;
+}
+
+/**
+ * Shared platforms can never be a brand's own domain or a trusted domain: a generated entry naming "eth.limo" or a
+ * trusted entry naming "vercel.app" would clear every page on that platform. Curated seed entries keep their domains
+ * (a seed may deliberately name "metamask.github.io"); generated tiers lose any domain equal to or under a shared host.
+ */
+export function sanitizeBrands(brands: Brand[], shared: string[]): Brand[] {
+  const under = (d: string) => shared.some((s) => d === s || d.endsWith("." + s));
+  const ownsIt = (b: Brand, d: string) => { const label = d.split(".")[0].replace(/[^a-z0-9]/g, ""); return label.length >= 4 && b.name.toLowerCase().replace(/[^a-z0-9]/g, "").includes(label); };
+  return brands.map((b) => (b.tier === "generated" ? { ...b, domains: b.domains.filter((d) => !under(d) || ownsIt(b, d)) } : b));
+}
+export function sanitizeTrusted(trusted: string[], shared: string[]): string[] {
+  return trusted.filter((d) => !shared.includes(d));
 }
 
 export function flattenTrusted(json: Record<string, string[] | string> | null): string[] {
@@ -267,14 +286,15 @@ export function mergeBrands(seed: Brand[], generated: Brand[]): Brand[] {
   const byKey = new Map<string, Brand>();
   const tagged = [...generated.map((b) => ({ ...b, tier: "generated" as const })), ...seed.map((b) => ({ ...b, tier: "seed" as const }))];
   for (const b of tagged) {
-    const key = b.name.toLowerCase();
+    // a name collision across tiers stays two entries: an auto-imported "Aave" (ethlend.io) must not lend its
+    // domains curated status, which would relax the wallet gate and outrank reviewed blocklist hits
+    const key = `${b.tier}:${b.name.toLowerCase()}`;
     const prev = byKey.get(key);
     if (!prev) byKey.set(key, { ...b, tokens: [...b.tokens], domains: [...b.domains] });
     else {
       prev.tokens = [...new Set([...prev.tokens, ...b.tokens])];
       prev.domains = [...new Set([...prev.domains, ...b.domains])];
       prev.x = b.x || prev.x;
-      if (b.tier === "seed") prev.tier = "seed";
     }
   }
   // seed first so curated entries take precedence in matching order

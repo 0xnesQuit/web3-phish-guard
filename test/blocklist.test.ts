@@ -19,7 +19,7 @@ describe("feed ingestion keeps platforms out of the blocklist", () => {
     expect(ingestDomains(["sites.google.com", "claim-uniswap.xyz", "", "r2.dev"])).toEqual(["claim-uniswap.xyz"]);
   });
 
-  it("MetaMask diffs: only the blocklist target adds hosts; blocklistPaths keep their path", () => {
+  it("MetaMask diffs: only the blocklist target adds hosts; blocklistPaths keep their path", async () => {
     const hosts = new Set<string>(["old.xyz"]);
     const paths = new Set<string>();
     const last = applyMetaMaskDiff(hosts, paths, [
@@ -32,6 +32,11 @@ describe("feed ingestion keeps platforms out of the blocklist", () => {
     expect([...hosts]).toEqual(["fresh-drainer.xyz"]);
     expect([...paths]).toEqual(["sites.google.com/view/robinhoodacconthold"]);
     expect(last).toBe(14);
+    // allowlist entries are collected and every entry advances the cursor, so a diff never comes back twice
+    const { metaMaskDiffOps } = await import("../src/lib/blocklist");
+    const ops = metaMaskDiffOps([{ url: "uniswap.org", targetList: "eth_phishing_detect_config.allowlist", timestamp: 20 }, { url: "x.com", targetList: "eth_phishing_detect_config.fuzzylist", timestamp: 21 }], 14);
+    expect(ops.addAllow).toEqual(["uniswap.org"]);
+    expect(ops.last).toBe(21);
   });
 
   it("path index matches at segment boundaries only", () => {
@@ -48,7 +53,7 @@ describe("feed ingestion keeps platforms out of the blocklist", () => {
   it("DNR gets urlFilter rules for paths, covering sub-frames too", () => {
     const rules = buildRules(["evil.xyz"], ["uniswap.org"], ["sites.google.com/view/foo", "uniswap.org/x"]);
     const pathRules = rules.filter((r) => r.id >= RULE_PATH_BASE);
-    expect(pathRules.map((r) => r.condition.urlFilter)).toEqual(["||sites.google.com/view/foo"]);
+    expect(pathRules.map((r) => r.condition.urlFilter)).toEqual(["||sites.google.com/view/foo^"]);
     expect(rules.find((r) => r.id === RULE_BLOCK_BASE)?.condition.resourceTypes).toEqual(["main_frame", "sub_frame"]);
   });
 });

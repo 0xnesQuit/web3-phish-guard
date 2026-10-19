@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "Tujuan sebenarnya disembunyikan di balik pemendek tautan ($1)"
   },
+  "sig_brand_path": {
+    "message": "Halaman di platform bersama dengan nama $1 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "Alamat yang ditampilkan di X ($1) berbeda dari yang dibuka"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: tanda tangan mentah yang bisa mengotorisasi apa saja"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "Tanda tangan yang mengizinkan relayer memindahkan token Anda (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "Transaksi Safe dengan delegatecall (bisa menulis ulang Safe itu sendiri)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "Persetujuan agen trading / penarikan (gaya Hyperliquid)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Permintaan tanda tangan Solana"
   },
   "gate_kind_transfer": {
     "message": "Transfer token"

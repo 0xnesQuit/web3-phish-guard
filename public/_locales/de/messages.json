@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "Das eigentliche Ziel ist hinter einem Link-Kürzer ($1) versteckt"
   },
+  "sig_brand_path": {
+    "message": "Seite auf einer geteilten Plattform mit dem Namen $1 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "Die auf X angezeigte Adresse ($1) weicht von der geöffneten ab"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: Rohsignatur, die alles autorisieren kann"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "Signatur, mit der ein Relayer Ihre Token bewegen kann (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "Safe-Transaktion mit delegatecall (kann den Safe selbst umschreiben)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "Trading-Agent- / Auszahlungsfreigabe (Hyperliquid-Stil)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Solana-Signaturanfrage"
   },
   "gate_kind_transfer": {
     "message": "Token-Übertragung"

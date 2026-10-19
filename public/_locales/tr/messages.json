@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "Gerçek hedef bir kısa link ($1) arkasına gizlenmiş"
   },
+  "sig_brand_path": {
+    "message": "Paylaşımlı bir platformda $1 adını taşıyan sayfa ($2)"
+  },
   "sig_display_mismatch": {
     "message": "X'te gösterilen adres ($1) ile açılan adres farklı"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: her şeyi yetkilendirebilen ham imza"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "Bir aracının tokenlarınızı taşımasına izin veren imza (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "delegatecall içeren Safe işlemi (Safe'in kendisini değiştirebilir)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "İşlem ajanı / çekim onayı (Hyperliquid tarzı)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Solana imza isteği"
   },
   "gate_kind_transfer": {
     "message": "Token transferi"

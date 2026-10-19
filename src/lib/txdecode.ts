@@ -18,7 +18,7 @@ export interface TxIntent {
 }
 
 export interface SignIntent {
-  kind: "permit" | "permit2" | "permit-batch" | "permit-for-all" | "seaport-order" | "blur-order" | "delegation" | "transfer-auth" | "eth_sign" | "other";
+  kind: "permit" | "permit2" | "permit-batch" | "permit-for-all" | "seaport-order" | "blur-order" | "delegation" | "transfer-auth" | "safe-delegatecall" | "agent-approval" | "eth_sign" | "other";
   primaryType?: string;
   /** spender/operator/offerer when present */
   counterparty?: string;
@@ -87,7 +87,9 @@ export function decodeCalldata(data: string | undefined, to?: string): TxIntent 
     case "safeBatchTransferFrom":
       return { kind: "transferFrom", selector: sel, counterparty: addr(word(d, 1)), token: to?.toLowerCase() };
     case "universal-router": {
-      // commands byte string: 0x0a PERMIT2_PERMIT, 0x0b PERMIT2_TRANSFER_FROM, 0x03 PERMIT2_PERMIT_BATCH, 0x02 PERMIT2_TRANSFER_FROM_BATCH
+      // Universal Router command bytes (low 6 bits): 0x0a PERMIT2_PERMIT, 0x03 PERMIT2_PERMIT_BATCH (signature-based
+      // allowances, held), 0x02 PERMIT2_TRANSFER_FROM, 0x0d PERMIT2_TRANSFER_FROM_BATCH (moves tokens, reported).
+      // 0x0b is WRAP_ETH and 0x00/0x01/0x08/0x09 are swaps: ordinary.
       const off = parseInt(word(d, 0), 16) * 2;
       const len = parseInt(d.slice(10 + off, 10 + off + 64), 16);
       const cmds = d.slice(10 + off + 64, 10 + off + 64 + len * 2);
@@ -95,7 +97,7 @@ export function decodeCalldata(data: string | undefined, to?: string): TxIntent 
       for (let i = 0; i + 2 <= cmds.length; i += 2) {
         const c = parseInt(cmds.slice(i, i + 2), 16) & 0x3f;
         if (c === 0x0a || c === 0x03) inner.push({ kind: "permit2", selector: sel, token: to?.toLowerCase() });
-        if (c === 0x0b || c === 0x02) inner.push({ kind: "transferFrom", selector: sel, token: to?.toLowerCase() });
+        if (c === 0x02 || c === 0x0d) inner.push({ kind: "transferFrom", selector: sel, token: to?.toLowerCase() });
       }
       return { kind: "multicall", selector: sel, inner };
     }
@@ -164,6 +166,15 @@ export function decodeTypedData(raw: unknown): SignIntent {
   if (/^(OrderComponents|Order|BulkOrder|SeaportOrder)$/.test(pt)) return { kind: "seaport-order", primaryType: pt, counterparty: pick("offerer") };
   if (/^(Root|Order|Listing)$/.test(pt) && /blur/i.test(String(td.domain?.name ?? ""))) return { kind: "blur-order", primaryType: pt };
   if (/^Delegation$/.test(pt) || /^(SetDelegate|Delegate)/.test(pt)) return { kind: "delegation", primaryType: pt, counterparty: pick("delegate") };
+  // Safe: a delegatecall transaction can replace the Safe's own logic (the Bybit-style attack)
+  if (pt === "SafeTx") {
+    const op = Number(m.operation ?? 0);
+    return op === 1 ? { kind: "safe-delegatecall", primaryType: pt, counterparty: pick("to") } : { kind: "other", primaryType: pt };
+  }
+  // Hyperliquid-style: approving an agent key or a withdrawal is a signature that hands over trading / funds
+  if (/ApproveAgent|ApproveBuilderFee|Withdraw|UsdSend|SpotSend|UsdClassTransfer/i.test(pt) || /hyperliquid/i.test(String(td.domain?.name ?? ""))) {
+    if (/ApproveAgent|Withdraw|UsdSend|SpotSend|ApproveBuilderFee/i.test(pt)) return { kind: "agent-approval", primaryType: pt, counterparty: pick("agentAddress", "destination", "builder") };
+  }
   // EIP-3009 (USDC and friends): a signature that lets the relayer move the tokens
   if (/^(TransferWithAuthorization|ReceiveWithAuthorization|CancelAuthorization)$/.test(pt) && pt !== "CancelAuthorization") return { kind: "transfer-auth", primaryType: pt, counterparty: pick("to"), deadline: String(m.validBefore ?? "") };
   return { kind: "other", primaryType: pt };

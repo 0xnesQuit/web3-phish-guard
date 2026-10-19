@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "La vraie destination est cachée derrière un raccourcisseur ($1)"
   },
+  "sig_brand_path": {
+    "message": "Page sur une plateforme partagée au nom de $1 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "L'adresse affichée sur X ($1) diffère de celle ouverte"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign : signature brute pouvant tout autoriser"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "Signature permettant à un relayer de déplacer vos jetons (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "Transaction Safe avec delegatecall (peut réécrire le Safe lui-même)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "Approbation d'agent de trading / retrait (style Hyperliquid)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Demande de signature Solana"
   },
   "gate_kind_transfer": {
     "message": "Transfert de jetons"

@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "Настоящий адрес скрыт за сокращателем ссылок ($1)"
   },
+  "sig_brand_path": {
+    "message": "Страница на общей платформе с именем $1 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "Адрес, показанный в X ($1), отличается от открытого"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: сырая подпись, разрешающая что угодно"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "Подпись, позволяющая релееру перемещать ваши токены (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "Транзакция Safe с delegatecall (может переписать сам Safe)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "Одобрение торгового агента / вывода (в стиле Hyperliquid)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Запрос подписи Solana"
   },
   "gate_kind_transfer": {
     "message": "Перевод токенов"

@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "Đích thật bị giấu sau liên kết rút gọn ($1)"
   },
+  "sig_brand_path": {
+    "message": "Trang trên nền tảng dùng chung mang tên $1 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "Địa chỉ hiển thị trên X ($1) khác với địa chỉ mở"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: chữ ký thô có thể ủy quyền mọi thứ"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "Chữ ký cho phép bên chuyển tiếp di chuyển token của bạn (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "Giao dịch Safe có delegatecall (có thể ghi đè chính Safe)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "Phê duyệt tác nhân giao dịch / rút tiền (kiểu Hyperliquid)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Yêu cầu ký Solana"
   },
   "gate_kind_transfer": {
     "message": "Chuyển token"

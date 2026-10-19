@@ -12,7 +12,7 @@ export async function clearTab(tabId: number): Promise<void> {
   await chrome.storage.session.remove(`tab:${tabId}`);
 }
 
-export interface WarningPayload { url: string; host: string; score: number; signals: Verdict["signals"]; brandDomain?: string; reviewed?: boolean; tabId: number }
+export interface WarningPayload { url: string; host: string; score: number; signals: Verdict["signals"]; brandDomain?: string; reviewed?: boolean; tabId: number; /** host+path prefix when the hit came from a path-level entry (Google Sites pages): the bypass stays that narrow */ pathEntry?: string }
 
 /** Store the warning page's payload under a random nonce: readable for 10 minutes (reloads), consumed by a bypass. */
 export async function putWarning(p: WarningPayload): Promise<string> {
@@ -30,13 +30,15 @@ export async function consumeWarning(nonce: string): Promise<void> {
   if (/^[0-9a-f-]{36}$/.test(nonce)) await chrome.storage.session.remove(`warn:${nonce}`).catch(() => undefined);
 }
 
-export async function addBypass(host: string): Promise<void> {
+/** Bypass entries are hosts, or "host/path" prefixes for path-level hits. */
+export async function addBypass(entry: string): Promise<void> {
   const cur = ((await chrome.storage.session.get("bypass")).bypass as string[] | undefined) ?? [];
-  if (!cur.includes(host)) await chrome.storage.session.set({ bypass: [...cur, host] });
+  if (!cur.includes(entry)) await chrome.storage.session.set({ bypass: [...cur, entry] });
 }
-export async function isBypassed(host: string): Promise<boolean> {
+export async function isBypassed(host: string, pathname = "/"): Promise<boolean> {
   const cur = ((await chrome.storage.session.get("bypass")).bypass as string[] | undefined) ?? [];
-  return cur.includes(host);
+  const path = pathname.toLowerCase().replace(/\/+$/, "");
+  return cur.some((e) => (e.includes("/") ? e.startsWith(host + "/") && (host + path === e || (host + path).startsWith(e + "/")) : e === host));
 }
 
 export async function addUserAllow(registrable: string): Promise<void> {

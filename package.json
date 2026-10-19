@@ -8,7 +8,7 @@
   "scripts": {
     "build": "node scripts/make-icons.mjs && node scripts/locales.mjs && node scripts/build.mjs",
     "build:firefox": "node scripts/make-icons.mjs && node scripts/locales.mjs && node scripts/build.mjs --firefox",
-    "build:all": "npm run build && node scripts/build.mjs --firefox",
+    "build:all": "node scripts/pull-data.mjs && npm run build && node scripts/build.mjs --firefox",
     "lint:firefox": "web-ext lint --source-dir dist-firefox",
     "package": "node scripts/package.mjs",
     "sync:lists": "node scripts/sync-lists.mjs",
@@ -17,7 +17,8 @@
     "brands": "node scripts/build-brands.mjs",
     "brands:nft": "node scripts/build-nft-brands.mjs",
     "brands:cmc": "node scripts/build-cmc-brands.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "data:pull": "node scripts/pull-data.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",

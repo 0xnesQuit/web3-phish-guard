@@ -30,8 +30,13 @@ function render(v: Verdict) {
       </div>
       <button class="x" id="close" aria-label="${esc(t("overlay_close"))}">${esc(t("overlay_close"))}</button>
     </div>`;
-  root.getElementById("close")?.addEventListener("click", () => host.remove());
-  (document.documentElement || document.body).appendChild(host);
+  let closed = false;
+  root.getElementById("close")?.addEventListener("click", (e) => { if (e.isTrusted) { closed = true; keep.disconnect(); host.remove(); } });
+  const mount = () => (document.documentElement || document.body).appendChild(host);
+  // a page that deletes the banner gets it back; only the user's own click closes it
+  const keep = new MutationObserver(() => { if (!closed && !host.isConnected && document.getElementById(ID) === null) mount(); });
+  keep.observe(document.documentElement, { childList: true });
+  mount();
 }
 
 function esc(s: string) {

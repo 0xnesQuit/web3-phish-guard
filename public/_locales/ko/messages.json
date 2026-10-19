@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "실제 목적지가 단축 링크($1) 뒤에 숨겨져 있습니다"
   },
+  "sig_brand_path": {
+    "message": "공유 플랫폼의 $1 이름을 쓴 페이지 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "X에 표시된 주소($1)와 열린 주소가 다름"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: 무엇이든 승인 가능한 원시 서명"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "릴레이어가 토큰을 옮길 수 있게 하는 서명 (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "delegatecall가 포함된 Safe 트랜잭션 (Safe 자체를 바꿀 수 있음)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "거래 에이전트 / 출금 승인 (Hyperliquid 방식)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Solana 서명 요청"
   },
   "gate_kind_transfer": {
     "message": "토큰 전송"

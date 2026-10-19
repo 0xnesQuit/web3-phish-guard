@@ -13,6 +13,8 @@ export interface Brand {
 export interface SignalLists {
   /** registrable domains of well-known crypto infrastructure; never flagged */
   trusted: string[];
+  /** shared platforms (gateways, link pages, marketplaces, free hosts): never anyone's official domain */
+  shared?: string[];
   actionStrong: string[];
   actionMedium: string[];
   freeHostsStrong: string[];
@@ -75,6 +77,10 @@ export interface OriginContext {
   target?: string;
   /** the link went through a URL shortener that hides the destination (tr.ee, bit.ly ...) */
   shortener?: string;
+  /** every host the link passed through before landing (t.co, tinyurl.com, ...) when known */
+  hops?: string[];
+  /** the clicked href itself (t.co/...), so the redirect chain can be looked up later */
+  href?: string;
   at: number;
 }
 
@@ -125,7 +131,7 @@ export interface DeepReport {
 }
 
 export interface ProviderEvent {
-  kind: "auto-connect" | "risky-sign" | "risky-tx" | "chain-switch" | "fake-wallet" | "clickfix" | "clipboard-swap" | "seed-input" | "wc-modal" | "gate-rejected";
+  kind: "auto-connect" | "risky-sign" | "risky-tx" | "chain-switch" | "fake-wallet" | "clickfix" | "clipboard-swap" | "seed-input" | "wc-modal" | "gate-rejected" | "wallet-standard";
   method: string;
   /** machine-readable detail code, mapped to an i18n key in the background */
   detail: string;

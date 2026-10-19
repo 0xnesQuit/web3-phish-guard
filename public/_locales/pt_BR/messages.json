@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "O destino real foi escondido atrás de um encurtador ($1)"
   },
+  "sig_brand_path": {
+    "message": "Página em plataforma compartilhada com o nome de $1 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "O endereço exibido no X ($1) difere do aberto"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign: assinatura bruta que pode autorizar qualquer coisa"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "Assinatura que permite a um relayer mover seus tokens (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "Transação do Safe com delegatecall (pode reescrever o próprio Safe)"
+  },
+  "gate_kind_agent_approval": {
+    "message": "Aprovação de agente de trading / saque (estilo Hyperliquid)"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Solicitação de assinatura Solana"
   },
   "gate_kind_transfer": {
     "message": "Transferência de tokens"

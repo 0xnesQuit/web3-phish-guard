@@ -305,6 +305,9 @@
   "sig_display_shortener": {
     "message": "真实目标被短链接 ($1) 隐藏"
   },
+  "sig_brand_path": {
+    "message": "共享平台上以 $1 命名的页面 ($2)"
+  },
   "sig_display_mismatch": {
     "message": "X 上显示的地址（$1）与实际打开的不同"
   },
@@ -463,6 +466,18 @@
   },
   "gate_kind_eth_sign": {
     "message": "eth_sign：可授权任何操作的原始签名"
+  },
+  "gate_kind_transfer_auth": {
+    "message": "允许中继者转移您代币的签名 (EIP-3009)"
+  },
+  "gate_kind_safe_delegatecall": {
+    "message": "带 delegatecall 的 Safe 交易（可改写 Safe 本身）"
+  },
+  "gate_kind_agent_approval": {
+    "message": "交易代理 / 提现授权（Hyperliquid 类）"
+  },
+  "gate_kind_solana_sign": {
+    "message": "Solana 签名请求"
   },
   "gate_kind_transfer": {
     "message": "代币转账"
