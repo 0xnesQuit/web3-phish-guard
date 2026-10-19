@@ -17,8 +17,10 @@ const orphaned = () => { try { return !chrome.runtime?.id; } catch { return true
 
 function render(v: Verdict) {
   current?.remove();
-  // cards left behind by a previous script instance (extension reload / update)
-  for (const old of Array.from(document.querySelectorAll("#" + ID))) old.remove();
+  // Cards left behind by a previous script instance (extension reload / update). Older builds re-mount their card
+  // whenever it is removed, so leftovers are hidden in place rather than removed: a hidden node is still connected
+  // and their observer stays quiet.
+  for (const old of Array.from(document.querySelectorAll<HTMLElement>("#" + ID))) { old.style.cssText = "display:none !important"; old.removeAttribute("id"); }
   const host = document.createElement("div");
   host.id = ID;
   host.style.cssText = "all:initial !important;position:fixed !important;right:16px !important;bottom:16px !important;z-index:2147483646 !important;display:block !important;max-width:min(420px, calc(100vw - 32px)) !important;";
