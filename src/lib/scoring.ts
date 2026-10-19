@@ -145,6 +145,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   const joined = allLabels.join("").toLowerCase().replace(/[^a-z0-9]/g, "");
   const joinedSkeleton = asciiSkeleton(joined);
 
+  // a bait word anywhere in the host, known before brand matching (short curated names like okx / gmx / cow only
+  // count next to one, or on a free host: "gate-house-hotel" is a hotel, "okx-claim" is not)
+  const earlyBait = tokens.some((t) => ctx.lists.actionStrong.includes(t) || ctx.lists.actionMedium.includes(t));
+
   // ---- brand matching -----------------------------------------------------
   let matchedBrand: Brand | undefined;
   let brandOfficial = false;
@@ -188,7 +192,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
           break outer;
         }
         // exact label match for short/generic tokens (catches blur-claim.xyz, not database.xyz)
-        if (generic && tokens.includes(tok) && tokens.filter((x) => !HOST_NOISE.has(x)).length > 1) {
+        if (generic && tokens.includes(tok) && tokens.filter((x) => !HOST_NOISE.has(x)).length > 1 && (tok.length >= 5 || earlyBait || p.freeHost)) {
           matchedBrand = b;
           brandSignalKind = b.domains.length ? "impersonation" : "unverified";
           break outer;
@@ -510,7 +514,9 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   const v = done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
   if (ctx.popular && ctx.blocklistHit !== "metamask" && v.score >= BLOCK_THRESHOLD) {
-    signals.push({ id: "popular", weight: BLOCK_THRESHOLD - 1 - v.score, key: "sig_popular" });
+    // from the raw sum, not the clamped score: a sum of 140 must land on 69 too
+    const raw = signals.reduce((s, x) => s + x.weight, 0);
+    signals.push({ id: "popular", weight: BLOCK_THRESHOLD - 1 - raw, key: "sig_popular" });
     return done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
   }
 

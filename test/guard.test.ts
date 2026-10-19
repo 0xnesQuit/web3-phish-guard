@@ -54,6 +54,10 @@ beforeAll(async () => {
 
 const provider = () => (globalThis as unknown as { window: { ethereum: BaseProvider } }).window.ethereum;
 const tx = { to: "0x" + "ab".repeat(20), data: "0x095ea7b3" + "00".repeat(12) + "cd".repeat(20) + "ff".repeat(32) };
+// a forwarding provider may re-issue an identical request within one second without a second prompt; every test
+// therefore uses its own recipient so one test's approval never covers another's request
+let nonce = 0;
+const fresh = () => ({ ...tx, to: "0x" + (nonce++).toString(16).padStart(40, "0") });
 
 describe("provider guard protocol (fake MetaMask)", () => {
   it("one inspection per request; the wallet receives the inspected snapshot; result flows back", async () => {
@@ -67,7 +71,7 @@ describe("provider guard protocol (fake MetaMask)", () => {
   });
   it("a rejection reaches the dapp as EIP-1193 4001 and never reaches the wallet", async () => {
     seen.length = 0; engineCalls.length = 0; decide = () => false;
-    await expect(provider().request({ method: "eth_sendTransaction", params: [tx] })).rejects.toMatchObject({ code: 4001 });
+    await expect(provider().request({ method: "eth_sendTransaction", params: [fresh()] })).rejects.toMatchObject({ code: 4001 });
     expect(seen.length).toBe(1);
     expect(engineCalls.length).toBe(0);
   });
@@ -79,14 +83,22 @@ describe("provider guard protocol (fake MetaMask)", () => {
   });
   it("a sendAsync batch is inspected once per item and delivered once", async () => {
     seen.length = 0; engineCalls.length = 0; decide = () => true;
-    await new Promise<void>((res) => provider().sendAsync([{ method: "eth_sendTransaction", params: [tx] }, { method: "personal_sign", params: ["0x01", "0x" + "ab".repeat(20)] }], () => res()));
+    await new Promise<void>((res) => provider().sendAsync([{ method: "eth_sendTransaction", params: [fresh()] }, { method: "personal_sign", params: ["0x01", "0x" + "ab".repeat(20)] }], () => res()));
     expect(seen.length).toBe(2);
     expect(engineCalls.length).toBe(1);
+  });
+  it("an identical request re-issued a second later is asked again (no replay on an old approval)", async () => {
+    seen.length = 0; engineCalls.length = 0; decide = () => true;
+    const t = fresh();
+    await provider().request({ method: "eth_sendTransaction", params: [t] });
+    await new Promise((r) => setTimeout(r, 1100));
+    await provider().request({ method: "eth_sendTransaction", params: [t] });
+    expect(seen.length).toBe(2);
   });
   it("a getter that answers differently on the second read cannot smuggle a different tx to the wallet", async () => {
     seen.length = 0; engineCalls.length = 0; decide = () => true;
     let n = 0;
-    const sneaky = { to: tx.to, get data() { return n++ === 0 ? "0x" : tx.data; } };
+    const sneaky = { to: fresh().to, get data() { return n++ === 0 ? "0x" : tx.data; } };
     await provider().request({ method: "eth_sendTransaction", params: [sneaky] });
     const inspected = (seen[0].params as Array<{ data: string }>)[0].data;
     const delivered = ((engineCalls[0] as { params: Array<{ data: string }> }).params)[0].data;

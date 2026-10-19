@@ -13,6 +13,8 @@
  *
  * It stops off-the-shelf drainer kits. A wallet built into the page itself is out of reach by design.
  */
+export {};
+
 (() => {
   // ---- captured built-ins -------------------------------------------------------------------
   const R = Reflect.apply;
@@ -175,7 +177,17 @@
   /** request objects already approved once (a proxy provider forwarding to the announced one must not ask twice) */
   const approved = new WeakSet<object>();
   const markApproved = (o: unknown) => { if (o && typeof o === "object") add(approved, o); };
-  const isApproved = (o: unknown) => !!o && typeof o === "object" && has(approved, o);
+  const recent: Record<string, number> = objectCreate(null);
+  const contentKey = (o: unknown) => { try { const x = o as { method?: string; params?: unknown }; return x && x.method ? toStr(x.method) + "|" + toStr(R(jsonStringify, JSON, [x.params ?? null])) : ""; } catch { return ""; } };
+  const isApproved = (o: unknown) => {
+    if (!o || typeof o !== "object") return false;
+    if (has(approved, o)) return true;
+    // a forwarding provider (Rabby-style proxy) rebuilds {method, params} and re-issues it within the same second;
+    // anything later is a new request and is asked again (a repeated transfer must never ride on an old approval)
+    const k = contentKey(o);
+    return !!k && now() - (recent[k] ?? 0) < 1000;
+  };
+  const remember = (o: unknown) => { const k = contentKey(o); if (k) recent[k] = now(); };
   const SIGNING_METHODS: Record<string, true> = objectCreate(null);
   for (const mth of ["eth_sendTransaction", "eth_signTransaction", "wallet_sendCalls", "eth_sign", "eth_signTypedData", "eth_signTypedData_v3", "eth_signTypedData_v4", "personal_sign"]) SIGNING_METHODS[mth] = true;
   /** Snapshot a request; a signing request that cannot be snapshotted is marked so the bridge holds it. */
@@ -196,7 +208,7 @@
   const checksFor = (items: Array<{ method?: string; params?: unknown; w3pgUndecodable?: boolean } | null>) => {
     const checks: Promise<boolean>[] = [];
     for (let i = 0; i < items.length; i++) { const x = items[i]; if (x && x.method && !isApproved(x)) checks[checks.length] = inspect(toStr(x.method), x.w3pgUndecodable ? { w3pgUndecodable: true } : x.params, "evm", x); }
-    return then(all(checks), (ok) => { if (ok) for (let i = 0; i < items.length; i++) markApproved(items[i]); return ok; }) as Promise<boolean>;
+    return then(all(checks), (ok) => { if (ok) for (let i = 0; i < items.length; i++) { markApproved(items[i]); remember(items[i]); } return ok; }) as Promise<boolean>;
   };
   const rawRequests = new WeakMap<object, (args: unknown) => Promise<unknown>>();
 
@@ -388,7 +400,19 @@
   const guardWallet = (w: any) => { wrapStandardWallet(w); const px = w && typeof w === "object" ? R(weakMapGet, proxies, [w]) : undefined; return px ?? w; };
   const ourApi = { register: (...wallets: any[]) => { for (let i = 0; i < wallets.length; i++) guardWallet(wallets[i]); return () => undefined; } };
   const callWithOurApi = (cb: unknown) => { try { if (typeof cb === "function") R(cb as (...a: unknown[]) => unknown, undefined, [ourApi]); } catch { /* ignore */ } };
-  R(addListener, window, ["wallet-standard:register-wallet", (e: any) => callWithOurApi(e && e.detail), true]);
+  // A wallet registering after the app is listening: the app answers this event with its own api, so the event is
+  // swallowed and re-dispatched with a callback that hands the app guarded wallets (a Proxy when frozen).
+  let registerReentry = false;
+  R(addListener, window, ["wallet-standard:register-wallet", (e: any) => {
+    if (registerReentry) return;
+    const cb = e && e.detail;
+    if (typeof cb !== "function") return;
+    callWithOurApi(cb);
+    try { R(stopImmediate, e, []); } catch { /* ignore */ }
+    const guardedCb = (api: any) => { try { return R(cb, undefined, [{ register: (...ws: any[]) => { const out: unknown[] = []; for (let i = 0; i < ws.length; i++) out[i] = guardWallet(ws[i]); return typeof api?.register === "function" ? api.register(...out) : () => undefined; } }]); } catch { return undefined; } };
+    registerReentry = true;
+    try { R(dispatch, window, [createEvent("wallet-standard:register-wallet", guardedCb)]); } finally { registerReentry = false; }
+  }, true]);
   // The app's side: @wallet-standard/app dispatches a frozen { register } and throws on stopImmediatePropagation from
   // its own event class. Swallow the original event (captured stopImmediatePropagation on the Event prototype still
   // works) and re-dispatch a plain CustomEvent carrying a frozen wrapper that guards each wallet before forwarding.

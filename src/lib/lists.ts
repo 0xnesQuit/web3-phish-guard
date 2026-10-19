@@ -271,7 +271,7 @@ export function brandsFromTrusted(trusted: string[]): Brand[] {
     // whole label next to a bait word / free host / fresh registration, which the generated tier already enforces
     if (label.length < 3 || TRUSTED_GENERIC.has(label) || seen.has(label) || !/^[a-z0-9]+$/.test(label)) continue;
     seen.add(label);
-    out.push({ name: label, tokens: [label], domains: [d], tier: label.length < 6 ? "generated" : "seed" });
+    out.push({ name: label, tokens: [label], domains: [d], tier: "seed" }); // short labels: the curated loop needs an exact label plus a bait word
   }
   return out;
 }

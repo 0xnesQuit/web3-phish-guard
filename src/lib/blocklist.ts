@@ -154,7 +154,13 @@ export function setSharedHosts(freeHosts: string[]): void {
 /** Feed entries worth keeping: normalized, not a shared platform. */
 export function ingestDomains(raw: string[]): string[] {
   const out: string[] = [];
-  for (const d of raw) if (d && !isSharedEntry(d)) out.push(d);
+  for (const d of raw) {
+    if (!d || isSharedEntry(d)) continue;
+    out.push(d);
+    // "www.evil.xyz" also names evil.xyz itself (feeds list sites either way); the apex is skipped when it is a
+    // shared platform so "www.bing.com" never becomes "bing.com"
+    if (d.startsWith("www.")) { const apex = d.slice(4); if (apex.includes(".") && !isSharedEntry(apex)) out.push(apex); }
+  }
   return out;
 }
 

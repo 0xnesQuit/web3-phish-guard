@@ -62,7 +62,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
 let readyPromise: Promise<Awaited<ReturnType<typeof loadStaticData>>> | null = null;
 let popularSet = new Set<string>();
-const isPopular = (p: { host: string; registrable: string }) => popularSet.has(p.registrable) || popularSet.has(p.host);
+/** Popular means the site itself (apex or www.), never a user page on a Tranco-listed hosting platform (x.wordpress.com, y.run.app). */
+const isPopular = (p: { host: string; registrable: string; freeHost?: string }) => !p.freeHost && (p.host === p.registrable || p.host === "www." + p.registrable) && popularSet.has(p.registrable);
 async function ensureReady() {
   if (!readyPromise) {
     readyPromise = (async () => {
