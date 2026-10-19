@@ -50,6 +50,20 @@ export class W3pgState extends DurableObject {
     return { ok: true };
   }
 
+  // ---- single-flight lock for sandbox scans: the DO is single-threaded, so exactly one caller becomes leader ----
+  /** Leader if no live scan holds `key`; the marker self-expires (ttlSec) so a crashed leader cannot wedge the key. */
+  async beginScan(key: string, ttlSec = 60): Promise<{ leader: boolean }> {
+    const now = Date.now();
+    const exp = await this.ctx.storage.get<number>(`sf:${key}`);
+    if (exp && exp > now) return { leader: false };
+    await this.ctx.storage.put(`sf:${key}`, now + ttlSec * 1000);
+    await this.ensureAlarm();
+    return { leader: true };
+  }
+  async endScan(key: string): Promise<void> {
+    await this.ctx.storage.delete(`sf:${key}`);
+  }
+
   // ---- community list (versioned so a stale read cannot overwrite a newer decision) ----
   async getList(): Promise<CommunityList | null> {
     return (await this.ctx.storage.get<CommunityList>("list")) ?? null;
@@ -91,7 +105,7 @@ export class W3pgState extends DurableObject {
     const drop: string[] = [];
     for (const [k, v] of all) {
       if (k.startsWith("c:") && typeof v === "object" && v && (v as Counter).exp <= now) drop.push(k);
-      else if (k.startsWith("cd:") && typeof v === "number" && v <= now) drop.push(k);
+      else if ((k.startsWith("cd:") || k.startsWith("sf:")) && typeof v === "number" && v <= now) drop.push(k);
     }
     for (let i = 0; i < drop.length; i += 128) await this.ctx.storage.delete(drop.slice(i, i + 128));
     await this.ctx.storage.setAlarm(now + DAY);

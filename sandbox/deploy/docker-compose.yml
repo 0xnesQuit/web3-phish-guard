@@ -20,7 +20,7 @@ services:
     env_file: ../.env
     environment:
       PORT: "8080"
-      MAX_CONCURRENT: "3"
+      MAX_CONCURRENT: "6"
     ports:
       - "127.0.0.1:8080:8080"
     user: pwuser
@@ -31,14 +31,14 @@ services:
       - ./resolv.conf:/etc/resolv.conf:ro
     tmpfs:
       - /tmp
-      - /dev/shm:size=512m
+      - /dev/shm:size=1g
       - /home/pwuser/.cache
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    mem_limit: 2g
-    cpus: 2.0
+    mem_limit: 4g
+    cpus: 3.0
     pids_limit: 512
     networks:
       sandboxnet:

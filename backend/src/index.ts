@@ -55,6 +55,11 @@ export interface Env {
   SANDBOX_TOKEN?: string;
   SANDBOX_PER_IP_PER_DAY?: string;
   SANDBOX_GLOBAL_PER_DAY?: string;
+  SBX_CACHE_TTL_MALICIOUS?: string;
+  SBX_CACHE_TTL_SUSPICIOUS?: string;
+  SBX_CACHE_TTL_CLEAN?: string;
+  SBX_AUTOLIST_MIN?: string;
+  SBX_FETCH_TIMEOUT_MS?: string;
 }
 
 const MAX_BODY = 80_000;
@@ -548,6 +553,48 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
 // ---------------------------------------------------------------------------
 // /v1/sandbox  -> proxies to the headless-browser sandbox (its URL + token stay here, never in the extension)
 // ---------------------------------------------------------------------------
+// Backend pool: SANDBOX_URL may be a comma list. Round-robin start, then every other backend once; a backend that
+// failed is skipped for 30s (module-level, per isolate: a hint, not an accounting).
+let sbxRr = 0;
+const sbxDown = new Map<string, number>();
+async function sandboxFetch(env: Env, url: string): Promise<Record<string, unknown> | null> {
+  const urls = (env.SANDBOX_URL ?? "").split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
+  const toks = (env.SANDBOX_TOKEN ?? "").split(",").map((s) => s.trim());
+  const timeout = Number(env.SBX_FETCH_TIMEOUT_MS) || 40_000;
+  const start = sbxRr++ % Math.max(1, urls.length);
+  const order = urls.map((_, i) => (start + i) % urls.length);
+  const now = Date.now();
+  // healthy backends first; the ones in their penalty window only as a last resort
+  const tryOrder = [...order.filter((i) => (sbxDown.get(urls[i]) ?? 0) <= now), ...order.filter((i) => (sbxDown.get(urls[i]) ?? 0) > now)];
+  for (const i of tryOrder) {
+    const token = toks.length > 1 ? toks[i] : toks[0];
+    if (!token) continue;
+    try {
+      const res = await fetch(`${urls[i]}/scan`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url }),
+        signal: AbortSignal.timeout(timeout),
+      });
+      if (!res.ok) { sbxDown.set(urls[i], Date.now() + 30_000); continue; } // incl. the sandbox's own 429 "busy"
+      return (await res.json()) as Record<string, unknown>;
+    } catch { sbxDown.set(urls[i], Date.now() + 30_000); }
+  }
+  return null;
+}
+
+/**
+ * /v1/sandbox flow (order matters):
+ *  1. cache: `sbx:v1:<host><path>` hit -> return it (cached:true), no admission, no VPS. Then the coarse
+ *     `sbx:v1:host:<host>` key: a host already judged malicious short-circuits any path on it.
+ *  2. single-flight: the Durable Object hands out a per-URL lock (beginScan). Followers poll the cache (<=45s) for the
+ *     leader's result instead of scanning; if none appears they get {ok:false, reason:"busy"}. The lock self-expires (60s).
+ *  3. admission (per-IP/host/global budget) runs only for the leader, i.e. only for a genuinely new scan.
+ *  4. the leader scans via the backend pool (round-robin, failover), caches the report by verdict TTL
+ *     (malicious 24h / suspicious 6h / clean 1h / error+unknown never), and releases the lock in a finally.
+ *  5. malicious (or score >= SBX_AUTOLIST_MIN) -> host goes to the community "auto" tier (warn-only, moderated; never a
+ *     hard block) through the same updateCommunity/enqueueReport helpers as the AI auto-list, plus the host cache key.
+ */
 async function handleSandbox(req: Request, env: Env): Promise<Response> {
   if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
   if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) return json({ error: "sandbox_disabled" }, 503);
@@ -556,38 +603,85 @@ async function handleSandbox(req: Request, env: Env): Promise<Response> {
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { return json({ error: "bad_json" }, 400); }
   const url = str((raw as Record<string, unknown>).url, 2048);
-  let host = "";
-  try { const u = new URL(url); if (u.protocol !== "http:" && u.protocol !== "https:") throw 0; host = u.hostname; } catch { return json({ error: "bad_url" }, 400); }
+  let host = "", path = "";
+  try { const u = new URL(url); if (u.protocol !== "http:" && u.protocol !== "https:") throw 0; host = u.hostname.toLowerCase(); path = u.pathname; } catch { return json({ error: "bad_url" }, 400); }
   if (!host || !host.includes(".") || host === "localhost") return json({ error: "bad_url" }, 400);
 
-  // same admission as /v1/scan: a browser scan is far more expensive, so it draws on the same per-IP, per-host
-  // and global budgets (protecting the VPS, not an API key).
-  const ik = await ipKey(req, env);
-  const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
-  const ip64 = ipRaw.includes(":") ? ipRaw.split(":").slice(0, 4).join(":") + "::/64" : ipRaw;
-  if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `sb:${ip64}` })).success) return json({ error: "rate_limited" }, 429);
-  const admission = await state(env).admitScan({
-    ip: `sb:${ik}`, host: await sha256(`sb:${host}`),
-    ipLimit: Number(env.SANDBOX_PER_IP_PER_DAY) || 10, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: Number(env.SANDBOX_GLOBAL_PER_DAY) || 500,
-    cooldownSec: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60),
-  });
-  if (!admission.ok) return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429);
+  // 1. cache (query and fragment dropped so trivial variants share an entry)
+  const urlKey = `sbx:v1:${host}${path}`;
+  const hostKey = `sbx:v1:host:${host}`;
+  const hit = await cacheGet<Record<string, unknown>>(urlKey);
+  if (hit) return json({ ...hit, cached: true });
+  const hostHit = await cacheGet<Record<string, unknown>>(hostKey);
+  if (hostHit?.verdict === "malicious") return json({ ok: true, url, host, score: 100, flags: [], findings: [], requests: [], ...hostHit, cached: true });
+
+  // 2. single-flight (hashed: DO storage keys are length-limited)
+  const lockKey = await sha256(urlKey);
+  const st = state(env);
+  const { leader } = await st.beginScan(lockKey, 60);
+  if (!leader) {
+    for (let waited = 0; waited < 45_000; waited += 1500) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const done = await cacheGet<Record<string, unknown>>(urlKey);
+      if (done) return json({ ...done, cached: true });
+    }
+    return json({ ok: false, reason: "busy" }, 503);
+  }
 
   try {
-    const res = await fetch(`${env.SANDBOX_URL.replace(/\/$/, "")}/scan`, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${env.SANDBOX_TOKEN}` },
-      body: JSON.stringify({ url }),
-      signal: AbortSignal.timeout(40_000),
+    // 3. admission: same budgets as /v1/scan, but only for a new scan (a browser scan is far more expensive, protecting the VPS)
+    const ik = await ipKey(req, env);
+    const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+    const ip64 = ipRaw.includes(":") ? ipRaw.split(":").slice(0, 4).join(":") + "::/64" : ipRaw;
+    if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `sb:${ip64}` })).success) return json({ error: "rate_limited" }, 429);
+    const admission = await st.admitScan({
+      ip: `sb:${ik}`, host: await sha256(`sb:${host}`),
+      ipLimit: Number(env.SANDBOX_PER_IP_PER_DAY) || 30, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: Number(env.SANDBOX_GLOBAL_PER_DAY) || 2000,
+      cooldownSec: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60),
     });
-    if (!res.ok) return json({ error: `sandbox_${res.status}` }, 502);
-    const report = (await res.json()) as Record<string, unknown>;
+    if (!admission.ok) return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429);
+
+    // 4. scan via the backend pool
+    const report = await sandboxFetch(env, url);
+    if (!report) return json({ error: "sandbox_unreachable" }, 502);
     // pass the report through, but never echo back the raw captured params (they are large and not needed client-side)
     if (Array.isArray(report.requests)) report.requests = (report.requests as Array<Record<string, unknown>>).map(({ params, ...rest }) => rest);
+
+    const verdict = str(report.verdict, 20);
+    const sc = num(report.score) ?? 0;
+    const ttl = verdict === "malicious" ? Number(env.SBX_CACHE_TTL_MALICIOUS) || 86400
+      : verdict === "suspicious" ? Number(env.SBX_CACHE_TTL_SUSPICIOUS) || 21600
+      : verdict === "clean" ? Number(env.SBX_CACHE_TTL_CLEAN) || 3600 : 0;
+    if (report.ok !== false && ttl > 0) await cachePut(urlKey, report, ttl);
+
+    // 5. auto-list (warn-only tier); failures here must never break the scan response
+    if (report.ok !== false && (verdict === "malicious" || sc >= (Number(env.SBX_AUTOLIST_MIN) || 70))) {
+      try { await sandboxAutoList(env, url, host, report, sc, ik); } catch { /* best effort */ }
+    }
     return json(report);
-  } catch {
-    return json({ error: "sandbox_unreachable" }, 502);
+  } finally {
+    await st.endScan(lockKey).catch(() => {});
   }
+}
+
+/** Mirror of the AI auto-list: community "auto" tier + a moderation-queue entry, deduped, never for trusted/never-block domains. */
+async function sandboxAutoList(env: Env, url: string, host: string, report: Record<string, unknown>, sc: number, ik: string): Promise<void> {
+  const data = await serverData(env);
+  const registrable = registrableOf(host, data.freeHosts);
+  const parsed = parseHost(url, data.freeHosts);
+  const listEntry = registrable ?? (parsed?.freeHost && host !== parsed.freeHost ? host : null); // free-host pages are listed by full host
+  if (!listEntry || (await neverBlock(env, listEntry, data))) return;
+  const findings = strArr(report.findings, 3, 120).join("; ").slice(0, 300);
+  // the host key lets any other path on this host short-circuit without a VPS hit
+  await cachePut(`sbx:v1:host:${host}`, { verdict: "malicious", score: sc, flags: strArr(report.flags, 30, 100), findings: strArr(report.findings, 6, 200) }, Number(env.SBX_CACHE_TTL_MALICIOUS) || 86400);
+  const list = await communityList(env);
+  if (list.domains.includes(listEntry) || list.auto.includes(listEntry)) return;
+  await updateCommunity(env, (l) => { if (!l.domains.includes(listEntry) && !l.auto.includes(listEntry)) l.auto.push(listEntry); });
+  await enqueueReport(env, {
+    id: crypto.randomUUID(), url: url.replace(/[?#].*$/, ""), host, registrable: listEntry, score: Math.max(0, Math.min(100, sc)),
+    signals: strArr(report.flags, 30, 100),
+    note: `[auto-sandbox] ${findings}`, at: Date.now(), status: "auto", ipHash: ik,
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -26,7 +26,15 @@ SCANS_PER_IP_PER_DAY = "20"
 REPORTS_PER_IP_PER_DAY = "10"
 SCANS_GLOBAL_PER_DAY = "1500"
 SCANS_PER_HOST_PER_DAY = "200"  # one site cannot soak up the daily budget (high enough that a phisher cannot starve real users of scans of its own host)
-SCAN_HOST_COOLDOWN_MIN = "30"   # a caller may re-scan the same host only after this many minutes
+SCAN_HOST_COOLDOWN_MIN = "30"   # a caller may re-scan the same host only after this many minutes (cache + single-flight bypass this for repeats)
+# Sandbox (/v1/sandbox): budgets only count cache misses; cache TTLs in seconds by verdict
+SANDBOX_PER_IP_PER_DAY = "30"
+SANDBOX_GLOBAL_PER_DAY = "2000"
+SBX_CACHE_TTL_MALICIOUS = "86400"
+SBX_CACHE_TTL_SUSPICIOUS = "21600"
+SBX_CACHE_TTL_CLEAN = "3600"
+SBX_AUTOLIST_MIN = "70"          # sandbox score at/above which the host is auto-listed (warn-only "auto" tier)
+SBX_FETCH_TIMEOUT_MS = "40000"   # per-backend attempt
 MODEL = "claude-haiku-5-5"
 LISTS_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data"
 
@@ -35,8 +43,8 @@ LISTS_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists
 #   npx wrangler secret put XQUIK_API_KEY       (X account lookups; optional, the feature is skipped without it)
 #   npx wrangler secret put ADMIN_TOKEN        (long random string for the /admin panel)
 #   npx wrangler secret put IP_HASH_SECRET     (optional: separate key for the daily IP hash; otherwise derived from ADMIN_TOKEN)
-#   npx wrangler secret put SANDBOX_URL         (optional: the headless-browser sandbox base URL; /v1/sandbox is 503 without it. See ../sandbox/README.md)
-#   npx wrangler secret put SANDBOX_TOKEN       (optional: bearer token the sandbox requires)
+#   npx wrangler secret put SANDBOX_URL         (optional: the headless-browser sandbox base URL, or a comma-separated list for several backends; /v1/sandbox is 503 without it. See ../sandbox/README.md)
+#   npx wrangler secret put SANDBOX_TOKEN       (optional: bearer token the sandbox requires; one shared token, or a comma list matching SANDBOX_URL by index)
 
 # Per-IP flood brake for /v1/scan: 3 scans per minute per machine. Permissive and eventually consistent by design
 # (Cloudflare docs), so it stops floods, not careful abuse; the KV daily/per-host counters do the accounting.
