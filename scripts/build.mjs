@@ -50,6 +50,8 @@ function copyStatic() {
   // one manifest per browser
   if (firefox) cpSync(`${outdir}/manifest.firefox.json`, `${outdir}/manifest.json`);
   rmSync(`${outdir}/manifest.firefox.json`, { force: true });
+  // store-listing assets the manifest never references: keep them out of the shipped package
+  for (const f of ["icons/icon256.png", "icons/icon512.png", "icons/logo.svg"]) rmSync(`${outdir}/${f}`, { force: true });
 }
 
 if (watch) {

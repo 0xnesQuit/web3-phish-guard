@@ -294,17 +294,18 @@ export {};
 
   // window.ethereum: wrap now, on assignment, and keep looking for a while (wallets that inject with
   // Object.defineProperty replace our accessor without triggering the setter)
-  const tryWrap = () => { try { wrapProvider((window as any).ethereum); } catch { /* ignore */ } };
+  const tryWrap = (): boolean => { try { const e = (window as any).ethereum; wrapProvider(e); return !!e && typeof e === "object"; } catch { return false; } };
   tryWrap();
   let current = (window as any).ethereum;
   try {
     defineProperty(window, "ethereum", { configurable: true, get: () => current, set: (v) => { current = v; wrapProvider(v); } });
   } catch { /* not configurable: polling below covers it */ }
+  // Only an early probe window (8 x 250ms): later providers arrive via the setter above or EIP-6963; a long tail only burns CPU on wallet-less pages. The loop also ends as soon as a provider is wrapped.
   let polls = 0;
-  const poll = () => { tryWrap(); if (++polls < 40) later(poll, 250); };
+  const poll = () => { if (tryWrap()) return; if (++polls < 8) later(poll, 250); };
   later(poll, 250);
-  R(addListener, window, ["DOMContentLoaded", tryWrap, { once: true }]);
-  R(addListener, window, ["load", tryWrap, { once: true }]);
+  R(addListener, window, ["DOMContentLoaded", () => { tryWrap(); }, { once: true }]);
+  R(addListener, window, ["load", () => { tryWrap(); }, { once: true }]);
 
   // EIP-6963 providers (drainers enumerate these; fake wallets announce wrong identities)
   const KNOWN_RDNS: Record<string, RegExp> = objectCreate(null);
@@ -382,10 +383,11 @@ export {};
     const txs = solanaTxs(bare, args as unknown[], standard);
     return then(inspect(method, txs.length ? { batch, txs } : { batch }, "solana"), (allow) => (allow ? R(orig, self, args as unknown[]) : PromiseC.reject(rejected())), () => R(orig, self, args as unknown[]));
   };
-  const wrapSolana = () => {
+  const wrapSolana = (): boolean => {
     const w = window as any;
     const s = w.solana ?? (w.phantom && w.phantom.solana);
-    if (!s || typeof s !== "object" || has(wrappedProviders, s)) return;
+    if (!s || typeof s !== "object") return false;
+    if (has(wrappedProviders, s)) return true;
     add(wrappedProviders, s);
     for (const m of SOL_METHODS) for (const o of owners(s, m)) patch(o, m, (orig) => function (this: unknown) { return guardSolanaCall("solana:" + m, orig, this ?? s, arguments, m); });
     for (const o of owners(s, "request")) {
@@ -395,11 +397,18 @@ export {};
         return then(inspect("solana:" + m, { batch: 1 }, "solana"), (allow) => (allow ? R(orig, this ?? s, [args]) : PromiseC.reject(rejected())), () => R(orig, this ?? s, [args]));
       });
     }
+    return true;
   };
   wrapSolana();
+  // A short probe window (8 x 500ms = 4s), stopping once a provider is wrapped; the long 10s tail only burned CPU on
+  // wallet-less pages. No window.solana getter/setter is installed: modern wallets register via Wallet Standard
+  // (handled below) and a legacy `window.solana=` set is caught by these probes / the load events, so an accessor
+  // would add no real coverage while risking wallets that presence-check `"solana" in window`.
   let sn = 0;
-  const spoll = () => { wrapSolana(); if (++sn < 20) later(spoll, 500); };
+  const spoll = () => { if (wrapSolana()) return; if (++sn < 8) later(spoll, 500); };
   later(spoll, 500);
+  R(addListener, window, ["DOMContentLoaded", () => { wrapSolana(); }, { once: true }]);
+  R(addListener, window, ["load", () => { wrapSolana(); }, { once: true }]);
 
   // ---- Wallet Standard (navigator.wallets, wallet-standard:register-wallet / app-ready) ----
   // The reference implementation exposes `features` through a getter that builds a fresh object on every read, so

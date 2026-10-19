@@ -42,27 +42,29 @@ function keyContextOf(el: Element | null): boolean {
   return KEY_CONTEXT_RE.test(bits.join(" "));
 }
 
-/** inputs anywhere, including open shadow roots */
-function allFields(root: ParentNode = document): Array<HTMLInputElement | HTMLTextAreaElement | HTMLElement> {
-  const out: Array<HTMLInputElement | HTMLTextAreaElement | HTMLElement> = [];
-  for (const el of Array.from(root.querySelectorAll<HTMLElement>("input, textarea, [contenteditable=''], [contenteditable='true'], *"))) {
-    if (el.matches("input, textarea, [contenteditable=''], [contenteditable='true']")) out.push(el);
-    if (el.shadowRoot) out.push(...allFields(el.shadowRoot));
+/**
+ * 12 separate single-word inputs (the usual wallet "restore" layout) count as one phrase. Only real <input> candidates
+ * are scanned (no whole-document `*` walk): the document, the typed field's enclosing form and, when the typed field
+ * lives in a shadow root, that root. Bails out as soon as the page has fewer than 11 inputs.
+ */
+function singleWordBoxes(): string | null {
+  const roots: ParentNode[] = [document];
+  const t = lastTarget;
+  if (t) {
+    const rn = t.getRootNode?.();
+    if (rn && rn !== document && (rn as ShadowRoot).host) roots.push(rn as ShadowRoot);
   }
-  return out;
-}
-
-function allInputs(): Array<{ text: string; el: Element | null }> {
-  const out: Array<{ text: string; el: Element | null }> = [];
-  const fields = allFields();
-  for (const el of fields) {
-    const v = "value" in el ? String((el as HTMLInputElement).value ?? "") : (el.textContent ?? "");
-    if (v) out.push({ text: v, el });
+  for (const root of roots) {
+    const inputs = root.querySelectorAll<HTMLInputElement>("input");
+    if (inputs.length < 11) continue;
+    const words: string[] = [];
+    for (const i of Array.from(inputs)) {
+      const v = (i.value ?? "").trim().toLowerCase();
+      if (v && /^[a-z]+$/.test(v)) words.push(v);
+    }
+    if (words.length >= 11) return words.join(" ");
   }
-  // 12 separate single-word inputs (the usual wallet "restore" layout) count as one phrase
-  const singles = fields.filter((f): f is HTMLInputElement => f instanceof HTMLInputElement).map((i) => (i.value ?? "").trim().toLowerCase()).filter((v) => v && /^[a-z]+$/.test(v));
-  if (singles.length >= 11) out.push({ text: singles.join(" "), el: null });
-  return out;
+  return null;
 }
 
 /** Only the field that changed is examined (a password manager rendering stored secrets elsewhere on the page is not the user typing them). */
@@ -76,9 +78,9 @@ function check() {
     if (kind) { fired = true; stop(kind); return; }
   }
   // the 12-separate-boxes layout
-  for (const { text, el } of allInputs()) {
-    if (el !== null) continue;
-    const kind = looksLikeSeed(text, true);
+  const joined = singleWordBoxes();
+  if (joined) {
+    const kind = looksLikeSeed(joined, true);
     if (kind) { fired = true; stop(kind); return; }
   }
 }

@@ -152,7 +152,17 @@ const wcObs = new MutationObserver(() => {
   }
 });
 wcObs.observe(document.documentElement, { childList: true, subtree: true });
-setTimeout(() => wcObs.disconnect(), 120_000);
+// a WC modal opens within seconds of load or right after a click: watch 20s, and re-arm for 8s after each trusted gesture (then drop the observer)
+let wcTimer = setTimeout(() => wcObs.disconnect(), 20_000);
+const wcGesture = (e: Event) => {
+  if (!e.isTrusted || wcSent) return;
+  try { if (!chrome.runtime?.id) { wcObs.disconnect(); return; } } catch { wcObs.disconnect(); return; }
+  clearTimeout(wcTimer);
+  wcObs.observe(document.documentElement, { childList: true, subtree: true });
+  wcTimer = setTimeout(() => wcObs.disconnect(), 8_000);
+};
+window.addEventListener("pointerdown", wcGesture, { capture: true, passive: true });
+window.addEventListener("keydown", wcGesture, { capture: true, passive: true });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "w3pg:collect") {

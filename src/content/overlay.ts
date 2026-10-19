@@ -99,12 +99,13 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 // If the verdict was decided before this script loaded, ask for it; ask again later for slow pages / SPAs.
 let shownScore = -1;
+let settledClean = false;
 function pull() {
   if (orphaned()) { clear(); return; }
   try {
     chrome.runtime.sendMessage({ type: "w3pg:getVerdict" }).then((v: Verdict | undefined) => {
       if (v && v.band === "warn" && v.score !== shownScore) { shownScore = v.score; render(v); }
-      else if (v && v.band !== "warn") clear();
+      else if (v && v.band !== "warn") { settledClean = true; clear(); }
     }).catch(() => clear());
   } catch { clear(); }
 }
@@ -112,6 +113,7 @@ pull();
 // later signals (a WalletConnect modal, a wallet request) raise the score after the first render: keep the card in
 // step even if a pushed update was missed, cheaply, for the first minutes of the page's life
 let pulls = 0;
-const repull = () => { if (document.visibilityState === "visible") pull(); if (++pulls < 24) setTimeout(repull, 5000); };
+// a clean page stops re-polling once the background has answered with a non-warn verdict (no more service-worker wakeups); pushed updates and visibilitychange still apply
+const repull = () => { if (settledClean || orphaned()) return; if (document.visibilityState === "visible") pull(); if (++pulls < 24) setTimeout(repull, 5000); };
 setTimeout(repull, 5000);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
