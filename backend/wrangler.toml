@@ -21,7 +21,7 @@ new_sqlite_classes = ["W3pgState"]
 [vars]
 # Comma-separated extension origins allowed to call /v1/scan and /v1/report.
 # Leave empty while testing unpacked builds (their ids differ per machine); set once published.
-ALLOWED_ORIGINS = ""
+ALLOWED_ORIGINS = "chrome-extension://naacgiaegeohgmnhojncbcpjldbgngoo,chrome-extension://oalgnfgegomadjghapiebohjeidfilln"
 SCANS_PER_IP_PER_DAY = "20"
 REPORTS_PER_IP_PER_DAY = "10"
 SCANS_GLOBAL_PER_DAY = "1500"
