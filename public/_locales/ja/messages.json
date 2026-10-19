@@ -311,6 +311,9 @@
   "sig_redirect_cloaked": {
     "message": "このリンクは当方の検査に見せた先とは別の場所へ訪問者を送ります ($1)"
   },
+  "sig_popular": {
+    "message": "広く使われているサイト：リスト1件だけではブロックしません"
+  },
   "sig_display_mismatch": {
     "message": "X に表示されたアドレス（$1）と開いたものが異なる"
   },

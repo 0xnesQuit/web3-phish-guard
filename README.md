@@ -12,7 +12,7 @@ Araştırma raporu: [reports/Web3 phishing tespit uzantısı analizi.md](reports
 2. **Alan adı sezgiselleri** (`src/lib/scoring.ts`, ağ çağrısı yok): marka adı + tuzak kelime (`claim`, `rewards`, `checker`, `mint`...), ücretsiz barındırma (`vercel.app`, `pages.dev`...), yapıştırılmış rakamlar, typosquat (uzantı tek başına puan vermez; .top/.bond gibi yoğun kötüye kullanılanlar yalnızca tuzak kelime veya marka ile birlikte sayılır). Sadece şüpheli ama kararsız kalan domainler için RDAP ile kayıt tarihi sorgulanır (yalnızca alan adı gönderilir).
 3. **Cüzdan niyeti** (`src/content/provider-guard.ts`): `window.ethereum` ve EIP-6963 sağlayıcıları sarmalanır. Tıklama olmadan bağlantı isteği, Permit / Permit2 / Seaport tipli imzalar, `approve` / `setApprovalForAll` çağrıları puanı yükseltir. Riskli türler (sınırsız approve, setApprovalForAll, Permit/Permit2, Seaport/Blur emirleri, EIP-3009, EIP-7702, eth_sign, EOA'ya izin, zehirlenmiş adres) cüzdana gitmeden önce onay penceresinde tutulur; reddedilirse sayfa 4001 hatası görür. Kapı, hazır drainer kitlerini durdurur; bu uzantıyı özel olarak hedefleyen (örneğin sayfaya gömülü cüzdan kullanan) kod kapsam dışıdır.
 
-3b. **Bekletmeli onay (gate)** (`src/content/provider-guard.ts`, `src/content/bridge.ts`, `src/lib/txdecode.ts`): `approve`/`increaseAllowance` (sınırsız miktar tespiti), `setApprovalForAll`, Permit/Permit2 (tekil, batch, witness, PermitForAll), Seaport/Blur siparişleri, `transfer`/`transferFrom`, `multicall` içine gömülü çağrılar, EIP-5792 `wallet_sendCalls`, EIP-7702 `authorizationList`, `eth_sign` çözümlenir. Spender/operator için aynı provider üzerinden `eth_getCode` sorulur; düz cüzdan adresine (EOA) verilen izin, address poisoning (ilk 4 + son 4 hex aynı), 7702 ve eth_sign **her sitede**, diğer riskli istekler ise şüpheli/bilinmeyen sitelerde modal ile bekletilir; "Reddet" EIP-1193 4001 hatası döndürür. Uzantı 90 sn içinde cevap vermezse istek serbest bırakılır (dApp asla kilitlenmez).
+3b. **Bekletmeli onay (gate)** (`src/content/provider-guard.ts`, `src/content/bridge.ts`, `src/lib/txdecode.ts`): `approve`/`increaseAllowance` (sınırsız miktar tespiti), `setApprovalForAll`, Permit/Permit2 (tekil, batch, witness, PermitForAll), Seaport/Blur siparişleri, `transfer`/`transferFrom`, `multicall` içine gömülü çağrılar, EIP-5792 `wallet_sendCalls`, EIP-7702 `authorizationList`, `eth_sign` çözümlenir. Spender/operator için aynı provider üzerinden `eth_getCode` sorulur; düz cüzdan adresine (EOA) verilen izin, address poisoning (ilk 4 + son 4 hex aynı), 7702 ve eth_sign **her sitede**, diğer riskli istekler ise şüpheli/bilinmeyen sitelerde modal ile bekletilir; "Reddet" EIP-1193 4001 hatası döndürür. Köprü 8 sn içinde cevap vermezse istek serbest bırakılır (dApp asla kilitlenmez); onay penceresi açıldıktan sonra ise kullanıcı cevap verene kadar bekletilir.
 3c. **Seed phrase / özel anahtar koruması** (`src/content/seed-guard.ts`): input/paste/submit anında BIP39 (12–24 kelime, %90 eşleşme), 64-hex ve Solana base58 anahtarları yakalanır; tam ekran durdurma. Metin hiçbir yere gönderilmez.
 3d. **ClickFix / pano**: `navigator.clipboard.writeText`, `execCommand("copy")` ve `copy` olayı izlenir; panoya komut (powershell, mshta, `curl | sh`...) kopyalanması veya seçili adresin başka bir adresle değiştirilmesi +60.
 3e. **Sahte cüzdan**: EIP-6963 `rdns`/`name` uyuşmazlığı +40; Chrome Web Store'da cüzdan adı taşıyan ama resmi ID olmayan uzantı sayfası engellenir.
@@ -96,9 +96,10 @@ test/              vitest
 
 ## Yol haritası
 
-- [ ] Marka → X hesabı çözümleme ve bio linki doğrulama (Xquik, isteğe bağlı backend; sadece şüpheli marka görüldüğünde, URL değil marka adı gönderilir)
+- [x] Marka → X hesabı çözümleme ve bio linki doğrulama (Xquik, Worker üzerinden; sadece marka adı / handle gönderilir)
 - [x] OpenSea verified koleksiyonlardan NFT markaları (`scripts/build-nft-brands.mjs`, anahtar gerekir)
-- [ ] GoPlus `phishing_site` ve NFT kontrat riski sorgusu
-- [ ] Kullanıcı "yanlış pozitif bildir" akışı
-- [ ] Değerlendirme korpusu: eth-phishing-detect git geçmişi + PhishDestroy (pozitif), DefiLlama + MetaMask allowlist (negatif); ölçülmüş FPR
-- [ ] Chrome Web Store yayını (Limited Use açıklaması, `<all_urls>` gerekçesi)
+- [x] GoPlus `phishing_site` sorgusu (deep scan içinde)
+- [x] Kullanıcı bildirimi + moderasyon paneli; "güven" ile yanlış pozitif geri alma
+- [x] Popülerlik koruması (Tranco top-50k): tek bir liste kaydı yaygın bir siteyi engelleyemez
+- [ ] Değerlendirme korpusu: eth-phishing-detect git geçmişi + PhishDestroy (pozitif), Tranco + MetaMask allowlist (negatif); ölçülmüş FPR (şimdilik inceleme turlarında elle ölçülüyor)
+- [ ] Chrome Web Store / AMO yayını (Limited Use açıklaması, `<all_urls>` gerekçesi)

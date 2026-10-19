@@ -61,10 +61,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 let readyPromise: Promise<Awaited<ReturnType<typeof loadStaticData>>> | null = null;
+let popularSet = new Set<string>();
+const isPopular = (p: { host: string; registrable: string }) => popularSet.has(p.registrable) || popularSet.has(p.host);
 async function ensureReady() {
   if (!readyPromise) {
     readyPromise = (async () => {
       const data = await loadStaticData();
+      popularSet = new Set(data.lists.popular ?? []);
       if (!isWarm()) {
         const w = await warmLists([...data.lists.freeHostsStrong, ...data.lists.freeHostsWeak], data.lists.shared ?? []);
         await syncDnr();
@@ -96,12 +99,12 @@ const bypassedHosts: string[] = [];
 async function syncDnr(): Promise<void> {
   try {
     const { lists } = await loadStaticData();
+    // network-level blocks come from the reviewed lists only (MetaMask, our moderators); ScamSniffer and
+    // PhishDestroy warn post-commit. A top-50k site is never cancelled at the network level.
     const block = [
       ...newestDomains("metamask", 40_000),
-      ...newestDomains("scamsniffer", 15_000),
       ...newestDomains("community", 10_000),
-      // community-auto is warn-only until a moderator confirms it; it never becomes a network block
-    ];
+    ].filter((d) => !popularSet.has(d) && !popularSet.has(d.replace(/^www\./, "")));
     const allow = [...(await getUserAllow()), ...lists.trusted, ...bypassedHosts];
     await applyRules(buildRules(block, allow, newestPaths(2000)));
   } catch (e) {
@@ -161,6 +164,7 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
     brands,
     lists,
     blocklistHit: blocklistHit(p.host) ?? blocklistPathHit(p.host, safePath(url)),
+    popular: isPopular(p),
     siblingHit: siblingHit(p.host),
     attacked: attackedBrandHit(p.host),
     allowlistHit: allowlistHit(p.host),
@@ -211,6 +215,13 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
     return;
   }
   if (!(await stillOn(tabId, v.host))) return; // the tab moved on while the lists were warming
+  // a block that rests on the card's displayed address alone waits for the redirect chain (the chain may show the
+  // address was honest); everything else is applied at once
+  const chainPending = !!(origin?.display && origin.href && !origin.hops);
+  if (chainPending && v.band === "block") {
+    const withoutDisplay = v.signals.filter((s) => !s.id.startsWith("display-")).reduce((s, x) => s + x.weight, 0);
+    if (withoutDisplay < BLOCK_THRESHOLD) { const capped = BLOCK_THRESHOLD - 1; v = { ...v, score: capped, band: bandOf(capped) }; }
+  }
   await applyVerdict(tabId, v);
   if (v.band === "block") return;
   // a click from X that showed one domain and landed on another: learn the redirect chain and re-judge (the first
@@ -589,7 +600,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const origin = await getTabOrigin(tabId);
         const v = await evaluate(sender.url, { ageDays: prev?.ageDays, origin, socials });
         if (v && (!prev || v.score !== prev.score)) {
-          const extra = (prev?.signals ?? []).filter((s) => s.id.startsWith("provider-"));
+          const extra = (prev?.signals ?? []).filter((s) => s.id.startsWith("provider-") || s.id.startsWith("frame-provider-"));
           const merged = extra.length ? { ...v, signals: [...v.signals, ...extra] } : v;
           const total = Math.max(0, Math.min(100, merged.signals.reduce((s, x) => s + x.weight, 0)));
           await applyVerdict(tabId, { ...merged, score: total, band: bandOf(total) });
@@ -715,6 +726,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "w3pg:refreshNow": {
         if (!fromExtension(sender)) return;
+        await ensureReady();
         try { await refreshRemoteData(true); } catch (e) { console.warn(e); }
         await refreshAllSources();
         sendResponse(await listStatus());

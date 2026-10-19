@@ -181,6 +181,9 @@
   /** Snapshot a request; a signing request that cannot be snapshotted is marked so the bridge holds it. */
   const prepare = (x: { method?: string; params?: unknown } | null) => {
     if (!x || !x.method) return x;
+    // already approved on an outer layer (request -> _rpcRequest -> _rpcEngine.handle, or a proxy provider forwarding
+    // to the announced one): pass the very same object through, no second snapshot and no second prompt
+    if (isApproved(x)) return x;
     const snap = snapshot(x);
     if (snap && typeof snap === "object") return snap;
     return SIGNING_METHODS[toStr(x.method)] ? { method: x.method, params: undefined, w3pgUndecodable: true } : x;
@@ -258,8 +261,9 @@
           if (deep) return R(orig, self, [a, b]);
           // legacy synchronous send(method) forms (eth_accounts, net_version) are read-only: pass them straight through
           if (typeof a === "string" && !SIGNING_METHODS[a]) return R(orig, self, [a, b]);
-          const items = typeof a === "string" ? [{ method: a, params: b }] : (isArray(a) ? (a as unknown[]).map(prepare as never) : [prepare(a as never)]);
+          const items = typeof a === "string" ? [prepare({ method: a, params: b })] : (isArray(a) ? (a as unknown[]).map(prepare as never) : [prepare(a as never)]);
           const sendA = typeof a === "string" ? a : isArray(a) ? items : items[0];
+          if (typeof a === "string") b = (items[0] as { params?: unknown } | null)?.params;
           for (let i = 0; i < items.length; i++) { const it = items[i] as { method?: string } | null; if (it && it.method) requestProviderFor(it, p); }
           const invoke = () => R(orig, self, [sendA, b]);
           const decided = checksFor(items as never);
@@ -360,18 +364,29 @@
       return copy;
     };
     let override: unknown = undefined, overridden = false;
+    const guardedOf = (o: unknown) => { if (!o || typeof o !== "object") return o; let g = R(weakMapGet, guardedFeatures, [o]); if (!g) { g = build(o); R(weakMapSet, guardedFeatures, [o, g]); } return g; };
     try {
       defineProperty(w, "features", {
         configurable: true, enumerable: true,
-        get: () => { const o = overridden ? override : readOriginal(); if (!o || typeof o !== "object") return o; let g = R(weakMapGet, guardedFeatures, [o]); if (!g) { g = build(o); R(weakMapSet, guardedFeatures, [o, g]); } return g; },
+        get: () => guardedOf(overridden ? override : readOriginal()),
         set: (v) => { override = v; overridden = true; }, // wallets that reassign this.features keep working
       });
     } catch {
+      // The reference wallet template freezes itself in its constructor. The app then gets a Proxy whose `features`
+      // are guarded; everything else forwards to the frozen target (methods bound to it, so private fields work).
+      const proxy = new Proxy(w, {
+        get: (t, k, _r) => { if (k === "features") return guardedOf(Reflect.get(t, k, t)); const v = Reflect.get(t, k, t); return typeof v === "function" ? R(Function.prototype.bind, v, [t]) : v; },
+      });
+      R(weakMapSet, proxies, [w, proxy]);
       post({ kind: "wallet-standard", method: "register", detail: "frozen", param: name, msSinceLoad: now() - loadedAt, hadGesture: false });
+      return;
     }
     post({ kind: "wallet-standard", method: "register", detail: "", param: name, msSinceLoad: now() - loadedAt, hadGesture: false });
   };
-  const ourApi = { register: (...wallets: any[]) => { for (let i = 0; i < wallets.length; i++) wrapStandardWallet(wallets[i]); return () => undefined; } };
+  const proxies = new WeakMap<object, object>();
+  /** the object the app should receive: the wallet itself once patched, or its guarded Proxy when frozen */
+  const guardWallet = (w: any) => { wrapStandardWallet(w); const px = w && typeof w === "object" ? R(weakMapGet, proxies, [w]) : undefined; return px ?? w; };
+  const ourApi = { register: (...wallets: any[]) => { for (let i = 0; i < wallets.length; i++) guardWallet(wallets[i]); return () => undefined; } };
   const callWithOurApi = (cb: unknown) => { try { if (typeof cb === "function") R(cb as (...a: unknown[]) => unknown, undefined, [ourApi]); } catch { /* ignore */ } };
   R(addListener, window, ["wallet-standard:register-wallet", (e: any) => callWithOurApi(e && e.detail), true]);
   // The app's side: @wallet-standard/app dispatches a frozen { register } and throws on stopImmediatePropagation from
@@ -383,7 +398,7 @@
     const api = e && e.detail;
     if (!api || typeof api !== "object" || typeof api.register !== "function") return;
     const orig = api.register;
-    const wrapped = freeze({ register: (...wallets: any[]) => { for (let i = 0; i < wallets.length; i++) wrapStandardWallet(wallets[i]); return R(orig, api, wallets); } });
+    const wrapped = freeze({ register: (...wallets: any[]) => { const out: unknown[] = []; for (let i = 0; i < wallets.length; i++) out[i] = guardWallet(wallets[i]); return R(orig, api, out); } });
     try { R(stopImmediate, e, []); } catch { /* their subclass throws: the listener below never sees it either way */ }
     reentry = true;
     try { R(dispatch, window, [createEvent("wallet-standard:app-ready", wrapped)]); } finally { reentry = false; }

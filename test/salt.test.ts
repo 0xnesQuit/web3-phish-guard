@@ -21,10 +21,13 @@ it("an index written under another salt is rebuilt from the tail on the next war
   store["meta:metamask"] = { count: 2, updatedAt: 1, mmLastUpdated: 100 };
   store["tail:metamask"] = ["old-drainer.xyz", "drop-onsolana.vercel.app"];
   store["didx:metamask"] = { sibling: [[".vercel.app", [["onsolana", "drop-onsolana.vercel.app"]]]], attack: [] };
-  // 2) the worker sleeps; an alarm wakes a fresh one: refreshMetaMaskDiffs() runs before any warmLists()
+  // 2) the worker sleeps; an alarm wakes a fresh one. A diff refresh before warmLists() must refuse to hash
+  //    (an unsalted write would poison the salted index); after warming it applies normally.
   vi.resetModules();
   m = await import(BL);
   (globalThis as any).fetch = async () => ({ ok: true, json: async () => ({ data: [{ url: "fresh-drainer.xyz", targetList: "eth_phishing_detect_config.blocklist", timestamp: 200 }, { url: "old-drainer.xyz", targetList: "eth_phishing_detect_config.blocklist", timestamp: 201, isRemoval: true }] }) });
+  await expect(m.refreshMetaMaskDiffs()).rejects.toThrow(/salt/);
+  await m.warmLists(["vercel.app"], []);
   await m.refreshMetaMaskDiffs();
   // 3) the next real wake warms normally
   vi.resetModules();

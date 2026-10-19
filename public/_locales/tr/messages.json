@@ -311,6 +311,9 @@
   "sig_redirect_cloaked": {
     "message": "Link, ziyaretçileri denetleyicimize gösterdiğinden başka bir yere gönderiyor ($1)"
   },
+  "sig_popular": {
+    "message": "Yaygın kullanılan site: tek bir liste kaydı engellemeye yetmez"
+  },
   "sig_display_mismatch": {
     "message": "X'te gösterilen adres ($1) ile açılan adres farklı"
   },

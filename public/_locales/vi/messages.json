@@ -311,6 +311,9 @@
   "sig_redirect_cloaked": {
     "message": "Liên kết đưa khách đến nơi khác với nơi đã hiển thị cho trình kiểm tra của chúng tôi ($1)"
   },
+  "sig_popular": {
+    "message": "Trang được dùng rộng rãi: một mục danh sách không đủ để chặn"
+  },
   "sig_display_mismatch": {
     "message": "Địa chỉ hiển thị trên X ($1) khác với địa chỉ mở"
   },

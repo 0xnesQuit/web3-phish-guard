@@ -311,6 +311,9 @@
   "sig_redirect_cloaked": {
     "message": "Tautan mengirim pengunjung ke tempat lain dari yang ditunjukkan ke pemeriksa kami ($1)"
   },
+  "sig_popular": {
+    "message": "Situs yang banyak dipakai: satu entri daftar tidak cukup untuk memblokir"
+  },
   "sig_display_mismatch": {
     "message": "Alamat yang ditampilkan di X ($1) berbeda dari yang dibuka"
   },

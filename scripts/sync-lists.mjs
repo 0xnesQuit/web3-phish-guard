@@ -22,7 +22,7 @@ if (!existsSync(path.join(dir, ".git"))) {
 }
 
 for (const f of ["brands.seed.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "shared-hosts.json"]) cpSync(`data/${f}`, path.join(dir, "data", f));
-for (const f of ["build-brands.mjs", "build-cmc-brands.mjs", "build-nft-brands.mjs", "publish-lists.mjs", "shared-hosts.mjs"]) cpSync(`scripts/${f}`, path.join(dir, "scripts", f));
+for (const f of ["build-brands.mjs", "build-cmc-brands.mjs", "build-nft-brands.mjs", "publish-lists.mjs", "shared-hosts.mjs", "build-top-sites.mjs"]) cpSync(`scripts/${f}`, path.join(dir, "scripts", f));
 
 // The manifest is signed only by the lists repo's Action (the key never leaves it); an unsigned manifest written
 // here would be rejected by every extension until the next daily run. Push the files, then trigger the Action.

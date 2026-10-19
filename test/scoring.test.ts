@@ -275,9 +275,13 @@ describe("trusted infrastructure and blocklist confidence", () => {
     expect(run("https://random-site.com/", { blocklistHit: "community-auto" }).band).toBe("warn");
     expect(run("https://random-site.com/", { blocklistHit: "community" }).score).toBe(100);
   });
-  it("MetaMask / ScamSniffer hits block outright", () => {
+  it("MetaMask hits block outright; ScamSniffer alone warns (it has carried bing.com) and blocks with a local heuristic; a top-50k site is never blocked by one feed", () => {
     expect(run("https://random-site.com/", { blocklistHit: "metamask" }).band).toBe("block");
-    expect(run("https://random-site.com/", { blocklistHit: "scamsniffer" }).band).toBe("block");
+    expect(run("https://random-site.com/", { blocklistHit: "scamsniffer" }).band).toBe("warn");
+    expect(run("https://claim-random-airdrop.xyz/", { blocklistHit: "scamsniffer" }).band).toBe("block");
+    expect(run("https://bing.com/", { blocklistHit: "scamsniffer", popular: true }).band).toBe("warn");
+    expect(run("https://claim-random-airdrop.xyz/", { blocklistHit: "scamsniffer", popular: true }).band).toBe("warn");
+    expect(run("https://bing.com/", { blocklistHit: "metamask", popular: true }).band).toBe("block");
   });
   it("user allowlist still wins over trusted/blocklist ordering", () => {
     expect(run("https://basescan.org/", { userAllowed: true, blocklistHit: "metamask" }).band).toBe("none");

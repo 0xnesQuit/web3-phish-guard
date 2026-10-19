@@ -15,6 +15,8 @@ export interface SignalLists {
   trusted: string[];
   /** shared platforms (gateways, link pages, marketplaces, free hosts): never anyone's official domain */
   shared?: string[];
+  /** the ~50k most visited registrable domains (Tranco): a single feed entry never blocks these */
+  popular?: string[];
   actionStrong: string[];
   actionMedium: string[];
   freeHostsStrong: string[];

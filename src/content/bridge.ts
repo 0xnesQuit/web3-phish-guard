@@ -25,14 +25,16 @@ const codeWaiters = new Map<string, (code: string | null) => void>();
 port.onmessage = (e) => {
   const d = e.data;
   if (!d || typeof d !== "object") return;
-  if (d.type === "event" && d.event) chrome.runtime.sendMessage({ type: "w3pg:provider", event: d.event }).catch(() => undefined);
+  if (d.type === "event" && d.event) void safeSend({ type: "w3pg:provider", event: d.event });
   else if (d.type === "inspect") void handleInspect(d as InspectMsg);
   else if (d.type === "code") { const w = codeWaiters.get(String(d.id)); if (w) { codeWaiters.delete(String(d.id)); w(typeof d.code === "string" ? d.code : null); } }
   else if (d.type === "copy") inspectCopy(String(d.text ?? ""), String(d.selection ?? ""));
 };
 try { window.postMessage({ source: TAG + "-ext", type: "port" }, "*", [channel.port2]); } catch { /* ignore */ }
 
-const post = (event: Record<string, unknown>) => chrome.runtime.sendMessage({ type: "w3pg:provider", event }).catch(() => undefined);
+/** runtime calls throw synchronously once the extension context is invalidated (after an update); never let that escape */
+const safeSend = (msg: unknown): Promise<unknown> => { try { return chrome.runtime.sendMessage(msg).catch(() => undefined); } catch { return Promise.resolve(undefined); } };
+const post = (event: Record<string, unknown>) => safeSend({ type: "w3pg:provider", event });
 
 /** eth_getCode through the page's provider (the guard runs it with the unwrapped request). A 7702-delegated EOA counts as an EOA. */
 function isEoa(address: string | undefined): Promise<boolean | undefined> {
@@ -137,11 +139,14 @@ async function inspect(m: InspectMsg): Promise<boolean> {
 /** Ask the background whether to hold; if so, show the modal (in the top frame) and return the user's answer. */
 async function gate(g: GateDetails): Promise<boolean> {
   let decision: Decision = { ask: false };
+  const fallback = { ask: ALWAYS_HOLD.has(g.kind) || g.counterpartyEoa === true || !!g.poisonedTwin };
   try {
-    decision = (await chrome.runtime.sendMessage({ type: "w3pg:gate", details: g })) ?? { ask: false };
+    // background unavailable (or the context invalidated by an update): the kinds no legitimate flow needs fail
+    // closed, everything else proceeds
+    const r = (await safeSend({ type: "w3pg:gate", details: g })) as Decision | undefined;
+    decision = r ?? fallback;
   } catch {
-    // background unavailable: the kinds no legitimate flow needs fail closed, everything else proceeds
-    decision = { ask: ALWAYS_HOLD.has(g.kind) || g.counterpartyEoa === true || !!g.poisonedTwin };
+    decision = fallback;
   }
   if (!decision.ask) return true;
   // the modal is about to open: tell the guard to hold the request for as long as it takes
@@ -149,13 +154,13 @@ async function gate(g: GateDetails): Promise<boolean> {
   let allow: boolean;
   if (window.top !== window) {
     try {
-      const r = (await chrome.runtime.sendMessage({ type: "w3pg:gateTop", details: g, decision, frameHost: location.hostname })) as { allow?: boolean } | undefined;
+      const r = (await safeSend({ type: "w3pg:gateTop", details: g, decision, frameHost: location.hostname })) as { allow?: boolean } | undefined;
       allow = typeof r?.allow === "boolean" ? r.allow : await modal(g, decision, location.hostname);
     } catch { allow = await modal(g, decision, location.hostname); }
   } else {
     allow = await modal(g, decision, location.hostname);
   }
-  if (!allow) chrome.runtime.sendMessage({ type: "w3pg:gateRejected", details: g }).catch(() => undefined);
+  if (!allow) void safeSend({ type: "w3pg:gateRejected", details: g });
   return allow;
 }
 

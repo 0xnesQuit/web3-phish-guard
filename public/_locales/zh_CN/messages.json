@@ -311,6 +311,9 @@
   "sig_redirect_cloaked": {
     "message": "该链接把访问者送到与展示给我们检查器不同的地方 ($1)"
   },
+  "sig_popular": {
+    "message": "广泛使用的网站：单一列表条目不足以拦截"
+  },
   "sig_display_mismatch": {
     "message": "X 上显示的地址（$1）与实际打开的不同"
   },

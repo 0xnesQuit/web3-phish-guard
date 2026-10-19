@@ -46,8 +46,10 @@ interface ListMeta { count: number; updatedAt: number; mmLastUpdated?: number; /
 /** Two independent 32-bit FNV-1a style passes make a 64-bit key: collisions are ~1 in 1.8e19, far below the feeds' own noise. */
 /** Per-install random salt: a hash collision engineered against one victim domain would have to target each install separately. */
 let salt = "";
-let saltRequired = false;
+/** required wherever chrome.* exists (the extension); unit tests hash unsalted */
+let saltRequired = typeof chrome !== "undefined" && !!(chrome as unknown as { storage?: unknown }).storage;
 export function setHashSalt(s: string): void { salt = s; saltRequired = true; }
+export function hashSaltForTests(s: string): void { salt = s; saltRequired = false; }
 /** Production code must never hash before warmLists loaded the salt (an alarm-woken worker would write unsalted hashes). */
 export function hash64(s: string): bigint {
   if (!salt && saltRequired) throw new Error("w3pg: hash before salt");
@@ -419,10 +421,14 @@ export function extractPaths(json: unknown, keys: string[]): string[] {
 
 export function normalizeDomain(s: string): string {
   let d = s.trim().toLowerCase();
+  let fromUrl = false;
   if (d.includes("://")) {
-    try { d = new URL(d).hostname; } catch { /* keep */ }
+    try { d = new URL(d).hostname; fromUrl = true; } catch { /* keep */ }
   }
-  return d.replace(/^\*\./, "").replace(/^www\./, "").replace(/\/.*$/, "").replace(/\.$/, "");
+  // A feed entry "www.bing.com" means that host, not bing.com and every subdomain: keep it host-exact.
+  // Only a full URL's www. is dropped (it names a site, not a host).
+  d = d.replace(/^\*\./, "").replace(/\/.*$/, "").replace(/\.$/, "");
+  return fromUrl ? d.replace(/^www\./, "") : d;
 }
 
 async function fetchJson(url: string): Promise<unknown> {
@@ -618,8 +624,12 @@ export async function warmLists(freeHosts: string[] = [], shared: string[] = [])
       // an index built under another salt (or none) is unusable; keep the newest entries protective from the tail
       // until the full feed is fetched again
       const tail = (got[`tail:${s.id}`] as string[] | undefined) ?? [];
-      if (tail.length) await storeSource(s.id, tail, { updatedAt: meta?.updatedAt ?? 0, mmLastUpdated: meta?.mmLastUpdated });
-      else await chrome.storage.local.remove([`hidx:${s.id}`, `meta:${s.id}`]).catch(() => undefined);
+      const oldDerived = got[`didx:${s.id}`] as DerivedIndexes | undefined;
+      if (tail.length) {
+        await storeSource(s.id, tail, { updatedAt: meta?.updatedAt ?? 0, mmLastUpdated: meta?.mmLastUpdated });
+        // the derived indexes do not depend on the salt: keep what the full feed produced
+        if (oldDerived) { const d = mergeDerivedInto(oldDerived, derived.get(s.id)!); derived.set(s.id, d); await chrome.storage.local.set({ [`didx:${s.id}`]: d }); }
+      } else await chrome.storage.local.remove([`hidx:${s.id}`, `meta:${s.id}`]).catch(() => undefined);
       needsRefresh = true;
       continue;
     }

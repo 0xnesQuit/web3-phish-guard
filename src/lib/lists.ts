@@ -7,7 +7,7 @@ let cache: { brands: Brand[]; lists: SignalLists } | null = null;
  * where a daily GitHub Action publishes regenerated copies. Remote copies live in chrome.storage.local
  * and win over the bundled ones. Only JSON data is fetched, never code.
  */
-export const DATA_FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "shared-hosts.json"] as const;
+export const DATA_FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "shared-hosts.json", "top-sites.json"] as const;
 export const REMOTE_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data";
 
 interface RemoteManifest { updatedAt: number; files: Record<string, { bytes: number; sha256?: string }>; sig?: string }
@@ -28,18 +28,26 @@ const TRUSTED_GROWTH_LIMIT = 50;
  *    status never relaxes the wallet gate nor beats a reviewed blocklist hit)
  * Returns a reason when the remote copy must be rejected.
  */
-export function remoteGuard(file: string, bundled: unknown, remote: unknown): string | null {
+export function remoteGuard(file: string, bundled: unknown, remote: unknown, shared: string[] = []): string | null {
   const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : typeof v === "object" && v ? Object.values(v as Record<string, unknown>).flatMap(strs) : typeof v === "string" ? [v] : []);
   const brands = (v: unknown): Array<{ name?: string; domains?: string[] }> => (Array.isArray(v) ? (v as Array<{ name?: string; domains?: string[] }>) : []);
+  // a remote addition that names a whole platform (vercel.app, eth.limo, a public suffix) would clear every page on
+  // it: a signed publish may not do that, whatever the count
+  const platform = (d: string) => shared.some((s) => d === s) || !d.includes(".") || !!/^(com|net|org|io|xyz|app|dev|co|ai|me|cc|tv|link|site|online|cloud|page|pages\.dev|github\.io)$/.exec(d);
   if (file === "trusted.json") {
     const b = flattenTrusted(bundled as Record<string, string[] | string> | null), r = flattenTrusted(remote as Record<string, string[] | string> | null);
-    const added = r.filter((d) => !b.includes(d)).length;
-    return added > TRUSTED_GROWTH_LIMIT ? `grew by ${added}` : null;
+    const addedList = r.filter((d) => !b.includes(d));
+    const bad = addedList.find(platform);
+    if (bad) return `adds platform ${bad}`;
+    return addedList.length > TRUSTED_GROWTH_LIMIT ? `grew by ${addedList.length}` : null;
   }
   if (file === "brands.seed.json") {
     const b = brands(bundled), r = brands(remote);
     const bd = new Set(b.flatMap((x) => x.domains ?? [])), rd = new Set(r.flatMap((x) => x.domains ?? []));
-    const addedDomains = [...rd].filter((d) => !bd.has(d)).length;
+    const addedDomainList = [...rd].filter((d) => !bd.has(d));
+    const bad = addedDomainList.find(platform);
+    if (bad) return `adds platform ${bad}`;
+    const addedDomains = addedDomainList.length;
     const bn = new Set(b.map((x) => x.name)), rn = new Set(r.map((x) => x.name));
     const removedBrands = [...bn].filter((n) => !rn.has(n)).length;
     if (addedDomains > 50) return `${addedDomains} new official domains`;
@@ -58,6 +66,10 @@ export function remoteGuard(file: string, bundled: unknown, remote: unknown): st
   }
   if (file.startsWith("brands.")) {
     const b = brands(bundled).length, r = brands(remote).length;
+    return b > 0 && (r < b / 2 || r > b * 2) ? `size ${b} -> ${r}` : null;
+  }
+  if (file === "top-sites.json") {
+    const b = strs(bundled).length, r = strs(remote).length;
     return b > 0 && (r < b / 2 || r > b * 2) ? `size ${b} -> ${r}` : null;
   }
   return null;
@@ -187,9 +199,10 @@ export async function refreshRemoteData(force = false): Promise<{ updated: boole
       if (json === null || typeof json !== "object") continue;
       // curated files are capped against the bundled copy (cumulative: a stolen key cannot grow the trusted list 50 at a
       // time), the churny generated brand files against the last accepted copy
-      const churny = file === "brands.generated.json" || file === "brands.cmc.json" || file === "brands.nft.json";
+      const churny = file === "brands.generated.json" || file === "brands.cmc.json" || file === "brands.nft.json" || file === "top-sites.json";
       const prev = churny ? (await chrome.storage.local.get("data:" + file))["data:" + file] : undefined;
-      const why = remoteGuard(file, prev !== undefined ? prev : await loadBundled(file), json);
+      const sharedNow = [...((await loadBundled<{ hosts: string[] }>("shared-hosts.json"))?.hosts ?? []), ...Object.values((await loadBundled<Record<string, string[]>>("free-hosts.json")) ?? {}).flat()];
+      const why = remoteGuard(file, prev !== undefined ? prev : await loadBundled(file), json, sharedNow);
       if (why) { console.warn(`[w3pg] ${file} rejected (${why}), kept the previous copy`); continue; }
       updates["data:" + file] = json;
       n++;
@@ -209,7 +222,7 @@ export async function refreshRemoteData(force = false): Promise<{ updated: boole
 /** Bundled static data (brands + signal word lists). Cached per service-worker lifetime. */
 export async function loadStaticData(): Promise<{ brands: Brand[]; lists: SignalLists }> {
   if (cache) return cache;
-  const [seed, generated, nft, cmc, actions, hosts, tlds, trusted, sharedFile] = await Promise.all([
+  const [seed, generated, nft, cmc, actions, hosts, tlds, trusted, sharedFile, topFile] = await Promise.all([
     loadJson<Brand[]>("brands.seed.json"),
     loadJson<Brand[]>("brands.generated.json"),
     loadJson<Brand[]>("brands.nft.json"),
@@ -219,6 +232,7 @@ export async function loadStaticData(): Promise<{ brands: Brand[]; lists: Signal
     loadJson<{ strong: string[]; weak: string[] }>("tlds.json"),
     loadJson<Record<string, string[] | string>>("trusted.json"),
     loadJson<{ hosts: string[] }>("shared-hosts.json"),
+    loadJson<{ hosts: string[] }>("top-sites.json"),
   ]);
   const shared = [...(sharedFile?.hosts ?? []), ...(hosts?.strong ?? []), ...(hosts?.weak ?? [])];
   const trustedList = flattenTrusted(trusted); // curated by hand: marketplaces and social sites on it are deliberate
@@ -232,6 +246,7 @@ export async function loadStaticData(): Promise<{ brands: Brand[]; lists: Signal
       actionMedium: actions?.medium ?? [],
       freeHostsStrong: hosts?.strong ?? [],
       freeHostsWeak: hosts?.weak ?? [],
+      popular: topFile?.hosts ?? [],
       tldStrong: tlds?.strong ?? [],
       tldWeak: tlds?.weak ?? [],
     },
@@ -288,7 +303,8 @@ export function flattenTrusted(json: Record<string, string[] | string> | null): 
 /** Seed entries win over generated ones with the same name; domains are unioned. */
 export function mergeBrands(seed: Brand[], generated: Brand[]): Brand[] {
   const byKey = new Map<string, Brand>();
-  const tagged = [...generated.map((b) => ({ ...b, tier: "generated" as const })), ...seed.map((b) => ({ ...b, tier: "seed" as const }))];
+  // an entry in the seed argument keeps an explicit "generated" tier (trusted-derived short labels)
+  const tagged = [...generated.map((b) => ({ ...b, tier: "generated" as const })), ...seed.map((b) => ({ ...b, tier: b.tier === "generated" ? ("generated" as const) : ("seed" as const) }))];
   for (const b of tagged) {
     // a name collision across tiers stays two entries: an auto-imported "Aave" (ethlend.io) must not lend its
     // domains curated status, which would relax the wallet gate and outrank reviewed blocklist hits

@@ -16,6 +16,13 @@ reproduce, and the impact you see. Do not test against the production API with r
 - Any route to the API's keys or to using the AI endpoint for anything but page verdicts.
 - Bypasses of the admin panel's authentication or rate limits.
 
+## Known limits of the wallet gate
+
+The gate hooks the provider objects a page can reach (`window.ethereum`, EIP-6963 announcements, `window.solana`,
+Wallet Standard registrations). A page that talks to a wallet by other means, for example by posting to the wallet's own
+content-script message stream, or a wallet built into the page itself, is outside what an in-page hook can see. The
+first line of defence is the warning before the page loads; the gate is the second, aimed at off-the-shelf drainer kits.
+
 ## What we do not consider a vulnerability
 
 - The extension warning on a site that the heuristics score as risky (report it as a false positive instead; the warning can be bypassed and the site trusted).

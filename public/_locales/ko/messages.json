@@ -311,6 +311,9 @@
   "sig_redirect_cloaked": {
     "message": "이 링크는 검사기에 보여준 곳과 다른 곳으로 방문자를 보냅니다 ($1)"
   },
+  "sig_popular": {
+    "message": "널리 쓰이는 사이트: 목록 항목 하나로는 차단하지 않습니다"
+  },
   "sig_display_mismatch": {
     "message": "X에 표시된 주소($1)와 열린 주소가 다름"
   },

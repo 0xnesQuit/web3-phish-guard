@@ -12,7 +12,7 @@ export function canonicalManifest(m) {
   return JSON.stringify({ updatedAt: m.updatedAt, files });
 }
 
-const FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "shared-hosts.json", "community-blocklist.json"];
+const FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "shared-hosts.json", "top-sites.json", "community-blocklist.json"];
 const OUT = process.argv[2] || "lists";
 mkdirSync(OUT, { recursive: true });
 

@@ -28,6 +28,8 @@ export interface ScoreContext {
   lists: SignalLists;
   /** host matched an external blocklist (MetaMask / PhishDestroy / ...) */
   blocklistHit?: string;
+  /** the registrable domain is in the top ~50k most visited sites: one feed's say-so never blocks it */
+  popular?: boolean;
   /** a listed phishing host on the same free host shares a distinctive token with this one */
   siblingHit?: string;
   /** the hostname carries a token that many listed phishing domains share (brand under attack) */
@@ -55,6 +57,17 @@ const SOURCE_LABEL: Record<OriginContext["source"], string> = {
 };
 
 /** Hostname tokens that are too generic to count as a brand on their own */
+const curatedTokens = new WeakMap<Brand[], Set<string>>();
+/** tokens of curated (seed / trusted) brands only */
+function curatedTokenSet(brands: Brand[]): Set<string> {
+  let s = curatedTokens.get(brands);
+  if (!s) {
+    s = new Set();
+    for (const b of brands) { if (b.tier === "generated") continue; for (const t of b.tokens) { const k = t.toLowerCase(); if (k.length >= 5 && !GENERIC.has(k)) { s.add(k); s.add(stripCloneAffixes(k)); } } }
+    curatedTokens.set(brands, s);
+  }
+  return s;
+}
 const brandTokens = new WeakMap<Brand[], Set<string>>();
 /** every brand token (plain and affix-stripped), cached per brand array */
 function brandTokenSet(brands: Brand[]): Set<string> {
@@ -125,7 +138,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     signals.push({ id: "ip-host", weight: 10, key: "sig_ip_host" });
   }
 
-  const allLabels = [...p.subLabels, p.domainLabel];
+  // on the platform host itself (sites.google.com, docs.google.com) the labels name the platform, not a brand
+  const allLabels = p.freeHost && p.host === p.freeHost ? [] : [...p.subLabels, p.domainLabel];
   const tokens = tokenize(allLabels);
   const strippedTokens = tokens.map(stripCloneAffixes);
   const joined = allLabels.join("").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -205,7 +219,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     }
   }
 
-  const reviewedHit = !!ctx.blocklistHit && ctx.blocklistHit !== "phishdestroy";
+  const reviewedHit = !!ctx.blocklistHit && ctx.blocklistHit !== "phishdestroy" && ctx.blocklistHit !== "scamsniffer";
   if (brandOfficial && matchedBrand && !(matchedBrand.tier === "generated" && reviewedHit)) {
     // An auto-imported "official" domain (DefiLlama/CMC/OpenSea data) does not outrank a reviewed blocklist entry:
     // listed scam projects exist on those platforms. Curated seed/trusted entries still do.
@@ -221,10 +235,12 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
 
   // ---- hard block gate ----------------------------------------------------
   if (ctx.blocklistHit) {
-    // MetaMask and ScamSniffer entries are reviewed; PhishDestroy is broader and noisier, so alone it only warns
-    // and becomes a block when any local heuristic agrees (the combination is added further down).
-    // auto = AI-confirmed on a server-suspicious page but not yet seen by a moderator: warn, never block
-    const weight = ctx.blocklistHit === "phishdestroy" ? 50 : ctx.blocklistHit === "community-auto" ? 40 : 100;
+    // MetaMask and our moderators' list are reviewed and block on their own. ScamSniffer and PhishDestroy are
+    // broader (ScamSniffer carried bing.com and surveymonkey.com in 2026-10): alone they warn, and become a block
+    // when a local heuristic agrees (the combination is added further down). auto = AI-confirmed but unseen by a
+    // moderator: warn, never block. A top-50k site is never blocked by a single feed, whichever it is.
+    let weight = ctx.blocklistHit === "phishdestroy" || ctx.blocklistHit === "scamsniffer" ? 50 : ctx.blocklistHit === "community-auto" ? 40 : 100;
+    if (ctx.popular && ctx.blocklistHit !== "metamask") weight = Math.min(weight, 50);
     signals.push({ id: "blocklist", weight, key: "sig_blocklist", sub: [ctx.blocklistHit] });
   }
 
@@ -243,7 +259,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // bait words also count when glued into one label (checkeligibility, claimone, freemintclaim) and when the TLD
   // itself is the bait (.claims, .rewards); ordinary English words that merely contain one (disclaimer) do not
   const NOT_BAIT = new Set(["disclaimer", "disclaimers", "proclaim", "acclaim", "exclaim", "reclaimed", "unclaimed", "mintage", "peppermint", "spearmint", "badminton", "rewardsprogram"]);
-  const glued = (t: string) => !NOT_BAIT.has(t) && ctx.lists.actionStrong.some((a) => a.length >= 4 && t !== a && t.includes(a) && t.length - a.length >= 3);
+  const plural = (t: string) => /s$/.test(t) && (ctx.lists.actionStrong.includes(t.slice(0, -1)) || ctx.lists.actionStrong.includes(t.replace(/es$/, "")));
+  const glued = (t: string) => !NOT_BAIT.has(t) && (plural(t) || ctx.lists.actionStrong.some((a) => a.length >= 4 && t !== a && t.includes(a) && t.length - a.length >= 3));
   const strongActions = tokens.filter((t) => ctx.lists.actionStrong.includes(t) || glued(t));
   if (p.tld && ctx.lists.actionStrong.includes(p.tld)) strongActions.push(p.tld);
   const mediumActions = tokens.filter((t) => ctx.lists.actionMedium.includes(t));
@@ -275,7 +292,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
       // auto-imported brand: names are often common words and domains drift (kamino.finance vs kamino.com),
       // so it only counts alongside an action word or free hosting
       // a bait word is required: a free host alone is where hobby projects live ("my-portfolio.netlify.app")
-      if (hasAction) signals.push({ id: "brand-impersonation-weak", weight: 30, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
+      if (strongActions.length || (mediumActions.length && (p.freeHost || fresh))) signals.push({ id: "brand-impersonation-weak", weight: 30, key: "sig_brand_impersonation", sub: [matchedBrand.name, matchedBrand.domains.slice(0, 2).join(", ")] });
       else brandFlagged = false;
     } else if (brandSignalKind === "typo" && homograph) {
       signals.push({ id: "idn-homograph", weight: 45, key: "sig_idn_homograph", sub: [matchedBrand.name] });
@@ -318,8 +335,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   let attackedFlagged = false;
   // the token must be a known brand token (ordinary words recur in feeds too: "global", "finder", "bakery"), and it
   // must not be the very token that already produced a brand signal on this host (no double counting)
-  const attackedIsBrand = !!ctx.attacked && brandTokenSet(ctx.brands).has(ctx.attacked.token);
-  const sameAsBrand = !!ctx.attacked && !!matchedBrand && matchedBrand.tokens.some((t) => stripCloneAffixes(t.toLowerCase()) === ctx.attacked!.token || t.toLowerCase() === ctx.attacked!.token);
+  // curated brands only (auto-imported token lists are full of ordinary words: global, digital, rocket, golden),
+  // never a bait word, and never on a host that already produced a brand signal of any kind
+  const attackedIsBrand = !!ctx.attacked && curatedTokenSet(ctx.brands).has(ctx.attacked.token) && !ctx.lists.actionStrong.includes(ctx.attacked.token) && !ctx.lists.actionMedium.includes(ctx.attacked.token);
+  const sameAsBrand = !!matchedBrand;
   if (ctx.attacked && attackedIsBrand && !sameAsBrand && !ctx.blocklistHit && !ctx.siblingHit && (hasAction || p.freeHost || fresh || ctx.origin?.shortener)) {
     signals.push({ id: "attacked-brand", weight: 40, key: "sig_attacked_brand", sub: [ctx.attacked.token, String(ctx.attacked.count), ctx.attacked.example] });
     attackedFlagged = true;
@@ -395,7 +414,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     const last = o.hops?.length ? o.hops[o.hops.length - 1] : undefined;
     const chainMatches = !!last && (isUnderDomain(p.host, last) || isUnderDomain(last, p.registrable));
     const inChain = !!disp && (isRedirector(disp) || (chainMatches && (o.hops ?? []).some((h) => h === disp || isUnderDomain(h, disp) || isUnderDomain(disp, h))));
-    if (last && !chainMatches && !isRedirector(last)) signals.push({ id: "redirect-cloaked", weight: 30, key: "sig_redirect_cloaked", sub: [last] });
+    if (last && !chainMatches && !isRedirector(last)) signals.push({ id: "redirect-cloaked", weight: 20, key: "sig_redirect_cloaked", sub: [last] });
     if (disp && !inChain && disp !== p.host && !isUnderDomain(p.host, disp) && !isUnderDomain(disp, p.registrable)) {
       signals.push({ id: "display-mismatch", weight: 40, key: "sig_display_mismatch", sub: [o.display!] });
       // The card borrowed a real project's domain ("Kaynak: artblocks.io" -> qql-desk.com): impersonation by proxy.
@@ -490,6 +509,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   }
 
   const v = done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
+  if (ctx.popular && ctx.blocklistHit !== "metamask" && v.score >= BLOCK_THRESHOLD) {
+    signals.push({ id: "popular", weight: BLOCK_THRESHOLD - 1 - v.score, key: "sig_popular" });
+    return done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
+  }
 
   // Combination rules from the research: brand + action word + (free host | fresh domain) is near-certain,
   // and so is a free host whose label is nothing but bait words (claim-evm-airdrop.netlify.app).

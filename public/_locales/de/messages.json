@@ -311,6 +311,9 @@
   "sig_redirect_cloaked": {
     "message": "Der Link schickt Besucher woandershin, als er unserem Prüfer zeigte ($1)"
   },
+  "sig_popular": {
+    "message": "Weit verbreitete Seite: ein einzelner Listeneintrag reicht nicht zum Blockieren"
+  },
   "sig_display_mismatch": {
     "message": "Die auf X angezeigte Adresse ($1) weicht von der geöffneten ab"
   },
