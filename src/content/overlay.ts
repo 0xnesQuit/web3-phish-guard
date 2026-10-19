@@ -12,8 +12,13 @@ const ID = "w3pg-banner";
 const COLLAPSE_AFTER_MS = 8000;
 let current: HTMLElement | null = null;
 
+/** After an extension update the old content script lingers in open tabs; its chrome.runtime.id is gone. */
+const orphaned = () => { try { return !chrome.runtime?.id; } catch { return true; } };
+
 function render(v: Verdict) {
   current?.remove();
+  // cards left behind by a previous script instance (extension reload / update)
+  for (const old of Array.from(document.querySelectorAll("#" + ID))) old.remove();
   const host = document.createElement("div");
   host.id = ID;
   host.style.cssText = "all:initial !important;position:fixed !important;right:16px !important;bottom:16px !important;z-index:2147483646 !important;display:block !important;max-width:min(420px, calc(100vw - 32px)) !important;";
@@ -66,7 +71,10 @@ function render(v: Verdict) {
   root.getElementById("close")!.addEventListener("click", (e) => { if (!e.isTrusted) return; closed = true; keep.disconnect(); host.remove(); current = null; });
   const mount = () => (document.documentElement || document.body).appendChild(host);
   // a page that deletes the card gets it back; only the user's own click closes it
-  const keep = new MutationObserver(() => { if (!closed && !host.isConnected) mount(); });
+  const keep = new MutationObserver(() => {
+    if (orphaned()) { keep.disconnect(); host.remove(); current = null; return; } // a newer script owns the page now
+    if (!closed && !host.isConnected) mount();
+  });
   keep.observe(document.documentElement, { childList: true });
   mount();
 }
@@ -85,10 +93,13 @@ chrome.runtime.onMessage.addListener((msg) => {
 // If the verdict was decided before this script loaded, ask for it; ask again later for slow pages / SPAs.
 let shownScore = -1;
 function pull() {
-  chrome.runtime.sendMessage({ type: "w3pg:getVerdict" }).then((v: Verdict | undefined) => {
-    if (v && v.band === "warn" && v.score !== shownScore) { shownScore = v.score; render(v); }
-    else if (v && v.band !== "warn") clear();
-  }).catch(() => undefined);
+  if (orphaned()) { clear(); return; }
+  try {
+    chrome.runtime.sendMessage({ type: "w3pg:getVerdict" }).then((v: Verdict | undefined) => {
+      if (v && v.band === "warn" && v.score !== shownScore) { shownScore = v.score; render(v); }
+      else if (v && v.band !== "warn") clear();
+    }).catch(() => clear());
+  } catch { clear(); }
 }
 pull();
 // later signals (a WalletConnect modal, a wallet request) raise the score after the first render: keep the card in
