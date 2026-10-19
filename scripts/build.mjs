@@ -1,4 +1,4 @@
-import { readFileSync as _rf } from "node:fs";
+import { readFileSync as _rf, readdirSync, readFileSync } from "node:fs";
 {
   // refuse to ship data that calls a shared platform someone's official domain
   const shared = new Set([...JSON.parse(_rf("data/shared-hosts.json", "utf8")).hosts, ...Object.values(JSON.parse(_rf("data/free-hosts.json", "utf8"))).flat()]);
@@ -60,5 +60,12 @@ if (watch) {
   await Promise.all(ctxs.map((c) => c.rebuild()));
   await Promise.all(ctxs.map((c) => c.dispose()));
   copyStatic();
+  // Chrome rejects a content script as "not UTF-8" if it contains a Unicode noncharacter (U+FFFE/U+FFFF).
+  // The minifier can emit these literally from a regex range, so fail the build if any slipped into the JS.
+  for (const name of readdirSync(outdir)) {
+    if (!name.endsWith(".js")) continue;
+    const text = readFileSync(`${outdir}/${name}`, "utf8");
+    for (let i = 0; i < text.length; i++) { const c = text.charCodeAt(i); if (c === 0xfffe || c === 0xffff) throw new Error(`${name}: Unicode noncharacter U+${c.toString(16).toUpperCase()} at ${i} — Chrome will reject it as non-UTF-8`); }
+  }
   console.log(`build done -> ${outdir}/`);
 }

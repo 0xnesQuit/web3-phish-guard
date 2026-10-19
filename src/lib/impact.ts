@@ -107,7 +107,7 @@ export function decodeString(hex: string | null | undefined): string | undefined
   let s = "";
   for (let i = 0; i + 2 <= bytes.length; i += 2) s += String.fromCharCode(parseInt(bytes.slice(i, i + 2), 16));
   try { s = decodeURIComponent(escape(s)); } catch { /* keep raw */ }
-  s = s.replace(/[^\x20-\x7e -￿]/g, "").trim();
+  s = s.replace(/[^\x20-\x7e -�]/g, "").trim();
   return s && s.length <= 32 ? s : undefined;
 }
 
