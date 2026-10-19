@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "使い捨てウォレットでサイトを開き、何を要求するか観察しました。"
   },
+  "sbx_state_used": {
+    "message": "サンドボックス：ライブスキャン — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "サンドボックス：待機中のスキャンが完了 — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "サンドボックス未使用 — 最近のキャッシュ結果です。"
+  },
+  "sbx_state_blocklist": {
+    "message": "サンドボックス未使用 — ホストはすでにコミュニティのブロックリストに載っています。"
+  },
+  "sbx_state_unavailable": {
+    "message": "サンドボックスは現在利用できません。"
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "サンドボックスはこのチェーンをまだ解析できません。"
+  },
+  "sbx_state_busy": {
+    "message": "サンドボックスは現在混み合っています。"
+  },
+  "sbx_queue_btn": {
+    "message": "サンドボックスでスキャン（待機列に追加）"
+  },
+  "sbx_queue_rescan": {
+    "message": "ライブで再スキャン"
+  },
+  "sbx_queue_waiting": {
+    "message": "サンドボックスの待機列 — $1番目、約$2秒。完了したらお知らせします。"
+  },
+  "sbx_queue_running": {
+    "message": "サンドボックスがこのページをスキャン中です。完了したらお知らせします。"
+  },
+  "sbx_queue_cancel": {
+    "message": "キャンセル"
+  },
+  "sbx_queue_cancelled": {
+    "message": "待機中のスキャンをキャンセルしました。"
+  },
+  "sbx_queue_full": {
+    "message": "サンドボックスが過負荷です — 約$1秒後にもう一度お試しください。"
+  },
+  "sbx_queue_limit": {
+    "message": "待機中のスキャンが多すぎます — 約$1秒後にもう一度お試しください。"
+  },
+  "sbx_queue_rate": {
+    "message": "リクエストが多すぎます — 約$1秒後にもう一度お試しください。"
+  },
+  "sbx_queue_error": {
+    "message": "サンドボックスの待機列に接続できませんでした。"
+  },
+  "sbx_notify_title": {
+    "message": "サンドボックスのスキャンが完了"
+  },
+  "sbx_notify_msg": {
+    "message": "$2 の結果：$1"
+  },
   "verdict_suspicious": {
     "message": "疑わしい"
   },

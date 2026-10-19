@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "Abrimos o site com uma carteira descartável e observamos o que ele pediu."
   },
+  "sbx_state_used": {
+    "message": "Sandbox: análise ao vivo — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "Sandbox: análise da fila concluída — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "Sandbox não usado — resultado recente em cache."
+  },
+  "sbx_state_blocklist": {
+    "message": "Sandbox não usado — o host já está na lista de bloqueio da comunidade."
+  },
+  "sbx_state_unavailable": {
+    "message": "Sandbox indisponível no momento."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "Sandbox ainda não consegue analisar esta rede."
+  },
+  "sbx_state_busy": {
+    "message": "Sandbox está ocupado no momento."
+  },
+  "sbx_queue_btn": {
+    "message": "Analisar com sandbox (entrar na fila)"
+  },
+  "sbx_queue_rescan": {
+    "message": "Reanalisar ao vivo"
+  },
+  "sbx_queue_waiting": {
+    "message": "Na fila do sandbox — posição $1, ~$2 s. Avisaremos você."
+  },
+  "sbx_queue_running": {
+    "message": "O sandbox está analisando esta página agora. Avisaremos você."
+  },
+  "sbx_queue_cancel": {
+    "message": "Cancelar"
+  },
+  "sbx_queue_cancelled": {
+    "message": "Análise na fila cancelada."
+  },
+  "sbx_queue_full": {
+    "message": "Sandbox sobrecarregado — tente novamente em ~$1 s."
+  },
+  "sbx_queue_limit": {
+    "message": "Muitas análises na fila — tente novamente em ~$1 s."
+  },
+  "sbx_queue_rate": {
+    "message": "Muitas solicitações — tente novamente em ~$1 s."
+  },
+  "sbx_queue_error": {
+    "message": "Não foi possível acessar a fila do sandbox."
+  },
+  "sbx_notify_title": {
+    "message": "Análise do sandbox concluída"
+  },
+  "sbx_notify_msg": {
+    "message": "$1 para $2"
+  },
   "verdict_suspicious": {
     "message": "Suspeito"
   },

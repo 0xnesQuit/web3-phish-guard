@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "We opened the site with a throw-away wallet and watched what it asked for."
   },
+  "sbx_state_used": {
+    "message": "Sandbox: live scan — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "Sandbox: queued scan done — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "Sandbox not used — recent cached result."
+  },
+  "sbx_state_blocklist": {
+    "message": "Sandbox not used — host already on the community blocklist."
+  },
+  "sbx_state_unavailable": {
+    "message": "Sandbox unavailable right now."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "Sandbox can't analyze this chain yet."
+  },
+  "sbx_state_busy": {
+    "message": "Sandbox is busy right now."
+  },
+  "sbx_queue_btn": {
+    "message": "Scan with sandbox (queue it)"
+  },
+  "sbx_queue_rescan": {
+    "message": "Re-scan live"
+  },
+  "sbx_queue_waiting": {
+    "message": "In sandbox queue — position $1, ~$2s. We'll notify you."
+  },
+  "sbx_queue_running": {
+    "message": "Sandbox is scanning this page now. We'll notify you."
+  },
+  "sbx_queue_cancel": {
+    "message": "Cancel"
+  },
+  "sbx_queue_cancelled": {
+    "message": "Queued scan cancelled."
+  },
+  "sbx_queue_full": {
+    "message": "Sandbox overloaded — try again in ~$1s."
+  },
+  "sbx_queue_limit": {
+    "message": "Too many queued scans — try again in ~$1s."
+  },
+  "sbx_queue_rate": {
+    "message": "Too many requests — try again in ~$1s."
+  },
+  "sbx_queue_error": {
+    "message": "Couldn't reach the sandbox queue."
+  },
+  "sbx_notify_title": {
+    "message": "Sandbox scan complete"
+  },
+  "sbx_notify_msg": {
+    "message": "$1 for $2"
+  },
   "verdict_suspicious": {
     "message": "Suspicious"
   },

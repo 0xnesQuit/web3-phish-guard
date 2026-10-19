@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "Siteyi atılabilir bir cüzdanla açıp neyi istediğini izledik."
   },
+  "sbx_state_used": {
+    "message": "Sandbox: canlı tarama — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "Sandbox: sıradaki tarama bitti — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "Sandbox kullanılmadı — yakın zamanlı önbellek sonucu."
+  },
+  "sbx_state_blocklist": {
+    "message": "Sandbox kullanılmadı — host zaten topluluk bloklistesinde."
+  },
+  "sbx_state_unavailable": {
+    "message": "Sandbox şu anda kullanılamıyor."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "Sandbox bu zinciri henüz analiz edemiyor."
+  },
+  "sbx_state_busy": {
+    "message": "Sandbox şu anda meşgul."
+  },
+  "sbx_queue_btn": {
+    "message": "Sandbox ile tara (sıraya al)"
+  },
+  "sbx_queue_rescan": {
+    "message": "Canlı yeniden tara"
+  },
+  "sbx_queue_waiting": {
+    "message": "Sandbox sırasında — sıra $1, ~$2 sn. Bitince bildiririz."
+  },
+  "sbx_queue_running": {
+    "message": "Sandbox bu sayfayı şimdi tarıyor. Bitince bildiririz."
+  },
+  "sbx_queue_cancel": {
+    "message": "İptal"
+  },
+  "sbx_queue_cancelled": {
+    "message": "Sıradaki tarama iptal edildi."
+  },
+  "sbx_queue_full": {
+    "message": "Sandbox aşırı yüklü — ~$1 sn sonra tekrar deneyin."
+  },
+  "sbx_queue_limit": {
+    "message": "Çok fazla sıradaki tarama — ~$1 sn sonra tekrar deneyin."
+  },
+  "sbx_queue_rate": {
+    "message": "Çok fazla istek — ~$1 sn sonra tekrar deneyin."
+  },
+  "sbx_queue_error": {
+    "message": "Sandbox sırasına ulaşılamadı."
+  },
+  "sbx_notify_title": {
+    "message": "Sandbox taraması tamamlandı"
+  },
+  "sbx_notify_msg": {
+    "message": "$2 için $1"
+  },
   "verdict_suspicious": {
     "message": "Şüpheli"
   },

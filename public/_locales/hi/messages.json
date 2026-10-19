@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "हमने साइट को एक अस्थायी वॉलेट से खोला और देखा कि उसने क्या माँगा।"
   },
+  "sbx_state_used": {
+    "message": "सैंडबॉक्स: लाइव स्कैन — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "सैंडबॉक्स: कतार वाला स्कैन पूरा हुआ — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "सैंडबॉक्स इस्तेमाल नहीं हुआ — हाल का कैश्ड नतीजा।"
+  },
+  "sbx_state_blocklist": {
+    "message": "सैंडबॉक्स इस्तेमाल नहीं हुआ — होस्ट पहले से कम्युनिटी ब्लॉकलिस्ट में है।"
+  },
+  "sbx_state_unavailable": {
+    "message": "सैंडबॉक्स अभी उपलब्ध नहीं है।"
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "सैंडबॉक्स अभी इस चेन का विश्लेषण नहीं कर सकता।"
+  },
+  "sbx_state_busy": {
+    "message": "सैंडबॉक्स अभी व्यस्त है।"
+  },
+  "sbx_queue_btn": {
+    "message": "सैंडबॉक्स से स्कैन करें (कतार में डालें)"
+  },
+  "sbx_queue_rescan": {
+    "message": "लाइव दोबारा स्कैन करें"
+  },
+  "sbx_queue_waiting": {
+    "message": "सैंडबॉक्स कतार में — स्थान $1, ~$2 सेकंड। हम आपको सूचित करेंगे।"
+  },
+  "sbx_queue_running": {
+    "message": "सैंडबॉक्स अभी इस पेज को स्कैन कर रहा है। हम आपको सूचित करेंगे।"
+  },
+  "sbx_queue_cancel": {
+    "message": "रद्द करें"
+  },
+  "sbx_queue_cancelled": {
+    "message": "कतार वाला स्कैन रद्द किया गया।"
+  },
+  "sbx_queue_full": {
+    "message": "सैंडबॉक्स पर अधिक भार है — ~$1 सेकंड बाद फिर कोशिश करें।"
+  },
+  "sbx_queue_limit": {
+    "message": "कतार में बहुत ज़्यादा स्कैन हैं — ~$1 सेकंड बाद फिर कोशिश करें।"
+  },
+  "sbx_queue_rate": {
+    "message": "बहुत ज़्यादा अनुरोध — ~$1 सेकंड बाद फिर कोशिश करें।"
+  },
+  "sbx_queue_error": {
+    "message": "सैंडबॉक्स कतार से संपर्क नहीं हो सका।"
+  },
+  "sbx_notify_title": {
+    "message": "सैंडबॉक्स स्कैन पूरा हुआ"
+  },
+  "sbx_notify_msg": {
+    "message": "$2 के लिए $1"
+  },
   "verdict_suspicious": {
     "message": "संदिग्ध"
   },

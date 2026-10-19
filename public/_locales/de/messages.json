@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "Wir haben die Seite mit einer Wegwerf-Wallet geöffnet und beobachtet, was sie verlangt."
   },
+  "sbx_state_used": {
+    "message": "Sandbox: Live-Scan — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "Sandbox: Scan aus der Warteschlange abgeschlossen — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "Sandbox nicht verwendet — aktuelles Ergebnis aus dem Cache."
+  },
+  "sbx_state_blocklist": {
+    "message": "Sandbox nicht verwendet — Host steht bereits auf der Community-Blockliste."
+  },
+  "sbx_state_unavailable": {
+    "message": "Sandbox ist gerade nicht verfügbar."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "Sandbox kann diese Chain noch nicht analysieren."
+  },
+  "sbx_state_busy": {
+    "message": "Sandbox ist gerade ausgelastet."
+  },
+  "sbx_queue_btn": {
+    "message": "Mit Sandbox scannen (in Warteschlange)"
+  },
+  "sbx_queue_rescan": {
+    "message": "Live erneut scannen"
+  },
+  "sbx_queue_waiting": {
+    "message": "In der Sandbox-Warteschlange — Platz $1, ~$2 s. Wir benachrichtigen dich."
+  },
+  "sbx_queue_running": {
+    "message": "Die Sandbox scannt diese Seite gerade. Wir benachrichtigen dich."
+  },
+  "sbx_queue_cancel": {
+    "message": "Abbrechen"
+  },
+  "sbx_queue_cancelled": {
+    "message": "Scan in der Warteschlange abgebrochen."
+  },
+  "sbx_queue_full": {
+    "message": "Sandbox überlastet — versuche es in ~$1 s erneut."
+  },
+  "sbx_queue_limit": {
+    "message": "Zu viele Scans in der Warteschlange — versuche es in ~$1 s erneut."
+  },
+  "sbx_queue_rate": {
+    "message": "Zu viele Anfragen — versuche es in ~$1 s erneut."
+  },
+  "sbx_queue_error": {
+    "message": "Die Sandbox-Warteschlange ist nicht erreichbar."
+  },
+  "sbx_notify_title": {
+    "message": "Sandbox-Scan abgeschlossen"
+  },
+  "sbx_notify_msg": {
+    "message": "$1 für $2"
+  },
   "verdict_suspicious": {
     "message": "Verdächtig"
   },

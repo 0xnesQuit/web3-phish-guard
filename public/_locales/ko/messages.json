@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "일회용 지갑으로 사이트를 열어 무엇을 요구하는지 관찰했습니다."
   },
+  "sbx_state_used": {
+    "message": "샌드박스: 실시간 스캔 — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "샌드박스: 대기열 스캔 완료 — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "샌드박스 미사용 — 최근 캐시된 결과입니다."
+  },
+  "sbx_state_blocklist": {
+    "message": "샌드박스 미사용 — 호스트가 이미 커뮤니티 차단 목록에 있습니다."
+  },
+  "sbx_state_unavailable": {
+    "message": "샌드박스를 지금은 사용할 수 없습니다."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "샌드박스는 아직 이 체인을 분석할 수 없습니다."
+  },
+  "sbx_state_busy": {
+    "message": "샌드박스가 지금 사용 중입니다."
+  },
+  "sbx_queue_btn": {
+    "message": "샌드박스로 스캔 (대기열에 추가)"
+  },
+  "sbx_queue_rescan": {
+    "message": "실시간 재스캔"
+  },
+  "sbx_queue_waiting": {
+    "message": "샌드박스 대기열 — $1번째, 약 $2초. 완료되면 알려 드립니다."
+  },
+  "sbx_queue_running": {
+    "message": "샌드박스가 지금 이 페이지를 스캔 중입니다. 완료되면 알려 드립니다."
+  },
+  "sbx_queue_cancel": {
+    "message": "취소"
+  },
+  "sbx_queue_cancelled": {
+    "message": "대기열 스캔이 취소되었습니다."
+  },
+  "sbx_queue_full": {
+    "message": "샌드박스가 과부하 상태입니다 — 약 $1초 후 다시 시도하세요."
+  },
+  "sbx_queue_limit": {
+    "message": "대기열에 스캔이 너무 많습니다 — 약 $1초 후 다시 시도하세요."
+  },
+  "sbx_queue_rate": {
+    "message": "요청이 너무 많습니다 — 약 $1초 후 다시 시도하세요."
+  },
+  "sbx_queue_error": {
+    "message": "샌드박스 대기열에 연결할 수 없습니다."
+  },
+  "sbx_notify_title": {
+    "message": "샌드박스 스캔 완료"
+  },
+  "sbx_notify_msg": {
+    "message": "$2: $1"
+  },
   "verdict_suspicious": {
     "message": "의심스러움"
   },

@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "Chúng tôi mở trang bằng ví dùng một lần và xem nó yêu cầu gì."
   },
+  "sbx_state_used": {
+    "message": "Hộp cát: quét trực tiếp — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "Hộp cát: lượt quét trong hàng đợi đã xong — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "Không dùng hộp cát — kết quả đã lưu đệm gần đây."
+  },
+  "sbx_state_blocklist": {
+    "message": "Không dùng hộp cát — máy chủ đã nằm trong danh sách chặn của cộng đồng."
+  },
+  "sbx_state_unavailable": {
+    "message": "Hộp cát hiện không khả dụng."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "Hộp cát chưa thể phân tích chuỗi này."
+  },
+  "sbx_state_busy": {
+    "message": "Hộp cát đang bận."
+  },
+  "sbx_queue_btn": {
+    "message": "Quét bằng hộp cát (xếp hàng)"
+  },
+  "sbx_queue_rescan": {
+    "message": "Quét lại trực tiếp"
+  },
+  "sbx_queue_waiting": {
+    "message": "Trong hàng đợi hộp cát — vị trí $1, ~$2 giây. Chúng tôi sẽ thông báo cho bạn."
+  },
+  "sbx_queue_running": {
+    "message": "Hộp cát đang quét trang này. Chúng tôi sẽ thông báo cho bạn."
+  },
+  "sbx_queue_cancel": {
+    "message": "Hủy"
+  },
+  "sbx_queue_cancelled": {
+    "message": "Đã hủy lượt quét trong hàng đợi."
+  },
+  "sbx_queue_full": {
+    "message": "Hộp cát quá tải — hãy thử lại sau ~$1 giây."
+  },
+  "sbx_queue_limit": {
+    "message": "Quá nhiều lượt quét đang chờ — hãy thử lại sau ~$1 giây."
+  },
+  "sbx_queue_rate": {
+    "message": "Quá nhiều yêu cầu — hãy thử lại sau ~$1 giây."
+  },
+  "sbx_queue_error": {
+    "message": "Không thể kết nối tới hàng đợi hộp cát."
+  },
+  "sbx_notify_title": {
+    "message": "Quét hộp cát hoàn tất"
+  },
+  "sbx_notify_msg": {
+    "message": "$1 cho $2"
+  },
   "verdict_suspicious": {
     "message": "Đáng ngờ"
   },

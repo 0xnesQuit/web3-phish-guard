@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "Kami membuka situs dengan dompet sekali pakai dan mengamati permintaannya."
   },
+  "sbx_state_used": {
+    "message": "Sandbox: pemindaian langsung — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "Sandbox: pemindaian dalam antrean selesai — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "Sandbox tidak digunakan — hasil cache terbaru."
+  },
+  "sbx_state_blocklist": {
+    "message": "Sandbox tidak digunakan — host sudah ada di daftar blokir komunitas."
+  },
+  "sbx_state_unavailable": {
+    "message": "Sandbox sedang tidak tersedia."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "Sandbox belum bisa menganalisis chain ini."
+  },
+  "sbx_state_busy": {
+    "message": "Sandbox sedang sibuk."
+  },
+  "sbx_queue_btn": {
+    "message": "Pindai dengan sandbox (masuk antrean)"
+  },
+  "sbx_queue_rescan": {
+    "message": "Pindai ulang langsung"
+  },
+  "sbx_queue_waiting": {
+    "message": "Dalam antrean sandbox — posisi $1, ~$2 dtk. Kami akan memberi tahu Anda."
+  },
+  "sbx_queue_running": {
+    "message": "Sandbox sedang memindai halaman ini. Kami akan memberi tahu Anda."
+  },
+  "sbx_queue_cancel": {
+    "message": "Batal"
+  },
+  "sbx_queue_cancelled": {
+    "message": "Pemindaian dalam antrean dibatalkan."
+  },
+  "sbx_queue_full": {
+    "message": "Sandbox kelebihan beban — coba lagi dalam ~$1 dtk."
+  },
+  "sbx_queue_limit": {
+    "message": "Terlalu banyak pemindaian dalam antrean — coba lagi dalam ~$1 dtk."
+  },
+  "sbx_queue_rate": {
+    "message": "Terlalu banyak permintaan — coba lagi dalam ~$1 dtk."
+  },
+  "sbx_queue_error": {
+    "message": "Tidak dapat menjangkau antrean sandbox."
+  },
+  "sbx_notify_title": {
+    "message": "Pemindaian sandbox selesai"
+  },
+  "sbx_notify_msg": {
+    "message": "$1 untuk $2"
+  },
   "verdict_suspicious": {
     "message": "Mencurigakan"
   },

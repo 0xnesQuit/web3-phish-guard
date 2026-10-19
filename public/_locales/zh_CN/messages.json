@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "我们用一次性钱包打开该站点并观察它的请求。"
   },
+  "sbx_state_used": {
+    "message": "沙箱：实时扫描 — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "沙箱：排队的扫描已完成 — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "未使用沙箱 — 使用了近期的缓存结果。"
+  },
+  "sbx_state_blocklist": {
+    "message": "未使用沙箱 — 该主机已在社区黑名单中。"
+  },
+  "sbx_state_unavailable": {
+    "message": "沙箱当前不可用。"
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "沙箱暂时无法分析此链。"
+  },
+  "sbx_state_busy": {
+    "message": "沙箱当前繁忙。"
+  },
+  "sbx_queue_btn": {
+    "message": "用沙箱扫描（加入队列）"
+  },
+  "sbx_queue_rescan": {
+    "message": "重新实时扫描"
+  },
+  "sbx_queue_waiting": {
+    "message": "在沙箱队列中 — 第 $1 位，约 $2 秒。完成后会通知你。"
+  },
+  "sbx_queue_running": {
+    "message": "沙箱正在扫描此页面。完成后会通知你。"
+  },
+  "sbx_queue_cancel": {
+    "message": "取消"
+  },
+  "sbx_queue_cancelled": {
+    "message": "已取消排队的扫描。"
+  },
+  "sbx_queue_full": {
+    "message": "沙箱负载过高 — 请约 $1 秒后重试。"
+  },
+  "sbx_queue_limit": {
+    "message": "排队的扫描过多 — 请约 $1 秒后重试。"
+  },
+  "sbx_queue_rate": {
+    "message": "请求过多 — 请约 $1 秒后重试。"
+  },
+  "sbx_queue_error": {
+    "message": "无法连接沙箱队列。"
+  },
+  "sbx_notify_title": {
+    "message": "沙箱扫描完成"
+  },
+  "sbx_notify_msg": {
+    "message": "$2：$1"
+  },
   "verdict_suspicious": {
     "message": "可疑"
   },

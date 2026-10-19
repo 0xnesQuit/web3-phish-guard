@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "Мы открыли сайт с одноразовым кошельком и посмотрели, что он запрашивает."
   },
+  "sbx_state_used": {
+    "message": "Sandbox: сканирование вживую — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "Sandbox: сканирование из очереди завершено — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "Sandbox не использовался — свежий результат из кэша."
+  },
+  "sbx_state_blocklist": {
+    "message": "Sandbox не использовался — хост уже в чёрном списке сообщества."
+  },
+  "sbx_state_unavailable": {
+    "message": "Sandbox сейчас недоступен."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "Sandbox пока не может анализировать этот блокчейн."
+  },
+  "sbx_state_busy": {
+    "message": "Sandbox сейчас занят."
+  },
+  "sbx_queue_btn": {
+    "message": "Сканировать в sandbox (в очередь)"
+  },
+  "sbx_queue_rescan": {
+    "message": "Пересканировать вживую"
+  },
+  "sbx_queue_waiting": {
+    "message": "В очереди sandbox — позиция $1, ~$2 с. Мы уведомим вас."
+  },
+  "sbx_queue_running": {
+    "message": "Sandbox сейчас сканирует эту страницу. Мы уведомим вас."
+  },
+  "sbx_queue_cancel": {
+    "message": "Отмена"
+  },
+  "sbx_queue_cancelled": {
+    "message": "Сканирование в очереди отменено."
+  },
+  "sbx_queue_full": {
+    "message": "Sandbox перегружен — повторите через ~$1 с."
+  },
+  "sbx_queue_limit": {
+    "message": "Слишком много сканирований в очереди — повторите через ~$1 с."
+  },
+  "sbx_queue_rate": {
+    "message": "Слишком много запросов — повторите через ~$1 с."
+  },
+  "sbx_queue_error": {
+    "message": "Не удалось связаться с очередью sandbox."
+  },
+  "sbx_notify_title": {
+    "message": "Сканирование sandbox завершено"
+  },
+  "sbx_notify_msg": {
+    "message": "$1 для $2"
+  },
   "verdict_suspicious": {
     "message": "Подозрительно"
   },

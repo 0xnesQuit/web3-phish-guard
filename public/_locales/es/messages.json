@@ -161,6 +161,63 @@
   "popup_sandbox_sub": {
     "message": "Abrimos el sitio con una billetera desechable y observamos qué pedía."
   },
+  "sbx_state_used": {
+    "message": "Sandbox: análisis en vivo — $1"
+  },
+  "sbx_state_queued_done": {
+    "message": "Sandbox: análisis en cola completado — $1"
+  },
+  "sbx_state_cache_hit": {
+    "message": "Sandbox no usado — resultado reciente en caché."
+  },
+  "sbx_state_blocklist": {
+    "message": "Sandbox no usado — el host ya está en la lista de bloqueo de la comunidad."
+  },
+  "sbx_state_unavailable": {
+    "message": "Sandbox no disponible en este momento."
+  },
+  "sbx_state_chain_unsupported": {
+    "message": "Sandbox aún no puede analizar esta cadena."
+  },
+  "sbx_state_busy": {
+    "message": "Sandbox está ocupado ahora mismo."
+  },
+  "sbx_queue_btn": {
+    "message": "Analizar con sandbox (poner en cola)"
+  },
+  "sbx_queue_rescan": {
+    "message": "Volver a analizar en vivo"
+  },
+  "sbx_queue_waiting": {
+    "message": "En la cola del sandbox — posición $1, ~$2 s. Te avisaremos."
+  },
+  "sbx_queue_running": {
+    "message": "El sandbox está analizando esta página ahora. Te avisaremos."
+  },
+  "sbx_queue_cancel": {
+    "message": "Cancelar"
+  },
+  "sbx_queue_cancelled": {
+    "message": "Análisis en cola cancelado."
+  },
+  "sbx_queue_full": {
+    "message": "Sandbox sobrecargado — inténtalo de nuevo en ~$1 s."
+  },
+  "sbx_queue_limit": {
+    "message": "Demasiados análisis en cola — inténtalo de nuevo en ~$1 s."
+  },
+  "sbx_queue_rate": {
+    "message": "Demasiadas solicitudes — inténtalo de nuevo en ~$1 s."
+  },
+  "sbx_queue_error": {
+    "message": "No se pudo acceder a la cola del sandbox."
+  },
+  "sbx_notify_title": {
+    "message": "Análisis del sandbox completado"
+  },
+  "sbx_notify_msg": {
+    "message": "$1 para $2"
+  },
   "verdict_suspicious": {
     "message": "Sospechoso"
   },
