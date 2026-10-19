@@ -18,7 +18,8 @@
     "brands:nft": "node scripts/build-nft-brands.mjs",
     "brands:cmc": "node scripts/build-cmc-brands.mjs",
     "typecheck": "tsc --noEmit",
-    "data:pull": "node scripts/pull-data.mjs"
+    "data:pull": "node scripts/pull-data.mjs",
+    "drill": "node scripts/drill.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",

@@ -317,6 +317,9 @@
   "sig_popular": {
     "message": "Situs yang banyak dipakai: satu entri daftar tidak cukup untuk memblokir"
   },
+  "sig_drill": {
+    "message": "Mode latihan: skor simulasi (halaman uji lokal)"
+  },
   "sig_display_mismatch": {
     "message": "Alamat yang ditampilkan di X ($1) berbeda dari yang dibuka"
   },

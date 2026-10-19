@@ -317,6 +317,9 @@
   "sig_popular": {
     "message": "Yaygın kullanılan site: tek bir liste kaydı engellemeye yetmez"
   },
+  "sig_drill": {
+    "message": "Tatbikat modu: simüle edilmiş puan (yerel test sayfası)"
+  },
   "sig_display_mismatch": {
     "message": "X'te gösterilen adres ($1) ile açılan adres farklı"
   },

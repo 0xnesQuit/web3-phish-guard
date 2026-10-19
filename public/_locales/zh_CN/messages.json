@@ -317,6 +317,9 @@
   "sig_popular": {
     "message": "广泛使用的网站：单一列表条目不足以拦截"
   },
+  "sig_drill": {
+    "message": "演练模式：模拟分数（本地测试页）"
+  },
   "sig_display_mismatch": {
     "message": "X 上显示的地址（$1）与实际打开的不同"
   },

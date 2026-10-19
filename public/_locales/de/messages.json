@@ -317,6 +317,9 @@
   "sig_popular": {
     "message": "Weit verbreitete Seite: ein einzelner Listeneintrag reicht nicht zum Blockieren"
   },
+  "sig_drill": {
+    "message": "Übungsmodus: simulierte Bewertung (lokale Testseite)"
+  },
   "sig_display_mismatch": {
     "message": "Die auf X angezeigte Adresse ($1) weicht von der geöffneten ab"
   },

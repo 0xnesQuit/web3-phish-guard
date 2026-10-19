@@ -317,6 +317,9 @@
   "sig_popular": {
     "message": "広く使われているサイト：リスト1件だけではブロックしません"
   },
+  "sig_drill": {
+    "message": "訓練モード：模擬スコア（ローカルテストページ）"
+  },
   "sig_display_mismatch": {
     "message": "X に表示されたアドレス（$1）と開いたものが異なる"
   },

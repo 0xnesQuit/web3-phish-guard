@@ -317,6 +317,9 @@
   "sig_popular": {
     "message": "널리 쓰이는 사이트: 목록 항목 하나로는 차단하지 않습니다"
   },
+  "sig_drill": {
+    "message": "훈련 모드: 모의 점수 (로컬 테스트 페이지)"
+  },
   "sig_display_mismatch": {
     "message": "X에 표시된 주소($1)와 열린 주소가 다름"
   },

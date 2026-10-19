@@ -158,7 +158,14 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
   const { brands, lists } = await ensureReady();
   const p = parseHost(url, [...lists.freeHostsStrong, ...lists.freeHostsWeak]);
   if (!p) return null;
-  if (p.host === "localhost" || p.host.endsWith(".localhost")) return null;
+  if (p.host === "localhost" || p.host.endsWith(".localhost") || p.host === "127.0.0.1") {
+    // Drill mode, local pages only: "#w3pg-drill=45" makes the page score 45 so the score-dependent gate can be
+    // exercised against a real wallet without a real phishing site (see test-dapp/).
+    const m = /#w3pg-drill=(\d{1,3})/.exec(url);
+    if (!m) return null;
+    const score = Math.max(0, Math.min(100, Number(m[1])));
+    return { url, host: p.host, registrable: p.registrable, score, band: bandOf(score), signals: [{ id: "drill", weight: score, key: "sig_drill" }], needsAgeCheck: false, at: Date.now() };
+  }
 
   const userAllow = await getUserAllow();
   return score(url, p, {

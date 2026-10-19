@@ -317,6 +317,9 @@
   "sig_popular": {
     "message": "Site muito usado: uma única entrada de lista não basta para bloqueá-lo"
   },
+  "sig_drill": {
+    "message": "Modo de treino: pontuação simulada (página de teste local)"
+  },
   "sig_display_mismatch": {
     "message": "O endereço exibido no X ($1) difere do aberto"
   },
