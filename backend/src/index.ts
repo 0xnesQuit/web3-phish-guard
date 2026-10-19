@@ -30,7 +30,7 @@ import { parseHost } from "../../src/lib/hostname";
 import { mergeBrands, brandsFromTrusted, flattenTrusted, sanitizeBrands } from "../../src/lib/lists";
 import { serverForTld, parseRegistration } from "../../src/lib/rdap";
 import type { Brand, SignalLists, Verdict } from "../../src/lib/types";
-import { W3pgState, type CommunityList } from "./state";
+import { W3pgState, type CommunityList, type QCfg } from "./state";
 export { W3pgState };
 
 export interface Env {
@@ -60,6 +60,12 @@ export interface Env {
   SBX_CACHE_TTL_CLEAN?: string;
   SBX_AUTOLIST_MIN?: string;
   SBX_FETCH_TIMEOUT_MS?: string;
+  /** sandbox job queue (see state.ts); all optional, defaults in qcfg() */
+  SBX_QUEUE_MAX?: string;
+  SBX_THROUGHPUT_PER_MIN?: string;
+  SBX_CONCURRENCY?: string;
+  SBX_AVG_SCAN_SEC?: string;
+  SBX_INSTALL_CONCURRENT?: string;
 }
 
 const MAX_BODY = 80_000;
@@ -583,49 +589,91 @@ async function sandboxFetch(env: Env, url: string): Promise<Record<string, unkno
   return null;
 }
 
+/** Sandbox cache keys. Query and fragment are dropped so trivial URL variants share an entry. */
+function sbxParse(url: string): { host: string; urlKey: string; hostKey: string } | null {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    const host = u.hostname.toLowerCase();
+    if (!host || !host.includes(".") || host === "localhost") return null;
+    return { host, urlKey: `sbx:v1:${host}${u.pathname}`, hostKey: `sbx:v1:host:${host}` };
+  } catch { return null; }
+}
+/** Add the discriminating `state` (a sandbox-reported chainUnsupported wins); every other field passes through untouched. */
+const withState = (report: Record<string, unknown>, st: string, extra: Record<string, unknown> = {}) =>
+  ({ ...report, ...extra, state: report.chainUnsupported === true ? "chain_unsupported" : st });
+
+/** Verdict lookup: the Durable Object first (strongly consistent across colos), then the per-colo Cache API. Never touches admission or the VPS. */
+async function sbxLookup(env: Env, k: { host: string; urlKey: string; hostKey: string }, url: string): Promise<{ state: "cache_hit" | "blocklist"; report: Record<string, unknown> } | null> {
+  const st = state(env);
+  const hit = (await st.getVerdict(k.urlKey)) ?? (await cacheGet<Record<string, unknown>>(k.urlKey));
+  if (hit) return { state: "cache_hit", report: hit };
+  const hostHit = (await st.getHostVerdict(k.host)) ?? (await cacheGet<Record<string, unknown>>(k.hostKey));
+  if (hostHit?.verdict === "malicious") return { state: "blocklist", report: { ok: true, url, host: k.host, score: 100, flags: [], findings: [], requests: [], ...hostHit } };
+  return null;
+}
+
+/** A finished scan, from the fast path or a queued job: strip the raw params, store the verdict by TTL (DO = source of truth,
+ *  Cache = fast secondary; error/unknown never), and auto-list a malicious host. Returns the (sanitised) report. */
+async function storeSandboxResult(env: Env, url: string, host: string, report: Record<string, unknown>, ik: string): Promise<Record<string, unknown>> {
+  // pass the report through, but never echo back the raw captured params (they are large and not needed client-side)
+  if (Array.isArray(report.requests)) report.requests = (report.requests as Array<Record<string, unknown>>).map(({ params, ...rest }) => rest);
+  const k = sbxParse(url);
+  const verdict = str(report.verdict, 20);
+  const sc = num(report.score) ?? 0;
+  const ttl = verdict === "malicious" ? Number(env.SBX_CACHE_TTL_MALICIOUS) || 86400
+    : verdict === "suspicious" ? Number(env.SBX_CACHE_TTL_SUSPICIOUS) || 21600
+    : verdict === "clean" ? Number(env.SBX_CACHE_TTL_CLEAN) || 3600 : 0;
+  if (k && report.ok !== false && ttl > 0) {
+    try { await state(env).putVerdict(k.urlKey, report, ttl); } catch { /* the Cache copy below still serves */ }
+    await cachePut(k.urlKey, report, ttl);
+  }
+  // auto-list (warn-only tier); failures here must never break the scan response
+  if (report.ok !== false && (verdict === "malicious" || sc >= (Number(env.SBX_AUTOLIST_MIN) || 70))) {
+    try { await sandboxAutoList(env, url, host, report, sc, ik); } catch { /* best effort */ }
+  }
+  return report;
+}
+
 /**
- * /v1/sandbox flow (order matters):
- *  1. cache: `sbx:v1:<host><path>` hit -> return it (cached:true), no admission, no VPS. Then the coarse
- *     `sbx:v1:host:<host>` key: a host already judged malicious short-circuits any path on it.
- *  2. single-flight: the Durable Object hands out a per-URL lock (beginScan). Followers poll the cache (<=45s) for the
- *     leader's result instead of scanning; if none appears they get {ok:false, reason:"busy"}. The lock self-expires (60s).
+ * /v1/sandbox flow (order matters). Every response carries `state`: cache_hit | blocklist | fresh | coalesced | busy |
+ * unreachable | disabled | chain_unsupported (additive; `cached` kept for older clients).
+ *  1. verdict store: DO first (consistent across colos), then Cache API. `sbx:v1:<host><path>` hit -> cache_hit; else a
+ *     malicious `sbx:v1:host:<host>` -> blocklist. No admission, no VPS.
+ *  2. single-flight: the Durable Object hands out a per-URL lock (beginScan). Followers poll the verdict store (<=45s) for the
+ *     leader's result (coalesced); if none appears they get {ok:false, reason:"busy"}. The lock self-expires (60s).
  *  3. admission (per-IP/host/global budget) runs only for the leader, i.e. only for a genuinely new scan.
- *  4. the leader scans via the backend pool (round-robin, failover), caches the report by verdict TTL
- *     (malicious 24h / suspicious 6h / clean 1h / error+unknown never), and releases the lock in a finally.
- *  5. malicious (or score >= SBX_AUTOLIST_MIN) -> host goes to the community "auto" tier (warn-only, moderated; never a
- *     hard block) through the same updateCommunity/enqueueReport helpers as the AI auto-list, plus the host cache key.
+ *  4. the leader scans via the backend pool (round-robin, failover), storeSandboxResult() caches by verdict TTL
+ *     (malicious 24h / suspicious 6h / clean 1h / error+unknown never) and auto-lists; the lock is released in a finally.
+ *  Busy callers can instead POST /v1/sandbox/queue (below).
  */
 async function handleSandbox(req: Request, env: Env): Promise<Response> {
   if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
-  if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) return json({ error: "sandbox_disabled" }, 503);
+  if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) return json({ error: "sandbox_disabled", state: "disabled" }, 503);
   const text = await req.text();
   if (text.length > 4000) return json({ error: "payload_too_large" }, 413);
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { return json({ error: "bad_json" }, 400); }
   const url = str((raw as Record<string, unknown>).url, 2048);
-  let host = "", path = "";
-  try { const u = new URL(url); if (u.protocol !== "http:" && u.protocol !== "https:") throw 0; host = u.hostname.toLowerCase(); path = u.pathname; } catch { return json({ error: "bad_url" }, 400); }
-  if (!host || !host.includes(".") || host === "localhost") return json({ error: "bad_url" }, 400);
+  const k = sbxParse(url);
+  if (!k) return json({ error: "bad_url" }, 400);
+  const host = k.host;
 
-  // 1. cache (query and fragment dropped so trivial variants share an entry)
-  const urlKey = `sbx:v1:${host}${path}`;
-  const hostKey = `sbx:v1:host:${host}`;
-  const hit = await cacheGet<Record<string, unknown>>(urlKey);
-  if (hit) return json({ ...hit, cached: true });
-  const hostHit = await cacheGet<Record<string, unknown>>(hostKey);
-  if (hostHit?.verdict === "malicious") return json({ ok: true, url, host, score: 100, flags: [], findings: [], requests: [], ...hostHit, cached: true });
+  // 1. verdict store
+  const known = await sbxLookup(env, k, url);
+  if (known) return json(withState(known.report, known.state, { cached: true }));
 
   // 2. single-flight (hashed: DO storage keys are length-limited)
-  const lockKey = await sha256(urlKey);
+  const lockKey = await sha256(k.urlKey);
   const st = state(env);
   const { leader } = await st.beginScan(lockKey, 60);
   if (!leader) {
     for (let waited = 0; waited < 45_000; waited += 1500) {
       await new Promise((r) => setTimeout(r, 1500));
-      const done = await cacheGet<Record<string, unknown>>(urlKey);
-      if (done) return json({ ...done, cached: true });
+      const done = (await st.getVerdict(k.urlKey)) ?? (await cacheGet<Record<string, unknown>>(k.urlKey));
+      if (done) return json(withState(done, "coalesced", { cached: true }));
     }
-    return json({ ok: false, reason: "busy" }, 503);
+    return json({ ok: false, reason: "busy", state: "busy" }, 503);
   }
 
   try {
@@ -643,25 +691,98 @@ async function handleSandbox(req: Request, env: Env): Promise<Response> {
 
     // 4. scan via the backend pool
     const report = await sandboxFetch(env, url);
-    if (!report) return json({ error: "sandbox_unreachable" }, 502);
-    // pass the report through, but never echo back the raw captured params (they are large and not needed client-side)
-    if (Array.isArray(report.requests)) report.requests = (report.requests as Array<Record<string, unknown>>).map(({ params, ...rest }) => rest);
-
-    const verdict = str(report.verdict, 20);
-    const sc = num(report.score) ?? 0;
-    const ttl = verdict === "malicious" ? Number(env.SBX_CACHE_TTL_MALICIOUS) || 86400
-      : verdict === "suspicious" ? Number(env.SBX_CACHE_TTL_SUSPICIOUS) || 21600
-      : verdict === "clean" ? Number(env.SBX_CACHE_TTL_CLEAN) || 3600 : 0;
-    if (report.ok !== false && ttl > 0) await cachePut(urlKey, report, ttl);
-
-    // 5. auto-list (warn-only tier); failures here must never break the scan response
-    if (report.ok !== false && (verdict === "malicious" || sc >= (Number(env.SBX_AUTOLIST_MIN) || 70))) {
-      try { await sandboxAutoList(env, url, host, report, sc, ik); } catch { /* best effort */ }
-    }
-    return json(report);
+    if (!report) return json({ error: "sandbox_unreachable", state: "unreachable" }, 502);
+    return json(withState(await storeSandboxResult(env, url, host, report, ik), "fresh"));
   } finally {
     await st.endScan(lockKey).catch(() => {});
   }
+}
+
+// ---------------------------------------------------------------------------
+// /v1/sandbox/queue, /v1/sandbox/job, /v1/sandbox/job/cancel  -> "Queue it" when the sandbox is busy.
+// The Durable Object owns the FIFO (state.ts). Dispatch needs no worker: enqueue/poll get a `dispatch` directive back when a
+// slot is free and run the scan inline here, then completeJob(); jobId = sha256(url key) so identical URLs share one job.
+// ---------------------------------------------------------------------------
+const qcfg = (env: Env): QCfg => ({
+  max: Math.min(36, Number(env.SBX_QUEUE_MAX) || 18), throughput: Number(env.SBX_THROUGHPUT_PER_MIN) || 18,
+  concurrency: Number(env.SBX_CONCURRENCY) || 6, avgSec: Number(env.SBX_AVG_SCAN_SEC) || 20, installConc: Number(env.SBX_INSTALL_CONCURRENT) || 3,
+});
+/** Opaque client install id (8-64 alnum/dash), stored only as a hash; absent -> the daily IP hash. Never logged. */
+async function sbxInstall(req: Request, env: Env, v: unknown): Promise<string | null> {
+  const id = str(v, 80);
+  if (id && !/^[A-Za-z0-9-]{8,64}$/.test(id)) return null;
+  const seed = id || "ip|" + (await ipKey(req, env));
+  return (await sha256("iid|" + seed)).slice(0, 24);
+}
+async function sbxBody(req: Request): Promise<Record<string, unknown> | Response> {
+  const text = await req.text();
+  if (text.length > 4000) return json({ error: "payload_too_large" }, 413);
+  try { const b = JSON.parse(text); if (b && typeof b === "object") return b as Record<string, unknown>; } catch { /* below */ }
+  return json({ error: "bad_json" }, 400);
+}
+/** Run a leased job inline and store its outcome; budgets (host/global) still apply, the per-IP one does not (the leader is not the owner). */
+async function runDispatch(env: Env, d: { jobId: string; url: string }, ik: string): Promise<void> {
+  const st = state(env);
+  let out: Record<string, unknown>;
+  try {
+    const host = sbxParse(d.url)?.host ?? "";
+    const g = Number(env.SANDBOX_GLOBAL_PER_DAY) || 2000;
+    const adm = await st.admitScan({ ip: "sbq", host: await sha256(`sb:${host}`), ipLimit: g, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: g, cooldownSec: 1 });
+    if (!adm.ok) out = { ok: false, error: adm.error };
+    else {
+      const report = await sandboxFetch(env, d.url);
+      out = report ? withState(await storeSandboxResult(env, d.url, host, report, ik), "fresh") : { ok: false, reason: "unreachable", state: "unreachable" };
+    }
+  } catch { out = { ok: false, reason: "unreachable", state: "unreachable" }; }
+  await st.completeJob(d.jobId, out).catch(() => {});
+}
+/** Run a `dispatch` directive if the DO returned one, re-read the job (without leasing again), and drop the directive from the reply. */
+async function settleJob(env: Env, ik: string, jobId: string, r: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const d = r.dispatch as { jobId: string; url: string } | undefined;
+  if (d) { await runDispatch(env, d, ik); r = (await state(env).getJob(jobId, qcfg(env), false)) as Record<string, unknown>; }
+  const { dispatch, ...pub } = r;
+  return pub;
+}
+
+async function handleQueue(req: Request, env: Env): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  if (!env.SANDBOX_URL || !env.SANDBOX_TOKEN) return json({ error: "sandbox_disabled", state: "disabled" }, 503);
+  const b = await sbxBody(req);
+  if (b instanceof Response) return b;
+  const url = str(b.url, 2048);
+  const k = sbxParse(url);
+  if (!k) return json({ error: "bad_url" }, 400);
+  const iid = await sbxInstall(req, env, b.installId);
+  if (!iid) return json({ error: "bad_install_id" }, 400);
+  // never queue what is already known
+  const known = await sbxLookup(env, k, url);
+  if (known) return json({ state: known.state, report: withState(known.report, known.state, { cached: true }) });
+  const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+  const ip64 = ipRaw.includes(":") ? ipRaw.split(":").slice(0, 4).join(":") + "::/64" : ipRaw;
+  if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `q:${ip64}` })).success) return json({ state: "queue_full", reason: "rate_limited", retryAfter: 20 }, 429, { "retry-after": "20" });
+  const jobId = await sha256(k.urlKey);
+  const r = (await state(env).enqueueJob({ jobId, url, host: k.host, installId: iid, cfg: qcfg(env) })) as Record<string, unknown>;
+  if (r.state === "queue_full") return json(r, 429, { "retry-after": String(r.retryAfter ?? 20) });
+  return json({ jobId, ...(await settleJob(env, await ipKey(req, env), jobId, r)) });
+}
+
+async function handleJob(req: Request, env: Env): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  const id = new URL(req.url).searchParams.get("id") ?? "";
+  if (!/^[a-f0-9]{64}$/.test(id)) return json({ error: "bad_id" }, 400);
+  const r = (await state(env).getJob(id, qcfg(env))) as Record<string, unknown>;
+  return json(await settleJob(env, await ipKey(req, env), id, r));
+}
+
+async function handleJobCancel(req: Request, env: Env): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  const b = await sbxBody(req);
+  if (b instanceof Response) return b;
+  const id = str(b.jobId, 80);
+  const iid = await sbxInstall(req, env, b.installId);
+  if (!iid || !/^[a-f0-9]{64}$/.test(id)) return json({ error: "bad_request" }, 400);
+  await state(env).cancelJob(id, iid, qcfg(env).installConc);
+  return json({ ok: true });
 }
 
 /** Mirror of the AI auto-list: community "auto" tier + a moderation-queue entry, deduped, never for trusted/never-block domains. */
@@ -673,7 +794,10 @@ async function sandboxAutoList(env: Env, url: string, host: string, report: Reco
   if (!listEntry || (await neverBlock(env, listEntry, data))) return;
   const findings = strArr(report.findings, 3, 120).join("; ").slice(0, 300);
   // the host key lets any other path on this host short-circuit without a VPS hit
-  await cachePut(`sbx:v1:host:${host}`, { verdict: "malicious", score: sc, flags: strArr(report.flags, 30, 100), findings: strArr(report.findings, 6, 200) }, Number(env.SBX_CACHE_TTL_MALICIOUS) || 86400);
+  const hostData = { verdict: "malicious", score: sc, flags: strArr(report.flags, 30, 100), findings: strArr(report.findings, 6, 200) };
+  const hostTtl = Number(env.SBX_CACHE_TTL_MALICIOUS) || 86400;
+  await state(env).putHostVerdict(host, hostData, hostTtl); // authoritative; the Cache copy below is the per-colo fast path
+  await cachePut(`sbx:v1:host:${host}`, hostData, hostTtl);
   const list = await communityList(env);
   if (list.domains.includes(listEntry) || list.auto.includes(listEntry)) return;
   await updateCommunity(env, (l) => { if (!l.domains.includes(listEntry) && !l.auto.includes(listEntry)) l.auto.push(listEntry); });
@@ -1036,6 +1160,9 @@ export default {
     };
     if (req.method === "POST" && url.pathname === "/v1/scan") return wrap(() => handleScan(req, env));
     if (req.method === "POST" && url.pathname === "/v1/sandbox") return wrap(() => handleSandbox(req, env));
+    if (req.method === "POST" && url.pathname === "/v1/sandbox/queue") return wrap(() => handleQueue(req, env));
+    if (req.method === "GET" && url.pathname === "/v1/sandbox/job") return wrap(() => handleJob(req, env));
+    if (req.method === "POST" && url.pathname === "/v1/sandbox/job/cancel") return wrap(() => handleJobCancel(req, env));
     if (req.method === "POST" && url.pathname === "/v1/report") return wrap(() => handleReport(req, env));
     if (req.method === "GET" && url.pathname === "/v1/x/brand") return wrap(() => handleX(req, env, "brand"));
     if (req.method === "GET" && url.pathname === "/v1/x/user") return wrap(() => handleX(req, env, "user"));

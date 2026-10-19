@@ -35,6 +35,12 @@ SBX_CACHE_TTL_SUSPICIOUS = "21600"
 SBX_CACHE_TTL_CLEAN = "3600"
 SBX_AUTOLIST_MIN = "70"          # sandbox score at/above which the host is auto-listed (warn-only "auto" tier)
 SBX_FETCH_TIMEOUT_MS = "40000"   # per-backend attempt
+# Sandbox job queue (/v1/sandbox/queue): depth cap (hard ceiling 36), drain rate/min, parallel scans, avg scan secs, queued jobs per install
+SBX_QUEUE_MAX = "18"
+SBX_THROUGHPUT_PER_MIN = "18"
+SBX_CONCURRENCY = "6"
+SBX_AVG_SCAN_SEC = "20"
+SBX_INSTALL_CONCURRENT = "3"
 MODEL = "claude-haiku-5-5"
 LISTS_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data"
 
