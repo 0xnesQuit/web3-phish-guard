@@ -130,7 +130,7 @@ export interface DeepReport {
   markers: string[];
   goplus?: { phishing?: boolean };
   ai: { verdict?: string; confidence?: number; summary?: string; reasons?: string[]; advice?: string[]; impersonates?: string; model?: string; cached?: boolean; error?: string; goplus?: { phishing?: boolean } };
-  /** server-side sandbox result: the page was opened with a throw-away wallet and watched. Absent when disabled/unreachable. */
+  /** server-side sandbox result: the page was opened with a throw-away wallet and watched. Carries a state; ok:false when it did not run. */
   sandbox?: SandboxReport;
 }
 
@@ -147,6 +147,10 @@ export interface SandboxReport {
   badHosts?: string[];
   seedForm?: boolean;
   durationMs?: number;
+  /** server state: cache_hit | blocklist | fresh | coalesced | busy | unreachable | disabled | chain_unsupported (client adds queued_done) */
+  state?: string;
+  /** a queued scan in progress (popup state) */
+  queued?: { jobId: string; position?: number; etaSeconds?: number };
 }
 
 export interface ProviderEvent {

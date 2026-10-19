@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 const S = {
   // ---- extension ----
   ext_name: {
-    en: "Web3 Phish Guard", tr: "Web3 Phish Guard", de: "Web3 Phish Guard", es: "Web3 Phish Guard", fr: "Web3 Phish Guard", pt_BR: "Web3 Phish Guard", ru: "Web3 Phish Guard", hi: "Web3 Phish Guard", zh_CN: "Web3 Phish Guard", ja: "Web3 Phish Guard", ko: "Web3 Phish Guard", vi: "Web3 Phish Guard", id: "Web3 Phish Guard",
+    en: "Guard3", tr: "Guard3", de: "Guard3", es: "Guard3", fr: "Guard3", pt_BR: "Guard3", ru: "Guard3", hi: "Guard3", zh_CN: "Guard3", ja: "Guard3", ko: "Guard3", vi: "Guard3", id: "Guard3",
   },
   ext_description: {
     en: "Instant warnings on fake NFT mint and airdrop claim pages, and a check before risky wallet requests.",
@@ -82,7 +82,7 @@ const S = {
 
   // ---- overlay / badges ----
   overlay_title: {
-    en: "Web3 Phish Guard: this site looks suspicious (risk $1/100)", tr: "Web3 Phish Guard: bu site şüpheli görünüyor (risk $1/100)", de: "Web3 Phish Guard: Diese Seite wirkt verdächtig (Risiko $1/100)", es: "Web3 Phish Guard: este sitio parece sospechoso (riesgo $1/100)", fr: "Web3 Phish Guard : ce site semble suspect (risque $1/100)", pt_BR: "Web3 Phish Guard: este site parece suspeito (risco $1/100)", ru: "Web3 Phish Guard: сайт выглядит подозрительно (риск $1/100)", hi: "Web3 Phish Guard: यह साइट संदिग्ध लगती है (जोखिम $1/100)", zh_CN: "Web3 Phish Guard：此网站看起来可疑（风险 $1/100）", ja: "Web3 Phish Guard：このサイトは疑わしいです（リスク $1/100）", ko: "Web3 Phish Guard: 이 사이트는 의심스럽습니다 (위험 $1/100)", vi: "Web3 Phish Guard: trang này có vẻ đáng ngờ (rủi ro $1/100)", id: "Web3 Phish Guard: situs ini terlihat mencurigakan (risiko $1/100)",
+    en: "Guard3: this site looks suspicious (risk $1/100)", tr: "Guard3: bu site şüpheli görünüyor (risk $1/100)", de: "Guard3: Diese Seite wirkt verdächtig (Risiko $1/100)", es: "Guard3: este sitio parece sospechoso (riesgo $1/100)", fr: "Guard3 : ce site semble suspect (risque $1/100)", pt_BR: "Guard3: este site parece suspeito (risco $1/100)", ru: "Guard3: сайт выглядит подозрительно (риск $1/100)", hi: "Guard3: यह साइट संदिग्ध लगती है (जोखिम $1/100)", zh_CN: "Guard3：此网站看起来可疑（风险 $1/100）", ja: "Guard3：このサイトは疑わしいです（リスク $1/100）", ko: "Guard3: 이 사이트는 의심스럽습니다 (위험 $1/100)", vi: "Guard3: trang này có vẻ đáng ngờ (rủi ro $1/100)", id: "Guard3: situs ini terlihat mencurigakan (risiko $1/100)",
   },
   overlay_short: { en: "This site looks suspicious", tr: "Bu site şüpheli görünüyor", de: "Diese Seite wirkt verdächtig", es: "Este sitio parece sospechoso", fr: "Ce site semble suspect", pt_BR: "Este site parece suspeito", ru: "Этот сайт выглядит подозрительно", hi: "यह साइट संदिग्ध लगती है", zh_CN: "此网站看起来可疑", ja: "このサイトは疑わしく見えます", ko: "이 사이트는 의심스러워 보입니다", vi: "Trang này trông đáng ngờ", id: "Situs ini tampak mencurigakan" },
   overlay_hint: {
@@ -91,7 +91,7 @@ const S = {
   overlay_close: { en: "Close", tr: "Kapat", de: "Schließen", es: "Cerrar", fr: "Fermer", pt_BR: "Fechar", ru: "Закрыть", hi: "बंद करें", zh_CN: "关闭", ja: "閉じる", ko: "닫기", vi: "Đóng", id: "Tutup" },
   badge_block: { en: "⛔ scam?", tr: "⛔ scam?", de: "⛔ Betrug?", es: "⛔ ¿estafa?", fr: "⛔ arnaque ?", pt_BR: "⛔ golpe?", ru: "⛔ скам?", hi: "⛔ धोखा?", zh_CN: "⛔ 诈骗?", ja: "⛔ 詐欺?", ko: "⛔ 사기?", vi: "⛔ lừa đảo?", id: "⛔ penipuan?" },
   badge_suspicious: { en: "⚠️ suspicious", tr: "⚠️ şüpheli", de: "⚠️ verdächtig", es: "⚠️ sospechoso", fr: "⚠️ suspect", pt_BR: "⚠️ suspeito", ru: "⚠️ подозрительно", hi: "⚠️ संदिग्ध", zh_CN: "⚠️ 可疑", ja: "⚠️ 疑わしい", ko: "⚠️ 의심", vi: "⚠️ đáng ngờ", id: "⚠️ mencurigakan" },
-  badge_tooltip: { en: "Web3 Phish Guard · $1 · risk $2/100", tr: "Web3 Phish Guard · $1 · risk puanı $2/100", de: "Web3 Phish Guard · $1 · Risiko $2/100", es: "Web3 Phish Guard · $1 · riesgo $2/100", fr: "Web3 Phish Guard · $1 · risque $2/100", pt_BR: "Web3 Phish Guard · $1 · risco $2/100", ru: "Web3 Phish Guard · $1 · риск $2/100", hi: "Web3 Phish Guard · $1 · जोखिम $2/100", zh_CN: "Web3 Phish Guard · $1 · 风险 $2/100", ja: "Web3 Phish Guard · $1 · リスク $2/100", ko: "Web3 Phish Guard · $1 · 위험 $2/100", vi: "Web3 Phish Guard · $1 · rủi ro $2/100", id: "Web3 Phish Guard · $1 · risiko $2/100" },
+  badge_tooltip: { en: "Guard3 · $1 · risk $2/100", tr: "Guard3 · $1 · risk puanı $2/100", de: "Guard3 · $1 · Risiko $2/100", es: "Guard3 · $1 · riesgo $2/100", fr: "Guard3 · $1 · risque $2/100", pt_BR: "Guard3 · $1 · risco $2/100", ru: "Guard3 · $1 · риск $2/100", hi: "Guard3 · $1 · जोखिम $2/100", zh_CN: "Guard3 · $1 · 风险 $2/100", ja: "Guard3 · $1 · リスク $2/100", ko: "Guard3 · $1 · 위험 $2/100", vi: "Guard3 · $1 · rủi ro $2/100", id: "Guard3 · $1 · risiko $2/100" },
 
   popup_options: { en: "Settings", tr: "Ayarlar", de: "Einstellungen", es: "Ajustes", fr: "Paramètres", pt_BR: "Configurações", ru: "Настройки", hi: "सेटिंग्स", zh_CN: "设置", ja: "設定", ko: "설정", vi: "Cài đặt", id: "Pengaturan" },
 
@@ -146,7 +146,7 @@ const S = {
   opt_api_base: { en: "Server URL", tr: "Sunucu adresi", de: "Server-URL", es: "URL del servidor", fr: "URL du serveur", pt_BR: "URL do servidor", ru: "Адрес сервера", hi: "सर्वर URL", zh_CN: "服务器地址", ja: "サーバー URL", ko: "서버 URL", vi: "URL máy chủ", id: "URL server" },
 
   // ---- options page ----
-  opt_title: { en: "Web3 Phish Guard settings", tr: "Web3 Phish Guard ayarları", de: "Web3 Phish Guard Einstellungen", es: "Ajustes de Web3 Phish Guard", fr: "Paramètres de Web3 Phish Guard", pt_BR: "Configurações do Web3 Phish Guard", ru: "Настройки Web3 Phish Guard", hi: "Web3 Phish Guard सेटिंग्स", zh_CN: "Web3 Phish Guard 设置", ja: "Web3 Phish Guard の設定", ko: "Web3 Phish Guard 설정", vi: "Cài đặt Web3 Phish Guard", id: "Pengaturan Web3 Phish Guard" },
+  opt_title: { en: "Guard3 settings", tr: "Guard3 ayarları", de: "Guard3 Einstellungen", es: "Ajustes de Guard3", fr: "Paramètres de Guard3", pt_BR: "Configurações do Guard3", ru: "Настройки Guard3", hi: "Guard3 सेटिंग्स", zh_CN: "Guard3 设置", ja: "Guard3 の設定", ko: "Guard3 설정", vi: "Cài đặt Guard3", id: "Pengaturan Guard3" },
   opt_x_heading: { en: "X (Twitter) verification via Xquik", tr: "Xquik ile X (Twitter) doğrulaması", de: "X-(Twitter-)Prüfung über Xquik", es: "Verificación de X (Twitter) mediante Xquik", fr: "Vérification X (Twitter) via Xquik", pt_BR: "Verificação no X (Twitter) via Xquik", ru: "Проверка через X (Twitter) с помощью Xquik", hi: "Xquik द्वारा X (Twitter) सत्यापन", zh_CN: "通过 Xquik 进行 X（Twitter）验证", ja: "Xquik による X（Twitter）検証", ko: "Xquik을 통한 X(Twitter) 검증", vi: "Xác minh X (Twitter) qua Xquik", id: "Verifikasi X (Twitter) melalui Xquik" },
   opt_x_help: {
     en: "Optional. With an Xquik API key (xquik.com) the extension looks up the project's official X account for a suspicious domain and the account that shared the link. Only the project name or handle is sent, never the page you visit. Roughly 20 credits per new project name, cached for 7 days.",

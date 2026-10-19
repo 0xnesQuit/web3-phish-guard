@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "Sofortige Warnungen bei gefälschten NFT-Mint- und Airdrop-Claim-Seiten."
@@ -69,7 +69,7 @@
     "message": "vertraut"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard: Diese Seite wirkt verdächtig (Risiko $1/100)"
+    "message": "Guard3: Diese Seite wirkt verdächtig (Risiko $1/100)"
   },
   "overlay_short": {
     "message": "Diese Seite wirkt verdächtig"
@@ -87,7 +87,7 @@
     "message": "⚠️ verdächtig"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · Risiko $2/100"
+    "message": "Guard3 · $1 · Risiko $2/100"
   },
   "popup_options": {
     "message": "Einstellungen"
@@ -198,7 +198,7 @@
     "message": "Server-URL"
   },
   "opt_title": {
-    "message": "Web3 Phish Guard Einstellungen"
+    "message": "Guard3 Einstellungen"
   },
   "opt_x_heading": {
     "message": "X-(Twitter-)Prüfung über Xquik"

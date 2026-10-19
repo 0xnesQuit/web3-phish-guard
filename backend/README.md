@@ -1,4 +1,4 @@
-# Web3 Phish Guard API (Cloudflare Worker)
+# Guard3 API (Cloudflare Worker)
 
 Uzantının "Derin tara" ve "Bu siteyi bildir" özelliklerinin arkasındaki küçük sunucu. AI anahtarı yalnızca burada, Worker secret'ı olarak durur.
 

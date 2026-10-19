@@ -95,7 +95,8 @@ export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { 
  * do to a wallet. The sandbox's URL and token live in the Worker, never here. Slow (up to ~40 s); the caller runs
  * it in parallel with the AI scan and tolerates its absence.
  */
-export async function askSandbox(url: string): Promise<SandboxReport | undefined> {
+export async function askSandbox(url: string): Promise<SandboxReport> {
+  const synth = (state: string): SandboxReport => ({ ok: false, score: 0, verdict: "unknown", flags: [], findings: [], state });
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 43_000);
   try {
@@ -106,12 +107,17 @@ export async function askSandbox(url: string): Promise<SandboxReport | undefined
       signal: ctrl.signal,
     });
     clearTimeout(t);
-    if (!res.ok) return undefined; // disabled (503), rate-limited (429) or unreachable: silently skip
-    const r = (await res.json()) as SandboxReport & { error?: string };
-    return r && typeof r.score === "number" ? r : undefined;
+    const r = (await res.json().catch(() => ({}))) as Partial<SandboxReport> & { reason?: string };
+    if (!res.ok) {
+      // busy (503), unreachable (502), disabled (503), rate-limited (429): keep the reason so the popup can explain it
+      const st = typeof r.state === "string" ? r.state : res.status === 429 || r.reason === "busy" ? "busy" : res.status === 502 ? "unreachable" : "disabled";
+      return synth(st);
+    }
+    if (typeof r.score === "number") return { ...(r as SandboxReport), ok: r.ok !== false, state: r.state ?? "fresh" };
+    return synth(typeof r.state === "string" ? r.state : "unreachable");
   } catch {
     clearTimeout(t);
-    return undefined;
+    return synth("unreachable");
   }
 }
 

@@ -128,7 +128,7 @@ export {};
       send({ type: "inspect", id, method, params, chain, hadGesture: hadGesture(), msSinceLoad: now() - loadedAt });
     });
   }
-  const rejected = () => { const err = new Error("User rejected the request (Web3 Phish Guard)."); (err as unknown as { code: number }).code = 4001; return err; };
+  const rejected = () => { const err = new Error("User rejected the request (Guard3)."); (err as unknown as { code: number }).code = 4001; return err; };
 
   // ---- read-only RPC relay on behalf of the bridge ----
   // Only these methods are ever forwarded; anything else is answered with null without touching the provider.

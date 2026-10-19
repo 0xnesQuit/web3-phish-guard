@@ -1,4 +1,4 @@
-# Web3 Phish Guard
+# Guard3
 
 Chrome / Brave (Manifest V3) uzantısı. Sahte NFT mint ve airdrop "claim / checker" sayfalarını, MetaMask gibi blocklist'lere girmeden önce yerel sezgisellerle yakalayıp uyarır.
 

@@ -1,4 +1,4 @@
-# Web3 Phish Guard — analysis sandbox
+# Guard3 — analysis sandbox
 
 A small server that opens a suspicious page in a throw-away headless browser, records every request the page
 makes to a wallet, simulates the transaction-shaped ones, and returns a verdict. It is the server-side version of

@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "नकली NFT मिंट और एयरड्रॉप क्लेम पेजों पर तुरंत चेतावनी, और जोखिम भरे वॉलेट अनुरोधों से पहले जाँच।"
@@ -69,7 +69,7 @@
     "message": "विश्वसनीय"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard: यह साइट संदिग्ध लगती है (जोखिम $1/100)"
+    "message": "Guard3: यह साइट संदिग्ध लगती है (जोखिम $1/100)"
   },
   "overlay_short": {
     "message": "यह साइट संदिग्ध लगती है"
@@ -87,7 +87,7 @@
     "message": "⚠️ संदिग्ध"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · जोखिम $2/100"
+    "message": "Guard3 · $1 · जोखिम $2/100"
   },
   "popup_options": {
     "message": "सेटिंग्स"
@@ -198,7 +198,7 @@
     "message": "सर्वर URL"
   },
   "opt_title": {
-    "message": "Web3 Phish Guard सेटिंग्स"
+    "message": "Guard3 सेटिंग्स"
   },
   "opt_x_heading": {
     "message": "Xquik द्वारा X (Twitter) सत्यापन"

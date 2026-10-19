@@ -27,7 +27,7 @@ export const SOURCES: ListSource[] = [
   // PhishDestroy DestroyList: crypto-focused, keyless, raw JSON
   // GitHub mirror of the GitLab original: GitLab's raw endpoint answers without CORS headers and the fetch failed
   { id: "phishdestroy", url: "https://raw.githubusercontent.com/phishdestroy/destroylist/main/dns/active_domains.json", kind: "blocklist", every: 60 * 6, tail: 0 },
-  // Community reports approved by the Web3 Phish Guard moderators (published daily to the lists repo, signed)
+  // Community reports approved by the Guard3 moderators (published daily to the lists repo, signed)
   { id: "community", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6, tail: 10_000 },
   // same file, the AI-confirmed "auto" set (warn-only, never a network block)
   { id: "community-auto", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6, tail: 0 },

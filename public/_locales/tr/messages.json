@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "Sahte NFT mint ve airdrop claim sayfalarına karşı anlık uyarı ve riskli cüzdan isteklerinden önce kontrol."
@@ -69,7 +69,7 @@
     "message": "güvenilir"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard: bu site şüpheli görünüyor (risk $1/100)"
+    "message": "Guard3: bu site şüpheli görünüyor (risk $1/100)"
   },
   "overlay_short": {
     "message": "Bu site şüpheli görünüyor"
@@ -87,7 +87,7 @@
     "message": "⚠️ şüpheli"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · risk puanı $2/100"
+    "message": "Guard3 · $1 · risk puanı $2/100"
   },
   "popup_options": {
     "message": "Ayarlar"
@@ -198,7 +198,7 @@
     "message": "Sunucu adresi"
   },
   "opt_title": {
-    "message": "Web3 Phish Guard ayarları"
+    "message": "Guard3 ayarları"
   },
   "opt_x_heading": {
     "message": "Xquik ile X (Twitter) doğrulaması"

@@ -1,5 +1,5 @@
 /**
- * Web3 Phish Guard API (Cloudflare Worker)
+ * Guard3 API (Cloudflare Worker)
  *
  *  POST /v1/scan        deep-scan verdict from Claude for a structured page snapshot
  *  POST /v1/report      user report of a suspicious site -> moderation queue
@@ -920,7 +920,7 @@ pre{text-align:left;background:#0c111d;border:1px solid #1e283f;border-radius:10
   <button id="claim">Claim airdrop</button>
   <p class="note">Connect your wallet to verify eligibility and claim your allocation.</p>
   <pre id="log" hidden></pre>
-  <div class="warn">Test fixture for Web3 Phish Guard. Harmless: spender is 0x&#8230;dEaD, nothing can move.</div>
+  <div class="warn">Test fixture for Guard3. Harmless: spender is 0x&#8230;dEaD, nothing can move.</div>
 </div>
 <script>
 (function(){

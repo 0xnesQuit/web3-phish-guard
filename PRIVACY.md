@@ -1,8 +1,8 @@
-# Web3 Phish Guard – Privacy Policy
+# Guard3 – Privacy Policy
 
 _Last updated: 2026-10-19_
 
-Web3 Phish Guard is a browser extension that warns you when a page looks like a crypto phishing site (fake NFT mints, fake airdrop claims, wallet drainers). This policy explains exactly what data the extension processes and where it goes.
+Guard3 is a browser extension that warns you when a page looks like a crypto phishing site (fake NFT mints, fake airdrop claims, wallet drainers). This policy explains exactly what data the extension processes and where it goes.
 
 ## What stays on your device
 

@@ -1,6 +1,6 @@
 # Security policy
 
-Web3 Phish Guard protects people from wallet drainers, so bugs in it matter. Please report
+Guard3 protects people from wallet drainers, so bugs in it matter. Please report
 vulnerabilities privately rather than in a public issue:
 
 - GitHub: use **Report a vulnerability** on this repository (Security tab), or

@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "Мгновенные предупреждения о фальшивых страницах минта NFT и получения аирдропов."
@@ -69,7 +69,7 @@
     "message": "доверенные"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard: сайт выглядит подозрительно (риск $1/100)"
+    "message": "Guard3: сайт выглядит подозрительно (риск $1/100)"
   },
   "overlay_short": {
     "message": "Этот сайт выглядит подозрительно"
@@ -87,7 +87,7 @@
     "message": "⚠️ подозрительно"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · риск $2/100"
+    "message": "Guard3 · $1 · риск $2/100"
   },
   "popup_options": {
     "message": "Настройки"
@@ -198,7 +198,7 @@
     "message": "Адрес сервера"
   },
   "opt_title": {
-    "message": "Настройки Web3 Phish Guard"
+    "message": "Настройки Guard3"
   },
   "opt_x_heading": {
     "message": "Проверка через X (Twitter) с помощью Xquik"

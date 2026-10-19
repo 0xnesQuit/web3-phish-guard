@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "가짜 NFT 민팅 및 에어드롭 클레임 페이지를 즉시 경고합니다."
@@ -69,7 +69,7 @@
     "message": "신뢰됨"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard: 이 사이트는 의심스럽습니다 (위험 $1/100)"
+    "message": "Guard3: 이 사이트는 의심스럽습니다 (위험 $1/100)"
   },
   "overlay_short": {
     "message": "이 사이트는 의심스러워 보입니다"
@@ -87,7 +87,7 @@
     "message": "⚠️ 의심"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · 위험 $2/100"
+    "message": "Guard3 · $1 · 위험 $2/100"
   },
   "popup_options": {
     "message": "설정"
@@ -198,7 +198,7 @@
     "message": "서버 URL"
   },
   "opt_title": {
-    "message": "Web3 Phish Guard 설정"
+    "message": "Guard3 설정"
   },
   "opt_x_heading": {
     "message": "Xquik을 통한 X(Twitter) 검증"

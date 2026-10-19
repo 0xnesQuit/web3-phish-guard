@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "即时警告假冒的 NFT 铸造和空投领取页面，并在危险的钱包请求前进行检查。"
@@ -69,7 +69,7 @@
     "message": "已信任"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard：此网站看起来可疑（风险 $1/100）"
+    "message": "Guard3：此网站看起来可疑（风险 $1/100）"
   },
   "overlay_short": {
     "message": "此网站看起来可疑"
@@ -87,7 +87,7 @@
     "message": "⚠️ 可疑"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · 风险 $2/100"
+    "message": "Guard3 · $1 · 风险 $2/100"
   },
   "popup_options": {
     "message": "设置"
@@ -198,7 +198,7 @@
     "message": "服务器地址"
   },
   "opt_title": {
-    "message": "Web3 Phish Guard 设置"
+    "message": "Guard3 设置"
   },
   "opt_x_heading": {
     "message": "通过 Xquik 进行 X（Twitter）验证"

@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "Peringatan instan untuk halaman mint NFT dan klaim airdrop palsu."
@@ -69,7 +69,7 @@
     "message": "dipercaya"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard: situs ini terlihat mencurigakan (risiko $1/100)"
+    "message": "Guard3: situs ini terlihat mencurigakan (risiko $1/100)"
   },
   "overlay_short": {
     "message": "Situs ini tampak mencurigakan"
@@ -87,7 +87,7 @@
     "message": "⚠️ mencurigakan"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · risiko $2/100"
+    "message": "Guard3 · $1 · risiko $2/100"
   },
   "popup_options": {
     "message": "Pengaturan"
@@ -198,7 +198,7 @@
     "message": "URL server"
   },
   "opt_title": {
-    "message": "Pengaturan Web3 Phish Guard"
+    "message": "Pengaturan Guard3"
   },
   "opt_x_heading": {
     "message": "Verifikasi X (Twitter) melalui Xquik"

@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "Cảnh báo tức thì về các trang mint NFT và nhận airdrop giả mạo."
@@ -69,7 +69,7 @@
     "message": "tin cậy"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard: trang này có vẻ đáng ngờ (rủi ro $1/100)"
+    "message": "Guard3: trang này có vẻ đáng ngờ (rủi ro $1/100)"
   },
   "overlay_short": {
     "message": "Trang này trông đáng ngờ"
@@ -87,7 +87,7 @@
     "message": "⚠️ đáng ngờ"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · rủi ro $2/100"
+    "message": "Guard3 · $1 · rủi ro $2/100"
   },
   "popup_options": {
     "message": "Cài đặt"
@@ -198,7 +198,7 @@
     "message": "URL máy chủ"
   },
   "opt_title": {
-    "message": "Cài đặt Web3 Phish Guard"
+    "message": "Cài đặt Guard3"
   },
   "opt_x_heading": {
     "message": "Xác minh X (Twitter) qua Xquik"

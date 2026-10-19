@@ -1,6 +1,6 @@
 {
   "ext_name": {
-    "message": "Web3 Phish Guard"
+    "message": "Guard3"
   },
   "ext_description": {
     "message": "偽の NFT ミントやエアドロップ請求ページを即座に警告し、危険なウォレット要求の前に確認します。"
@@ -69,7 +69,7 @@
     "message": "信頼済み"
   },
   "overlay_title": {
-    "message": "Web3 Phish Guard：このサイトは疑わしいです（リスク $1/100）"
+    "message": "Guard3：このサイトは疑わしいです（リスク $1/100）"
   },
   "overlay_short": {
     "message": "このサイトは疑わしく見えます"
@@ -87,7 +87,7 @@
     "message": "⚠️ 疑わしい"
   },
   "badge_tooltip": {
-    "message": "Web3 Phish Guard · $1 · リスク $2/100"
+    "message": "Guard3 · $1 · リスク $2/100"
   },
   "popup_options": {
     "message": "設定"
@@ -198,7 +198,7 @@
     "message": "サーバー URL"
   },
   "opt_title": {
-    "message": "Web3 Phish Guard の設定"
+    "message": "Guard3 の設定"
   },
   "opt_x_heading": {
     "message": "Xquik による X（Twitter）検証"

@@ -6,6 +6,8 @@ import { domainAgeDays } from "./lib/rdap";
 import { simulateEnabled, setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning, consumeWarning } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener, isAdHop } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
+import { pollPendingJobs, getJobs, ensureSbxAlarm, getDone, SBX_ALARM } from "./lib/sandboxq";
+import type { SandboxReport } from "./lib/types";
 import { scanExternalScripts, askApi, askSandbox, sendReport, API_BASE } from "./lib/deepscan";
 import { buildRules, applyRules, addBypassRule } from "./lib/dnr";
 import { SOL_ENDPOINTS, parseMessageAccounts, diffSolana, mergeDiffs, summarizeSolana, type SolAccount } from "./lib/solana";
@@ -41,7 +43,45 @@ async function ensureAlarms(): Promise<void> {
 chrome.runtime.onInstalled.addListener(() => void ensureAlarms());
 chrome.runtime.onStartup.addListener(() => void ensureAlarms());
 
+// ---- queued sandbox scans: poll while the popup is closed ----
+async function notifyDone(jobId: string, job: { url: string; host: string }, report: SandboxReport): Promise<void> {
+  const body = t("sbx_notify_msg", [t(`verdict_${report.verdict}`), job.host]);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      chrome.notifications.create(`sbx:${jobId}`, { type: "basic", iconUrl: chrome.runtime.getURL("icons/icon128.png"), title: t("sbx_notify_title"), message: body }, () => (chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve()));
+    });
+  } catch {
+    // notifications unavailable or blocked: leave a badge as the "result waiting" indicator (the popup clears it)
+    await chrome.action.setBadgeBackgroundColor({ color: "#2b4a8a" }).catch(() => undefined);
+    await chrome.action.setBadgeText({ text: "1" }).catch(() => undefined);
+  }
+}
+async function pollSbx(): Promise<void> {
+  try { await pollPendingJobs(notifyDone); } catch (e) { console.warn("[w3pg] sandbox poll failed", e); }
+}
+async function ensureSbxPoller(): Promise<void> {
+  try { if (Object.keys(await getJobs()).length) await ensureSbxAlarm(); } catch { /* ignore */ }
+}
+chrome.runtime.onInstalled.addListener(() => void ensureSbxPoller());
+chrome.runtime.onStartup.addListener(() => void ensureSbxPoller());
+chrome.notifications?.onClicked?.addListener(async (id) => {
+  if (!id.startsWith("sbx:")) return;
+  try {
+    const done = (await getDone())[id.slice(4)];
+    chrome.notifications.clear(id);
+    const tabs = await chrome.tabs.query({});
+    const tab = done ? tabs.find((x) => x.url && x.url.replace(/[?#].*$/, "") === done.url.replace(/[?#].*$/, "")) : undefined;
+    if (tab?.id !== undefined) {
+      await chrome.tabs.update(tab.id, { active: true });
+      if (tab.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true });
+    } else if (done) {
+      await chrome.tabs.create({ url: done.url });
+    }
+  } catch { /* ignore */ }
+});
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === SBX_ALARM) { await pollSbx(); return; }
   const id = alarm.name.replace("refresh:", "");
   try {
     // an alarm usually wakes a cold worker: load the salt, the shared hosts and the indexes before touching any list
