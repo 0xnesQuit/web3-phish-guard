@@ -310,9 +310,11 @@ export {};
     try {
       const rdns = toStr(info.rdns ?? "");
       const name = toStr(info.name ?? "");
-      const claimsMM = !!provider && provider.isMetaMask === true;
+      // `isMetaMask === true` is a compatibility flag many real wallets set (Keplr, Rabby, Trust): it says nothing.
+      // A counterfeit is a provider announcing a known wallet's rdns under another name, or MetaMask's rdns
+      // without MetaMask's name.
       const known = KNOWN_RDNS[rdns];
-      const bad = (known && !R(reTest, known, [name])) || (claimsMM && rdns && R(strIndexOf, rdns, ["io.metamask"]) !== 0 && !R(reTest, /metamask/i, [name]));
+      const bad = !!known && !R(reTest, known, [name]);
       if (bad) post({ kind: "fake-wallet", method: "eip6963", detail: "fake_wallet", param: `${name} (${rdns})`, msSinceLoad: now() - loadedAt, hadGesture: false });
     } catch { /* ignore */ }
   }]);
