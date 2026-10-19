@@ -145,6 +145,7 @@ export interface SandboxReport {
   simulations?: Array<{ kind: string; chainId?: string; sim?: { out: string[]; in: string[]; approvals: string[]; reverted: boolean } }>;
   scriptMarkers?: string[];
   badHosts?: string[];
+  challenge?: boolean;
   seedForm?: boolean;
   durationMs?: number;
   /** server state: cache_hit | blocklist | fresh | coalesced | busy | unreachable | disabled | chain_unsupported (client adds queued_done) */

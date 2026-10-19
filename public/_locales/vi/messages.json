@@ -179,6 +179,15 @@
   "sbx_state_chain_unsupported": {
     "message": "Hộp cát chưa thể phân tích chuỗi này."
   },
+  "sbx_state_challenge": {
+    "message": "Không thể kiểm tra — trang web chặn trình quét"
+  },
+  "sbx_challenge_title": {
+    "message": "Chưa được kiểm tra"
+  },
+  "sbx_challenge_body": {
+    "message": "Trang này bị ẩn sau bước kiểm tra bot (ví dụ Cloudflare), nên hộp cát của chúng tôi không thể thấy nó thực sự làm gì. Điều này KHÔNG có nghĩa là an toàn — các drainer thật thường ẩn mình như vậy. Trên trang mới hoặc không rõ, đừng kết nối ví nếu bạn không chắc chắn."
+  },
   "sbx_state_busy": {
     "message": "Hộp cát đang bận."
   },

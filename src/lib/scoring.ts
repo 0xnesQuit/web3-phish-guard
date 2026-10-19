@@ -83,7 +83,7 @@ function brandTokenSet(brands: Brand[]): Set<string> {
 /** labels that say nothing about a site: never the "second token" that lets a short brand name match */
 const HOST_NOISE = new Set(["www", "m", "mail", "app", "api", "web", "my", "go", "en", "de", "fr", "es", "it", "ru", "cn", "jp", "shop", "store", "blog", "docs", "help", "support"]);
 
-const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "shop", "home", "info", "base", "blast", "scroll", "across", "blur", "eigen", "pudgy", "jupiter", "linea", "zama", "zora", "tensor", "highlight", "manifold", "optimism"]);
+const GENERIC = new Set(["app", "www", "mail", "web", "api", "docs", "blog", "shop", "home", "info", "base", "blast", "scroll", "across", "blur", "eigen", "pudgy", "linea", "zama", "zora", "tensor", "highlight", "manifold", "optimism"]);
 
 /** ASCII look-alikes drainer kits use in hostnames: rn->m, vv->w, cl->d, 1->l, 0->o */
 export function asciiSkeleton(s: string): string {

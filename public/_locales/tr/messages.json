@@ -179,6 +179,15 @@
   "sbx_state_chain_unsupported": {
     "message": "Sandbox bu zinciri henüz analiz edemiyor."
   },
+  "sbx_state_challenge": {
+    "message": "İncelenemedi — site tarayıcıları engelliyor"
+  },
+  "sbx_challenge_title": {
+    "message": "İncelenemedi"
+  },
+  "sbx_challenge_body": {
+    "message": "Bu sayfa bir bot doğrulamasının (ör. Cloudflare) arkasında; sandbox'ımız gerçekte ne yaptığını göremedi. Bu GÜVENLİ olduğu anlamına GELMEZ — gerçek drainer'lar sık sık böyle saklanır. Yeni veya bilinmeyen bir sitede, emin olmadan cüzdanını bağlama."
+  },
   "sbx_state_busy": {
     "message": "Sandbox şu anda meşgul."
   },

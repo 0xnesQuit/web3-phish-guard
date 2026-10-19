@@ -179,6 +179,15 @@
   "sbx_state_chain_unsupported": {
     "message": "Sandbox can't analyze this chain yet."
   },
+  "sbx_state_challenge": {
+    "message": "Could not inspect — the site blocks scanners"
+  },
+  "sbx_challenge_title": {
+    "message": "Not inspected"
+  },
+  "sbx_challenge_body": {
+    "message": "This page is hidden behind a bot check (e.g. Cloudflare), so our sandbox could not see what it really does. This does NOT mean it is safe — real drainers often hide this way. On a new or unknown site, do not connect your wallet unless you are sure."
+  },
   "sbx_state_busy": {
     "message": "Sandbox is busy right now."
   },

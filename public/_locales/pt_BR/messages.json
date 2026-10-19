@@ -179,6 +179,15 @@
   "sbx_state_chain_unsupported": {
     "message": "Sandbox ainda não consegue analisar esta rede."
   },
+  "sbx_state_challenge": {
+    "message": "Não foi possível inspecionar — o site bloqueia scanners"
+  },
+  "sbx_challenge_title": {
+    "message": "Não inspecionado"
+  },
+  "sbx_challenge_body": {
+    "message": "Esta página está escondida atrás de uma verificação de bots (ex.: Cloudflare), então nosso sandbox não conseguiu ver o que ela realmente faz. Isso NÃO significa que seja segura — drainers de verdade costumam se esconder assim. Em um site novo ou desconhecido, não conecte sua carteira se não tiver certeza."
+  },
   "sbx_state_busy": {
     "message": "Sandbox está ocupado no momento."
   },

@@ -179,6 +179,15 @@
   "sbx_state_chain_unsupported": {
     "message": "沙箱暂时无法分析此链。"
   },
+  "sbx_state_challenge": {
+    "message": "无法检查——该网站屏蔽了扫描器"
+  },
+  "sbx_challenge_title": {
+    "message": "未检查"
+  },
+  "sbx_challenge_body": {
+    "message": "此页面隐藏在机器人验证（如 Cloudflare）之后，因此我们的沙箱无法看到它真正的行为。这并不代表它是安全的——真正的钱包窃取程序常常这样隐藏。在新的或未知的网站上，除非确定，否则不要连接钱包。"
+  },
   "sbx_state_busy": {
     "message": "沙箱当前繁忙。"
   },

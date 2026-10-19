@@ -179,6 +179,15 @@
   "sbx_state_chain_unsupported": {
     "message": "Sandbox kann diese Chain noch nicht analysieren."
   },
+  "sbx_state_challenge": {
+    "message": "Nicht prüfbar — die Website blockiert Scanner"
+  },
+  "sbx_challenge_title": {
+    "message": "Nicht geprüft"
+  },
+  "sbx_challenge_body": {
+    "message": "Diese Seite ist hinter einer Bot-Prüfung (z. B. Cloudflare) versteckt, daher konnte unsere Sandbox nicht sehen, was sie wirklich tut. Das heißt NICHT, dass sie sicher ist — echte Drainer verstecken sich oft so. Verbinde auf einer neuen oder unbekannten Website deine Wallet nur, wenn du dir sicher bist."
+  },
   "sbx_state_busy": {
     "message": "Sandbox ist gerade ausgelastet."
   },

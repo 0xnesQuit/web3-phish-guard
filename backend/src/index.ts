@@ -640,6 +640,36 @@ async function sbxLookup(env: Env, k: { host: string; urlKey: string; hostKey: s
 
 /** A finished scan, from the fast path or a queued job: strip the raw params, store the verdict by TTL (DO = source of truth,
  *  Cache = fast secondary; error/unknown never), and auto-list a malicious host. Returns the (sanitised) report. */
+// --- Bot-challenge detection: when the sandbox saw nothing, a page gated behind a Cloudflare/CAPTCHA interstitial
+// was never really inspected, so "clean" would be a lie. We DETECT it (never try to defeat it).
+const CHALLENGE_RE = /Just a moment\.\.\.|_cf_chl_opt|\/cdn-cgi\/challenge-platform\/|challenges\.cloudflare\.com|Checking your browser before accessing|Attention Required! \| Cloudflare|Enable JavaScript and cookies to continue|DDoS protection by Cloudflare|hcaptcha\.com|g-recaptcha|grecaptcha\.(execute|render)|Please verify you are (a )?human|cf-browser-verification/i;
+/** The VPS loaded the page but observed nothing actionable. */
+function sandboxSawNothing(r: Record<string, unknown>): boolean {
+  if (r.ok === false) return false;
+  const v = str(r.verdict, 20);
+  if (v === "malicious" || v === "suspicious") return false;
+  const empty = (x: unknown) => !Array.isArray(x) || x.length === 0;
+  return empty(r.requests) && empty(r.scriptMarkers) && empty(r.badHosts) && empty(r.simulations) && r.seedForm !== true;
+}
+/** If the sandbox saw nothing AND the page is behind a bot-challenge, return a challenge report (never "clean"),
+ *  leaning suspicious when the domain is also brand-new (classic drainer evasion). Otherwise return the report as-is. */
+async function annotateChallenge(env: Env, url: string, host: string, report: Record<string, unknown>): Promise<{ report: Record<string, unknown>; state: string }> {
+  if (!sandboxSawNothing(report)) return { report, state: "fresh" };
+  let html = "";
+  try {
+    const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", accept: "text/html,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(8000) });
+    html = (await res.text()).slice(0, 20000);
+  } catch { return { report, state: "fresh" }; }
+  if (!CHALLENGE_RE.test(html)) return { report, state: "fresh" };
+  let ageDays: number | undefined;
+  try { ageDays = await serverAgeDays(env, host.split(".").slice(-2).join(".")); } catch { /* age optional */ }
+  const young = ageDays !== undefined && ageDays < 45;
+  const verdict = young ? "suspicious" : "unknown";
+  const score = young ? 60 : 30;
+  const findings = [young ? `Blocks automated scanners and the domain is ${Math.floor(ageDays as number)} day(s) old` : "Blocks automated scanners (bot challenge) — could not be inspected"];
+  return { report: { ...report, ok: true, challenge: true, verdict, score, findings, requests: [], scriptMarkers: [], simulations: [], badHosts: [], seedForm: false }, state: "challenge" };
+}
+
 async function storeSandboxResult(env: Env, url: string, host: string, report: Record<string, unknown>, ik: string): Promise<Record<string, unknown>> {
   // pass the report through, but never echo back the raw captured params (they are large and not needed client-side)
   if (Array.isArray(report.requests)) report.requests = (report.requests as Array<Record<string, unknown>>).map(({ params, ...rest }) => rest);
@@ -649,7 +679,8 @@ async function storeSandboxResult(env: Env, url: string, host: string, report: R
   if (verdict === "malicious" || verdict === "suspicious" || verdict === "clean") bump(env, [`verdict_${verdict}`]);
   const ttl = verdict === "malicious" ? Number(env.SBX_CACHE_TTL_MALICIOUS) || 86400
     : verdict === "suspicious" ? Number(env.SBX_CACHE_TTL_SUSPICIOUS) || 21600
-    : verdict === "clean" ? Number(env.SBX_CACHE_TTL_CLEAN) || 3600 : 0;
+    : verdict === "clean" ? Number(env.SBX_CACHE_TTL_CLEAN) || 3600
+    : report.challenge === true ? 1800 : 0;
   if (k && report.ok !== false && ttl > 0) {
     try { await state(env).putVerdict(k.urlKey, report, ttl); } catch { /* the Cache copy below still serves */ }
     await cachePut(k.urlKey, report, ttl);
@@ -719,11 +750,13 @@ async function handleSandbox(req: Request, env: Env): Promise<Response> {
     if (!admission.ok) { failStat(env, admission.error === "host_cooldown" ? "cooldown" : "rate", host); return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429); }
 
     // 4. scan via the backend pool
-    const report = await sandboxFetch(env, url);
-    if (!report) { failStat(env, "unreachable", host); return json({ error: "sandbox_unreachable", state: "unreachable" }, 502); }
+    const report0 = await sandboxFetch(env, url);
+    if (!report0) { failStat(env, "unreachable", host); return json({ error: "sandbox_unreachable", state: "unreachable" }, 502); }
+    const { report, state: sbState } = await annotateChallenge(env, url, host, report0);
     const stored = await storeSandboxResult(env, url, host, report, ik);
-    scanStat(env, report, host);
-    return json(withState(stored, "fresh"));
+    if (report.challenge) { bump(env, ["challenge"]); logEv(env, { host, outcome: "challenge", verdict: str(report.verdict, 20) || undefined }); }
+    else scanStat(env, report, host);
+    return json(withState(stored, sbState));
   } finally {
     await st.endScan(lockKey).catch(() => {});
   }
@@ -761,10 +794,16 @@ async function runDispatch(env: Env, d: { jobId: string; url: string }, ik: stri
     const adm = await st.admitScan({ ip: "sbq", host: await sha256(`sb:${host}`), ipLimit: g, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: g, cooldownSec: 1 });
     if (!adm.ok) { failStat(env, adm.error === "host_cooldown" ? "cooldown" : "rate", host); out = { ok: false, error: adm.error }; }
     else {
-      const report = await sandboxFetch(env, d.url);
-      if (!report) failStat(env, "unreachable", host);
-      out = report ? withState(await storeSandboxResult(env, d.url, host, report, ik), "fresh") : { ok: false, reason: "unreachable", state: "unreachable" };
-      if (report) scanStat(env, report, host);
+      const report0 = await sandboxFetch(env, d.url);
+      if (!report0) failStat(env, "unreachable", host);
+      if (report0) {
+        const { report, state: sbState } = await annotateChallenge(env, d.url, host, report0);
+        out = withState(await storeSandboxResult(env, d.url, host, report, ik), sbState);
+        if (report.challenge) { bump(env, ["challenge"]); logEv(env, { host, outcome: "challenge", verdict: str(report.verdict, 20) || undefined }); }
+        else scanStat(env, report, host);
+      } else {
+        out = { ok: false, reason: "unreachable", state: "unreachable" };
+      }
     }
   } catch { failStat(env, "error"); out = { ok: false, reason: "unreachable", state: "unreachable" }; }
   await st.completeJob(d.jobId, out).catch(() => {});

@@ -121,7 +121,7 @@ interface Pending { jobId: string; state: "queued" | "running"; position?: numbe
 const sb: { url: string; title?: string; report?: SandboxReport; job?: Pending; retryUntil?: number; retryKey?: string; err?: boolean; cancelled?: boolean; timer?: number; tick?: number } = { url: "" };
 
 const USED = new Set(["fresh", "coalesced", "queued_done"]);
-const SHOW_RESULT = new Set(["fresh", "coalesced", "queued_done", "cache_hit", "blocklist"]);
+const SHOW_RESULT = new Set(["fresh", "coalesced", "queued_done", "cache_hit", "blocklist", "challenge"]);
 
 /** Container only; paintSandbox() fills it (and re-fills it on every state change). */
 function sandboxHtml(): string {
@@ -148,6 +148,7 @@ function paintSandbox() {
     else if (st === "cache_hit") line = t("sbx_state_cache_hit");
     else if (st === "blocklist") line = t("sbx_state_blocklist");
     else if (st === "chain_unsupported") line = t("sbx_state_chain_unsupported");
+    else if (st === "challenge") { bucket = "busy"; line = t("sbx_state_challenge"); }
     else line = t("sbx_state_unavailable");
     if (sb.cancelled) line += " · " + t("sbx_queue_cancelled");
     if (left > 0) { bucket = "busy"; line = t(sb.retryKey ?? "sbx_queue_full", [String(left)]); }
@@ -155,19 +156,23 @@ function paintSandbox() {
     else if (st === "cache_hit" || st === "blocklist") btn = `<button id="sbxqueue">${esc(t("sbx_queue_rescan"))}</button>`;
     if (sb.err) line += " · " + t("sbx_queue_error");
   }
-  const icon = bucket === "used" ? "✓" : bucket === "busy" ? "⏳" : "○";
+  const icon = s?.challenge ? "⚠" : bucket === "used" ? "✓" : bucket === "busy" ? "⏳" : "○";
   let body = "";
   if (!sb.job && s && s.ok && SHOW_RESULT.has(st)) {
-    const cls = s.verdict === "malicious" ? "dangerous" : s.verdict === "suspicious" ? "suspicious" : "likely_safe";
-    const calm = s.verdict !== "malicious" && s.verdict !== "suspicious";
-    // Drop the server's free-text "drainer kit" marker line; we render markers ourselves, softened and localized.
-    const items = (s.findings ?? []).filter((x) => !/drainer\s*kit/i.test(x)).slice(0, 8);
-    const markerCount = s.scriptMarkers?.length ?? 0;
-    if (markerCount > 0) items.unshift(t("sbx_markers_note", [String(markerCount)]));
-    const reassure = calm && items.length ? `<div class="sbcalm">${esc(t("sbx_clean_reassure"))}</div>` : "";
-    const listHead = items.length ? `<div class="sbsub2">${esc(t(calm ? "sbx_observations_label" : "sbx_findings_label"))}</div>` : "";
-    const list = items.length ? `<ul>${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
-    body = `<div class="v ${cls}">${esc(t(`verdict_${s.verdict}`))} · ${s.score}/100</div><div class="sbsub">${esc(t("popup_sandbox_sub"))}</div>${reassure}${listHead}${list}`;
+    if (s.challenge) {
+      body = `<div class="v suspicious">${esc(t("sbx_challenge_title"))}${s.verdict === "suspicious" ? ` · ${s.score}/100` : ""}</div><div class="sbwarn">${esc(t("sbx_challenge_body"))}</div>`;
+    } else {
+      const cls = s.verdict === "malicious" ? "dangerous" : s.verdict === "suspicious" ? "suspicious" : "likely_safe";
+      const calm = s.verdict !== "malicious" && s.verdict !== "suspicious";
+      // Drop the server's free-text "drainer kit" marker line; we render markers ourselves, softened and localized.
+      const items = (s.findings ?? []).filter((x) => !/drainer\s*kit/i.test(x)).slice(0, 8);
+      const markerCount = s.scriptMarkers?.length ?? 0;
+      if (markerCount > 0) items.unshift(t("sbx_markers_note", [String(markerCount)]));
+      const reassure = calm && items.length ? `<div class="sbcalm">${esc(t("sbx_clean_reassure"))}</div>` : "";
+      const listHead = items.length ? `<div class="sbsub2">${esc(t(calm ? "sbx_observations_label" : "sbx_findings_label"))}</div>` : "";
+      const list = items.length ? `<ul>${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+      body = `<div class="v ${cls}">${esc(t(`verdict_${s.verdict}`))} · ${s.score}/100</div><div class="sbsub">${esc(t("popup_sandbox_sub"))}</div>${reassure}${listHead}${list}`;
+    }
   }
   el.innerHTML = `<div class="sbh">${esc(t("popup_sandbox_title"))}</div><div class="sbstate sb-${bucket}"><span class="sbicon">${icon}</span> ${esc(line)}</div>${body}${btn}`;
   el.querySelector("#sbxqueue")?.addEventListener("click", () => void startQueue());

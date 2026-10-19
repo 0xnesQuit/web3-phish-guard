@@ -179,6 +179,15 @@
   "sbx_state_chain_unsupported": {
     "message": "Sandbox belum bisa menganalisis chain ini."
   },
+  "sbx_state_challenge": {
+    "message": "Tidak dapat diperiksa — situs memblokir pemindai"
+  },
+  "sbx_challenge_title": {
+    "message": "Tidak diperiksa"
+  },
+  "sbx_challenge_body": {
+    "message": "Halaman ini tersembunyi di balik verifikasi bot (mis. Cloudflare), sehingga sandbox kami tidak dapat melihat apa yang sebenarnya dilakukannya. Ini TIDAK berarti aman — drainer asli sering bersembunyi seperti ini. Di situs baru atau tidak dikenal, jangan hubungkan dompet Anda kecuali Anda yakin."
+  },
   "sbx_state_busy": {
     "message": "Sandbox sedang sibuk."
   },

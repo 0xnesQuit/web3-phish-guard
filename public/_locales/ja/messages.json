@@ -179,6 +179,15 @@
   "sbx_state_chain_unsupported": {
     "message": "サンドボックスはこのチェーンをまだ解析できません。"
   },
+  "sbx_state_challenge": {
+    "message": "検査できません — このサイトはスキャナーをブロックしています"
+  },
+  "sbx_challenge_title": {
+    "message": "未検査"
+  },
+  "sbx_challenge_body": {
+    "message": "このページはボット確認（Cloudflare など）の背後に隠れているため、サンドボックスは実際の動作を確認できませんでした。安全という意味ではありません。本物のドレイナーはよくこのように隠れます。新しいサイトや不明なサイトでは、確信が持てない限りウォレットを接続しないでください。"
+  },
   "sbx_state_busy": {
     "message": "サンドボックスは現在混み合っています。"
   },
