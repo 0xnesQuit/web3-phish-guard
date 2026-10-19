@@ -91,3 +91,9 @@ function pull() {
   }).catch(() => undefined);
 }
 pull();
+// later signals (a WalletConnect modal, a wallet request) raise the score after the first render: keep the card in
+// step even if a pushed update was missed, cheaply, for the first minutes of the page's life
+let pulls = 0;
+const repull = () => { if (document.visibilityState === "visible") pull(); if (++pulls < 24) setTimeout(repull, 5000); };
+setTimeout(repull, 5000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
