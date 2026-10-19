@@ -1,0 +1,25 @@
+{
+  "name": "web3-phish-guard-sandbox",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Server-side analysis sandbox: opens a suspicious page in a throwaway headless browser, records what it asks a wallet to do, simulates those requests, and reports back. No real wallet, no signatures.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsc -p tsconfig.json && node dist/server.js",
+    "postinstall": "playwright install chromium",
+    "test": "node --test --experimental-strip-types test/*.test.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "playwright": "1.49.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

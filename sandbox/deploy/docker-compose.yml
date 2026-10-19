@@ -1,0 +1,51 @@
+# Hardened deployment for a VPS that also hosts other sites.
+#
+# Isolation in layers:
+#  - its own bridge network with a fixed subnet (firewall.sh blocks that subnet from every private range)
+#  - the container's 127.0.0.1 is NOT the host's, so host-local services (nginx, python apps, cloudflared) are
+#    already unreachable from the browser
+#  - read-only root filesystem, dropped capabilities, no-new-privileges, non-root user
+#  - memory / CPU caps so a heavy page cannot starve the other sites
+#  - published only on 127.0.0.1, so only the host's own reverse proxy / tunnel reaches it
+#
+# Run firewall.sh once after `docker compose up -d` (and after a Docker restart) to add the egress block.
+services:
+  sandbox:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: w3pg-sandbox
+    container_name: w3pg-sandbox
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      PORT: "8080"
+      MAX_CONCURRENT: "3"
+    ports:
+      - "127.0.0.1:8080:8080"
+    user: pwuser
+    read_only: true
+    # bind a resolv.conf with public DNS: Docker's embedded resolver (127.0.0.11) does not work under gVisor, and the
+    # host's stub resolver (127.0.0.53) is blocked by the egress firewall, so resolve straight to 1.1.1.1 / 8.8.8.8
+    volumes:
+      - ./resolv.conf:/etc/resolv.conf:ro
+    tmpfs:
+      - /tmp
+      - /dev/shm:size=512m
+      - /home/pwuser/.cache
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 2g
+    cpus: 2.0
+    pids_limit: 512
+    networks:
+      sandboxnet:
+
+networks:
+  sandboxnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.253.0/24
