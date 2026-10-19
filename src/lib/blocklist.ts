@@ -1,10 +1,13 @@
 /**
- * External list sync. Sources are plain JSON data (allowed under MV3's
- * remote-code rules). Everything is stored in chrome.storage.local and held in
- * memory as Sets for O(1) lookup. Parsing is defensive because none of these
- * endpoints publishes a stable schema contract for third parties.
+ * External list sync. Sources are plain JSON data (allowed under MV3's remote-code rules).
+ *
+ * Memory and storage are kept small: every list is held as a sorted array of 64-bit hashes (8 bytes per domain,
+ * binary-searched) instead of a Set of strings, so ~650k entries cost ~5 MB and a service-worker wake decodes them
+ * in milliseconds. Only the newest N domains of each feed are kept as strings (for the declarativeNetRequest rules),
+ * and the sibling / attacked-brand indexes are derived per source at refresh time and merged at load.
+ *
+ * Parsing is defensive because none of these endpoints publishes a stable schema contract for third parties.
  */
-
 import { parse as tldParse } from "tldts";
 import { fetchVerifiedFile } from "./lists";
 
@@ -14,35 +17,109 @@ export interface ListSource {
   kind: "blocklist" | "allowlist";
   /** refresh interval in minutes */
   every: number;
+  /** newest entries kept as strings for DNR rules */
+  tail: number;
 }
 
 export const SOURCES: ListSource[] = [
   // MetaMask's own production endpoint (stalelist = full snapshot, refreshed by MetaMask every 30 days)
-  { id: "metamask", url: "https://phishing-detection.api.cx.metamask.io/v1/stalelist", kind: "blocklist", every: 60 * 12 },
+  { id: "metamask", url: "https://phishing-detection.api.cx.metamask.io/v1/stalelist", kind: "blocklist", every: 60 * 12, tail: 40_000 },
   // PhishDestroy DestroyList: crypto-focused, keyless, raw JSON
-  { id: "phishdestroy", url: "https://gitlab.com/phishdestroy/destroylist/-/raw/main/dns/active_domains.json", kind: "blocklist", every: 60 * 6 },
-  // Community reports approved by the Web3 Phish Guard moderators (published daily to the lists repo)
-  { id: "community", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6 },
-  // same file, the AI-confirmed "auto" set
-  { id: "community-auto", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6 },
+  { id: "phishdestroy", url: "https://gitlab.com/phishdestroy/destroylist/-/raw/main/dns/active_domains.json", kind: "blocklist", every: 60 * 6, tail: 0 },
+  // Community reports approved by the Web3 Phish Guard moderators (published daily to the lists repo, signed)
+  { id: "community", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6, tail: 10_000 },
+  // same file, the AI-confirmed "auto" set (warn-only, never a network block)
+  { id: "community-auto", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6, tail: 0 },
   // ScamSniffer open database (7-day delayed, GPL-3.0 data; fetched at runtime, not bundled)
-  { id: "scamsniffer", url: "https://raw.githubusercontent.com/scamsniffer/scam-database/main/blacklist/domains.json", kind: "blocklist", every: 60 * 24 },
+  { id: "scamsniffer", url: "https://raw.githubusercontent.com/scamsniffer/scam-database/main/blacklist/domains.json", kind: "blocklist", every: 60 * 24, tail: 15_000 },
 ];
 
 const MM_DIFFS = "https://phishing-detection.api.cx.metamask.io/v2/diffsSince/";
 
-interface StoredList {
-  domains: string[];
-  updatedAt: number;
-  /** MetaMask lastUpdated (unix seconds) for diffsSince */
-  mmLastUpdated?: number;
+/** legacy storage shape (list:<id>), still read once for migration */
+interface StoredList { domains: string[]; updatedAt: number; mmLastUpdated?: number }
+interface ListMeta { count: number; updatedAt: number; mmLastUpdated?: number }
+
+// ---------------------------------------------------------------------------
+// 64-bit hash index
+// ---------------------------------------------------------------------------
+/** Two independent 32-bit FNV-1a style passes make a 64-bit key: collisions are ~1 in 1.8e19, far below the feeds' own noise. */
+export function hash64(s: string): bigint {
+  let a = 0x811c9dc5 >>> 0, b = 0x01000193 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193) >>> 0;
+    b = Math.imul(b ^ c, 0x9e3779b1) >>> 0;
+    b = (b ^ (b >>> 15)) >>> 0;
+  }
+  return (BigInt(a) << 32n) | BigInt(b);
 }
 
-const mem = new Map<string, Set<string>>();
+export type HashIndex = BigUint64Array;
+
+function sortedUnique(values: bigint[]): HashIndex {
+  const idx = BigUint64Array.from(values);
+  idx.sort();
+  let w = 0;
+  for (let i = 0; i < idx.length; i++) if (i === 0 || idx[i] !== idx[i - 1]) idx[w++] = idx[i];
+  return idx.subarray(0, w);
+}
+
+export function buildIndex(domains: Iterable<string>): HashIndex {
+  const arr: bigint[] = [];
+  for (const d of domains) arr.push(hash64(d));
+  return sortedUnique(arr);
+}
+
+export function indexHas(idx: HashIndex | undefined, h: bigint): boolean {
+  if (!idx || !idx.length) return false;
+  let lo = 0, hi = idx.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1;
+    const v = idx[mid];
+    if (v === h) return true;
+    if (v < h) lo = mid + 1; else hi = mid - 1;
+  }
+  return false;
+}
+
+/** Add and remove entries, returning a new sorted index. */
+export function indexUpdate(idx: HashIndex, add: Iterable<string>, remove: Iterable<string>): HashIndex {
+  const del = new Set<bigint>();
+  for (const d of remove) del.add(hash64(d));
+  const keep: bigint[] = [];
+  for (const h of idx) if (!del.has(h)) keep.push(h);
+  for (const d of add) keep.push(hash64(d));
+  return sortedUnique(keep);
+}
+
+export function encodeIndex(idx: HashIndex): string {
+  const bytes = new Uint8Array(idx.buffer, idx.byteOffset, idx.byteLength);
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+export function decodeIndex(b64: string): HashIndex {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new BigUint64Array(bytes.buffer, 0, Math.floor(bytes.length / 8));
+}
+
+// ---------------------------------------------------------------------------
+// in-memory state
+// ---------------------------------------------------------------------------
+const mem = new Map<string, HashIndex>();
+const tails = new Map<string, string[]>();
+const metas = new Map<string, ListMeta>();
 let allowMem: Set<string> | null = null;
 /** MetaMask blocklistPaths: host -> path prefixes ("sites.google.com" -> ["/view/robinhood-hold", ...]) */
 let pathMem = new Map<string, string[]>();
 let pathList: string[] = [];
+/** set only by warmLists(): a single hotlist diff must not make the worker think every list is loaded */
+let warmed = false;
+/** strongest source first: reviewed lists beat the broad PhishDestroy feed */
+const SOURCE_ORDER = ["metamask", "scamsniffer", "community", "community-auto", "phishdestroy"];
 
 /**
  * Shared platforms that feeds sometimes list bare (ScamSniffer carries "sites.google.com", "r2.dev"; MetaMask's
@@ -108,21 +185,15 @@ export function blocklistPathHit(host: string, pathname: string): string | undef
 export function newestPaths(n: number): string[] {
   return pathList.slice(Math.max(0, pathList.length - n));
 }
-/** set only by warmLists(): a single hotlist diff must not make the worker think every list is loaded */
-let warmed = false;
-/** strongest source first: reviewed lists beat the broad PhishDestroy feed */
-const SOURCE_ORDER = ["metamask", "scamsniffer", "community", "community-auto", "phishdestroy"];
 
-/**
- * Sibling index: scammers rotate the label on a shared host (airdrop-onsolana.netlify.app is listed,
- * drop-onsolana.netlify.app is live). Index listed free-host entries by (freeHost, distinctive token)
- * so a fresh sibling is recognised from the token it shares with a listed one.
- */
+// ---------------------------------------------------------------------------
+// sibling index: scammers rotate the label on a shared host
+// ---------------------------------------------------------------------------
 export type SiblingIndex = Map<string, Map<string, string>>; // freeHost -> token -> listed host
 let siblingIdx: SiblingIndex = new Map();
 let siblingHosts: string[] = [];
 
-const SIBLING_STOP = new Set(["start", "desktop", "suite", "learn", "cloud", "clone", "listing", "launchpad", "launch", "governance", "votes", "refund", "ether", "ethereum", "bitcoin", "mobile", "online", "secure", "center", "centre", "help", "official", "download", "install", "extension", "browser", "register", "registration", "allocation", "allocations", "quest", "quests", "signup", "proposal", "proposals", "distribution", "dashboard", "collab", "foundation", "enter", "chain", "check", "voting", "vote", "migrate", "migration", "trust", "casino", "community", "eligibility", "eligible", "treasury", "layer", "event", "events", "login", "account", "accounts", "support", "service", "services", "update", "security", "verification", "verify", "promo", "pages", "github", "vercel", "netlify", "webflow", "weebly", "wixsite", "portfolio", "project", "projects", "program", "programs", "campaign", "season", "round", "phase", "testnet", "mainnet", "alpha", "beta", "early", "access", "points", "rewards", "reward", "bonus", "prize", "winners", "lottery", "giveaway", "holders", "holder", "staking", "stake", "restake", "bridge", "swap", "trade", "trading", "exchange", "market", "markets", "finance", "capital", "invest", "investment", "fund", "funds", "token", "tokens", "coin", "coins", "crypto", "cryptos", "wallet", "wallets", "connect", "dapp", "dapps", "defi", "nft", "nfts", "airdrop", "airdrops", "claim", "claims", "claims", "airdrop", "airdrops", "rewards", "reward", "mint", "minting", "checker", "drop", "drops", "official", "portal", "app", "web", "www", "wallet", "connect", "verify", "secure", "login", "sign", "token", "tokens", "nft", "nfts", "crypto", "swap", "bridge", "stake", "staking", "presale", "whitelist", "giveaway", "bonus", "event", "events", "free", "live", "site", "page", "online", "network", "protocol", "finance", "exchange", "dapp", "dapps"]);
+const SIBLING_STOP = new Set(["start", "desktop", "suite", "learn", "cloud", "clone", "listing", "launchpad", "launch", "governance", "votes", "refund", "ether", "ethereum", "bitcoin", "mobile", "online", "secure", "center", "centre", "help", "official", "download", "install", "extension", "browser", "register", "registration", "allocation", "allocations", "quest", "quests", "signup", "proposal", "proposals", "distribution", "dashboard", "collab", "foundation", "enter", "chain", "check", "voting", "vote", "migrate", "migration", "trust", "casino", "community", "eligibility", "eligible", "treasury", "layer", "event", "events", "login", "account", "accounts", "support", "service", "services", "update", "security", "verification", "verify", "promo", "pages", "github", "vercel", "netlify", "webflow", "weebly", "wixsite", "portfolio", "project", "projects", "program", "programs", "campaign", "season", "round", "phase", "testnet", "mainnet", "alpha", "beta", "early", "access", "points", "rewards", "reward", "bonus", "prize", "winners", "lottery", "giveaway", "holders", "holder", "staking", "stake", "restake", "bridge", "swap", "trade", "trading", "exchange", "market", "markets", "finance", "capital", "invest", "investment", "fund", "funds", "token", "tokens", "coin", "coins", "crypto", "cryptos", "wallet", "wallets", "connect", "dapp", "dapps", "defi", "nft", "nfts", "airdrop", "airdrops", "claim", "claims", "mint", "minting", "checker", "drop", "drops", "portal", "app", "web", "www", "sign", "presale", "whitelist", "free", "live", "site", "page", "network", "protocol"]);
 
 export function siblingTokens(label: string): string[] {
   return label.toLowerCase().split(/[-_.]+|(?<=\D)(?=\d)|(?<=\d)(?=\D)/).filter((t) => t.length >= 5 && /[a-z]/.test(t) && !SIBLING_STOP.has(t));
@@ -157,14 +228,13 @@ export function findSibling(host: string, idx: SiblingIndex): string | undefined
   return undefined;
 }
 
-/**
- * Attacked-brand index: a token that appears in many listed phishing domains names a brand that is
- * being phished right now (pharosnetwork-tge.com, testnet-pharosnetwork.net, vote-pharosnetwork.xyz ...).
- * A fresh host carrying the same token (or its affix-stripped stem) inherits that knowledge before it is listed.
- */
+// ---------------------------------------------------------------------------
+// attacked-brand index: a token that appears in many listed domains names a brand under attack right now
+// ---------------------------------------------------------------------------
 export interface AttackedBrand { token: string; count: number; example: string }
 export type AttackIndex = Map<string, AttackedBrand>;
 let attackIdx: AttackIndex = new Map();
+const ATTACK_MIN = 5;
 
 const STEM_AFFIX = ["foundation", "official", "finance", "protocol", "network", "testnet", "mainnet", "airdrop", "claim", "labs", "team", "dao", "fnd", "fdn", "app", "xyz", "eth", "sol", "ico", "tge", "net"];
 export function stemToken(t: string): string {
@@ -178,7 +248,7 @@ export function stemToken(t: string): string {
   return s;
 }
 
-export function buildAttackIndex(domains: Iterable<string>, minCount = 5, freeHosts: string[] = []): AttackIndex {
+export function buildAttackIndex(domains: Iterable<string>, minCount = ATTACK_MIN, freeHosts: string[] = []): AttackIndex {
   const counts = new Map<string, { count: number; example: string; hosts: Set<string> }>();
   const fh = freeHosts.map((h) => "." + h);
   for (const d of domains) {
@@ -226,33 +296,41 @@ export function siblingHit(host: string): string | undefined {
   return findSibling(host, siblingIdx);
 }
 
-export function rebuildSiblingIndex(freeHosts: string[]): void {
-  siblingHosts = freeHosts;
-  const all: string[] = [];
-  for (const set of mem.values()) for (const d of set) all.push(d);
-  siblingIdx = buildSiblingIndex(all, freeHosts);
-  attackIdx = buildAttackIndex(all, 5, freeHosts);
-  void persistIndexes();
+/** Per-source derived indexes, persisted so a wake never needs the domain strings. */
+interface DerivedIndexes { sibling: Array<[string, Array<[string, string]>]>; attack: AttackedBrand[] }
+const derived = new Map<string, DerivedIndexes>();
+
+function deriveFor(domains: string[], freeHosts: string[]): DerivedIndexes {
+  const sib = buildSiblingIndex(domains, freeHosts);
+  // keep stems seen at least twice per source; the merged threshold is applied at load
+  const atk = buildAttackIndex(domains, 2, freeHosts);
+  return { sibling: [...sib].map(([k, m]) => [k, [...m]]), attack: [...atk.values()] };
 }
 
-/** The indexes are derived data; persist them so a service-worker restart does not re-scan 600k domains. */
-async function persistIndexes(): Promise<void> {
-  try {
-    const sib: Array<[string, Array<[string, string]>]> = [...siblingIdx].map(([k, m]) => [k, [...m]]);
-    await chrome.storage.local.set({ "idx:sibling": sib, "idx:attack": [...attackIdx.values()], "idx:at": Date.now() });
-  } catch (e) {
-    console.warn("[w3pg] persist indexes failed", e);
+/** Merge every source's derived indexes into the live ones. Attack counts take the max across sources (lists overlap heavily). */
+function mergeDerived(): void {
+  const sib: SiblingIndex = new Map();
+  const atk = new Map<string, AttackedBrand>();
+  for (const id of SOURCE_ORDER) {
+    const d = derived.get(id);
+    if (!d) continue;
+    for (const [suffix, entries] of d.sibling) {
+      let m = sib.get(suffix);
+      if (!m) sib.set(suffix, (m = new Map()));
+      for (const [t, host] of entries) if (!m.has(t)) m.set(t, host);
+    }
+    for (const a of d.attack) {
+      const cur = atk.get(a.token);
+      if (!cur || a.count > cur.count) atk.set(a.token, a);
+    }
   }
+  siblingIdx = sib;
+  attackIdx = new Map([...atk].filter(([, a]) => a.count >= ATTACK_MIN));
 }
 
-async function loadIndexes(): Promise<boolean> {
-  const got = await chrome.storage.local.get(["idx:sibling", "idx:attack", "idx:at"]);
-  if (!got["idx:attack"] || !got["idx:sibling"]) return false;
-  siblingIdx = new Map((got["idx:sibling"] as Array<[string, Array<[string, string]>]>).map(([k, m]) => [k, new Map(m)]));
-  attackIdx = new Map((got["idx:attack"] as AttackedBrand[]).map((a) => [a.token, a]));
-  return true;
-}
-
+// ---------------------------------------------------------------------------
+// feed parsing
+// ---------------------------------------------------------------------------
 /** Walk arbitrary JSON and collect string arrays under keys that look like domain lists. */
 export function extractDomains(json: unknown, keys: string[]): string[] {
   const out: string[] = [];
@@ -304,13 +382,30 @@ async function fetchJson(url: string): Promise<unknown> {
   return res.json();
 }
 
+// ---------------------------------------------------------------------------
+// storage
+// ---------------------------------------------------------------------------
+async function storeSource(id: string, domains: string[], meta: Omit<ListMeta, "count">): Promise<void> {
+  const src = SOURCES.find((s) => s.id === id);
+  const idx = buildIndex(domains);
+  const tail = src?.tail ? domains.slice(Math.max(0, domains.length - src.tail)) : [];
+  const m: ListMeta = { ...meta, count: idx.length };
+  const d = deriveFor(domains, siblingHosts);
+  mem.set(id, idx);
+  tails.set(id, tail);
+  metas.set(id, m);
+  derived.set(id, d);
+  await chrome.storage.local.set({ [`hidx:${id}`]: encodeIndex(idx), [`tail:${id}`]: tail, [`meta:${id}`]: m, [`didx:${id}`]: d });
+  await chrome.storage.local.remove(`list:${id}`).catch(() => undefined);
+}
+
 export async function refreshSource(src: ListSource): Promise<number> {
   // our own community list is published under the signed manifest: verify it like every other data file
   const json = src.id === "community" || src.id === "community-auto" ? await fetchVerifiedFile<unknown>("community-blocklist.json") : await fetchJson(src.url);
   let domains: string[];
   let mmLastUpdated: number | undefined;
   if (src.id === "metamask") {
-    domains = ingestDomains(extractDomains(json, ["blocklist", "blacklist"]));
+    domains = extractDomains(json, ["blocklist", "blacklist"]);
     const allow = extractDomains(json, ["allowlist", "whitelist"]);
     await chrome.storage.local.set({ "list:metamask-allow": { domains: allow, updatedAt: Date.now() } satisfies StoredList });
     allowMem = new Set(allow);
@@ -328,40 +423,14 @@ export async function refreshSource(src: ListSource): Promise<number> {
     domains = extractDomains(json, ["domains", "blocklist", "blacklist", "list", "data", "active_domains"]);
   }
   domains = ingestDomains(domains);
-  const stored: StoredList = { domains, updatedAt: Date.now(), mmLastUpdated };
-  await chrome.storage.local.set({ [`list:${src.id}`]: stored });
-  mem.set(src.id, new Set(domains));
-  scheduleIndexRebuild();
+  await storeSource(src.id, domains, { updatedAt: Date.now(), mmLastUpdated });
+  scheduleIndexMerge();
   return domains.length;
 }
 
-/** MetaMask hotlist: apply additions/removals since the stored timestamp. */
-export async function refreshMetaMaskDiffs(): Promise<void> {
-  const stored = (await chrome.storage.local.get("list:metamask"))["list:metamask"] as StoredList | undefined;
-  if (!stored?.mmLastUpdated) return;
-  const json = (await fetchJson(MM_DIFFS + stored.mmLastUpdated)) as { data?: unknown[] };
-  const entries = Array.isArray(json?.data) ? json.data : [];
-  const set = new Set(stored.domains);
-  const storedPaths = (await chrome.storage.local.get("list:metamask-paths"))["list:metamask-paths"] as StoredList | undefined;
-  const paths = new Set(storedPaths?.domains ?? []);
-  const last = applyMetaMaskDiff(set, paths, entries as Array<Record<string, unknown>>, stored.mmLastUpdated);
-  if (!entries.length && last === stored.mmLastUpdated) return; // nothing changed: skip the 3 MB write
-  const domains = [...set];
-  pathList = [...paths];
-  pathMem = buildPathIndex(pathList);
-  await chrome.storage.local.set({
-    "list:metamask": { domains, updatedAt: Date.now(), mmLastUpdated: last } satisfies StoredList,
-    "list:metamask-paths": { domains: pathList, updatedAt: Date.now() } satisfies StoredList,
-  });
-  if (warmed) { mem.set("metamask", set); scheduleIndexRebuild(); }
-}
-
-/**
- * Pure: apply MetaMask diff entries. Host entries come only from the blocklist target; blocklistPaths entries
- * keep their path and go to the path set (cutting the path off would list "sites.google.com" itself).
- */
-export function applyMetaMaskDiff(hosts: Set<string>, paths: Set<string>, entries: Array<Record<string, unknown>>, since: number): number {
-  let last = since;
+/** Pure: split MetaMask diff entries into host and path additions/removals. */
+export function metaMaskDiffOps(entries: Array<Record<string, unknown>>, since: number): { addHosts: string[]; delHosts: string[]; addPaths: string[]; delPaths: string[]; last: number } {
+  const r = { addHosts: [] as string[], delHosts: [] as string[], addPaths: [] as string[], delPaths: [] as string[], last: since };
   for (const e of entries) {
     const raw = typeof e.url === "string" ? e.url : "";
     const target = String(e.targetList ?? "");
@@ -370,30 +439,66 @@ export function applyMetaMaskDiff(hosts: Set<string>, paths: Set<string>, entrie
     if (target === "eth_phishing_detect_config.blocklist") {
       const url = normalizeDomain(raw);
       if (!url) continue;
-      if (e.isRemoval) hosts.delete(url); else if (!isSharedEntry(url)) hosts.add(url);
+      if (e.isRemoval) r.delHosts.push(url); else if (!isSharedEntry(url)) r.addHosts.push(url);
     } else if (target === "eth_phishing_detect_config.blocklistPaths") {
       const v = normalizePath(raw);
       if (!v) continue;
-      if (e.isRemoval) paths.delete(v); else paths.add(v);
+      if (e.isRemoval) r.delPaths.push(v); else r.addPaths.push(v);
     } else continue;
-    if (ts > last) last = ts;
+    if (ts > r.last) r.last = ts;
   }
-  return last;
+  return r;
 }
 
-let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
-/** Several sources refresh back-to-back on install; rebuild the indexes once after the burst. */
-function scheduleIndexRebuild(): void {
-  if (!siblingHosts.length) return;
-  if (rebuildTimer) clearTimeout(rebuildTimer);
-  rebuildTimer = setTimeout(() => { rebuildTimer = undefined; rebuildSiblingIndex(siblingHosts); }, 2000);
+/**
+ * Pure: apply MetaMask diff entries to string sets (test helper). Host entries come only from the blocklist target;
+ * blocklistPaths entries keep their path (cutting the path off would list "sites.google.com" itself).
+ */
+export function applyMetaMaskDiff(hosts: Set<string>, paths: Set<string>, entries: Array<Record<string, unknown>>, since: number): number {
+  const ops = metaMaskDiffOps(entries, since);
+  for (const d of ops.delHosts) hosts.delete(d);
+  for (const d of ops.addHosts) hosts.add(d);
+  for (const p of ops.delPaths) paths.delete(p);
+  for (const p of ops.addPaths) paths.add(p);
+  return ops.last;
 }
 
-/** The freshest `n` entries of a source (feeds append, so the tail is the newest). */
+/** MetaMask hotlist: apply additions/removals since the stored timestamp. */
+export async function refreshMetaMaskDiffs(): Promise<void> {
+  const meta = metas.get("metamask") ?? ((await chrome.storage.local.get("meta:metamask"))["meta:metamask"] as ListMeta | undefined);
+  if (!meta?.mmLastUpdated) return;
+  const json = (await fetchJson(MM_DIFFS + meta.mmLastUpdated)) as { data?: unknown[] };
+  const entries = Array.isArray(json?.data) ? json.data : [];
+  const ops = metaMaskDiffOps(entries as Array<Record<string, unknown>>, meta.mmLastUpdated);
+  if (!entries.length && ops.last === meta.mmLastUpdated) return; // nothing changed: skip the write
+  const got = await chrome.storage.local.get(["hidx:metamask", "tail:metamask", "list:metamask-paths"]);
+  const idx = mem.get("metamask") ?? (got["hidx:metamask"] ? decodeIndex(got["hidx:metamask"] as string) : buildIndex([]));
+  const next = indexUpdate(idx, ops.addHosts, ops.delHosts);
+  const del = new Set(ops.delHosts);
+  const tail = [...(tails.get("metamask") ?? (got["tail:metamask"] as string[] | undefined) ?? []).filter((d) => !del.has(d)), ...ops.addHosts].slice(-40_000);
+  const paths = new Set(((got["list:metamask-paths"] as StoredList | undefined)?.domains) ?? pathList);
+  for (const p of ops.delPaths) paths.delete(p);
+  for (const p of ops.addPaths) paths.add(p);
+  pathList = [...paths];
+  pathMem = buildPathIndex(pathList);
+  const m: ListMeta = { count: next.length, updatedAt: Date.now(), mmLastUpdated: ops.last };
+  await chrome.storage.local.set({
+    "hidx:metamask": encodeIndex(next), "tail:metamask": tail, "meta:metamask": m,
+    "list:metamask-paths": { domains: pathList, updatedAt: Date.now() } satisfies StoredList,
+  });
+  if (warmed) { mem.set("metamask", next); tails.set("metamask", tail); metas.set("metamask", m); }
+}
+
+let mergeTimer: ReturnType<typeof setTimeout> | undefined;
+/** Several sources refresh back-to-back on install; merge the derived indexes once after the burst. */
+function scheduleIndexMerge(): void {
+  if (mergeTimer) clearTimeout(mergeTimer);
+  mergeTimer = setTimeout(() => { mergeTimer = undefined; mergeDerived(); }, 2000);
+}
+
+/** The freshest entries of a source as strings (feeds append, so the tail is the newest). */
 export function newestDomains(sourceId: string, n: number): string[] {
-  const set = mem.get(sourceId);
-  if (!set) return [];
-  const arr = [...set].filter((d) => !isSharedEntry(d));
+  const arr = (tails.get(sourceId) ?? []).filter((d) => !isSharedEntry(d));
   return arr.slice(Math.max(0, arr.length - n));
 }
 
@@ -410,43 +515,55 @@ function findNumber(json: unknown, key: string, depth = 0): number | undefined {
 /** Load lists from storage into memory (called on service worker start). */
 export async function warmLists(freeHosts: string[] = []): Promise<void> {
   setSharedHosts(freeHosts);
-  const keys = [...SOURCES.map((s) => `list:${s.id}`), "list:metamask-allow", "list:metamask-paths"];
+  siblingHosts = freeHosts;
+  const keys = SOURCES.flatMap((s) => [`hidx:${s.id}`, `tail:${s.id}`, `meta:${s.id}`, `didx:${s.id}`, `list:${s.id}`]).concat(["list:metamask-allow", "list:metamask-paths"]);
   const got = await chrome.storage.local.get(keys);
   for (const s of SOURCES) {
-    const v = got[`list:${s.id}`] as StoredList | undefined;
-    if (v?.domains) mem.set(s.id, new Set(v.domains));
+    const h = got[`hidx:${s.id}`] as string | undefined;
+    if (h) {
+      const idx = decodeIndex(h);
+      mem.set(s.id, idx);
+      tails.set(s.id, (got[`tail:${s.id}`] as string[] | undefined) ?? []);
+      metas.set(s.id, (got[`meta:${s.id}`] as ListMeta | undefined) ?? { count: idx.length, updatedAt: 0 });
+      const d = got[`didx:${s.id}`] as DerivedIndexes | undefined;
+      if (d) derived.set(s.id, d);
+      continue;
+    }
+    // one-time migration from the string-array format (the shared-platform filter applies on the way)
+    const legacy = got[`list:${s.id}`] as StoredList | undefined;
+    if (legacy?.domains) await storeSource(s.id, ingestDomains(legacy.domains), { updatedAt: legacy.updatedAt, mmLastUpdated: legacy.mmLastUpdated });
   }
   const a = got["list:metamask-allow"] as StoredList | undefined;
   allowMem = new Set(a?.domains ?? []);
   const pm = got["list:metamask-paths"] as StoredList | undefined;
   pathList = pm?.domains ?? [];
   pathMem = buildPathIndex(pathList);
-  if (freeHosts.length) {
-    siblingHosts = freeHosts;
-    if (!(await loadIndexes())) rebuildSiblingIndex(freeHosts);
-  }
+  await chrome.storage.local.remove(["idx:sibling", "idx:attack", "idx:at"]).catch(() => undefined); // pre-index-format leftovers
+  mergeDerived();
   warmed = true;
 }
 
 export async function listStatus(): Promise<Record<string, { count: number; updatedAt: number }>> {
-  const keys = [...SOURCES.map((s) => `list:${s.id}`), "list:metamask-allow"];
+  const keys = SOURCES.map((s) => `meta:${s.id}`).concat(["list:metamask-allow"]);
   const got = await chrome.storage.local.get(keys);
   const out: Record<string, { count: number; updatedAt: number }> = {};
-  for (const k of keys) {
-    const v = got[k] as StoredList | undefined;
-    out[k.replace("list:", "")] = { count: v?.domains?.length ?? 0, updatedAt: v?.updatedAt ?? 0 };
+  for (const s of SOURCES) {
+    const m = got[`meta:${s.id}`] as ListMeta | undefined;
+    out[s.id] = { count: m?.count ?? 0, updatedAt: m?.updatedAt ?? 0 };
   }
+  const a = got["list:metamask-allow"] as StoredList | undefined;
+  out["metamask-allow"] = { count: a?.domains?.length ?? 0, updatedAt: a?.updatedAt ?? 0 };
   return out;
 }
 
 /** Returns the source id whose list contains the host or one of its parent domains. */
 export function blocklistHit(host: string): string | undefined {
   // lists stored before the shared-platform filter existed may still carry "sites.google.com" itself
-  const parents = parentDomains(host).filter((p) => !isSharedEntry(p));
+  const parents = parentDomains(host).filter((p) => !isSharedEntry(p)).map(hash64);
   for (const id of SOURCE_ORDER) {
-    const set = mem.get(id);
-    if (!set?.size) continue;
-    for (const p of parents) if (set.has(p)) return id;
+    const idx = mem.get(id);
+    if (!idx?.length) continue;
+    for (const h of parents) if (indexHas(idx, h)) return id;
   }
   return undefined;
 }

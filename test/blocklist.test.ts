@@ -52,3 +52,26 @@ describe("feed ingestion keeps platforms out of the blocklist", () => {
     expect(rules.find((r) => r.id === RULE_BLOCK_BASE)?.condition.resourceTypes).toEqual(["main_frame", "sub_frame"]);
   });
 });
+
+import { hash64, buildIndex, indexHas, indexUpdate, encodeIndex, decodeIndex } from "../src/lib/blocklist";
+
+describe("compact 64-bit hash index", () => {
+  it("round-trips through base64 and answers membership by binary search", () => {
+    const domains = Array.from({ length: 5000 }, (_, i) => `phish-${i}.xyz`);
+    const idx = buildIndex([...domains, "phish-7.xyz"]);
+    expect(idx.length).toBe(5000);
+    expect(indexHas(idx, hash64("phish-4242.xyz"))).toBe(true);
+    expect(indexHas(idx, hash64("phish-5000.xyz"))).toBe(false);
+    const back = decodeIndex(encodeIndex(idx));
+    expect(back.length).toBe(5000);
+    expect(indexHas(back, hash64("phish-0.xyz"))).toBe(true);
+    const next = indexUpdate(back, ["fresh.xyz"], ["phish-0.xyz"]);
+    expect(indexHas(next, hash64("fresh.xyz"))).toBe(true);
+    expect(indexHas(next, hash64("phish-0.xyz"))).toBe(false);
+    expect(next.length).toBe(5000);
+  });
+  it("hashes differ for near-identical hosts", () => {
+    expect(hash64("metamask.io")).not.toBe(hash64("metamask.io."));
+    expect(hash64("a.xyz")).not.toBe(hash64("b.xyz"));
+  });
+});
