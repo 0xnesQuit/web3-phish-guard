@@ -278,6 +278,9 @@ describe("trusted infrastructure and blocklist confidence", () => {
   it("MetaMask hits block outright; ScamSniffer alone warns (it has carried bing.com) and blocks with a local heuristic; a top-50k site is never blocked by one feed", () => {
     expect(run("https://random-site.com/", { blocklistHit: "metamask" }).band).toBe("block");
     expect(run("https://random-site.com/", { blocklistHit: "scamsniffer" }).band).toBe("warn");
+    // listed by the broad feed AND reached from X: that combination blocks (www.ventran.xyz, 2026-10-19)
+    expect(run("https://www.ventran.xyz/", { blocklistHit: "phishdestroy", origin: { source: "x", at: 0 } }).band).toBe("block");
+    expect(run("https://www.ventran.xyz/", { blocklistHit: "phishdestroy" }).band).toBe("warn");
     expect(run("https://claim-random-airdrop.xyz/", { blocklistHit: "scamsniffer" }).band).toBe("block");
     expect(run("https://bing.com/", { blocklistHit: "scamsniffer", popular: true }).band).toBe("warn");
     expect(run("https://claim-random-airdrop.xyz/", { blocklistHit: "scamsniffer", popular: true }).band).toBe("warn");

@@ -243,7 +243,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     // broader (ScamSniffer carried bing.com and surveymonkey.com in 2026-10): alone they warn, and become a block
     // when a local heuristic agrees (the combination is added further down). auto = AI-confirmed but unseen by a
     // moderator: warn, never block. A top-50k site is never blocked by a single feed, whichever it is.
-    let weight = ctx.blocklistHit === "phishdestroy" || ctx.blocklistHit === "scamsniffer" ? 50 : ctx.blocklistHit === "community-auto" ? 40 : 100;
+    // 60: alone it warns; with any corroborating signal (came from X, a bait word, a fresh registration) it blocks
+    let weight = ctx.blocklistHit === "phishdestroy" || ctx.blocklistHit === "scamsniffer" ? 60 : ctx.blocklistHit === "community-auto" ? 40 : 100;
     if (ctx.popular && ctx.blocklistHit !== "metamask") weight = Math.min(weight, 50);
     signals.push({ id: "blocklist", weight, key: "sig_blocklist", sub: [ctx.blocklistHit] });
   }
