@@ -668,6 +668,9 @@
   "gate_sim_title": {
     "message": "Simulation (what would actually happen)"
   },
+  "gate_sim_changed": {
+    "message": "The effect changed since the preview: this transaction now drains your wallet. A fake claim page can flip a harmless simulation into a drain at signing. Reject unless you are absolutely sure."
+  },
   "gate_sim_out": {
     "message": "Leaves your wallet: $1"
   },

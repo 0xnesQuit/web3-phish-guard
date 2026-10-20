@@ -432,6 +432,23 @@ async function gate(g: GateDetails, intent?: ImpactIntent): Promise<boolean> {
   } else {
     allow = await modal(g, decision, location.hostname, impactP, simP);
   }
+  // Simulation-spoofing guard: a drainer can show a harmless preview, then flip the contract state so the SAME signed
+  // transaction drains on execution (the gap between simulation and signing). If the user proceeds on a preview that
+  // showed no loss, re-simulate right now; if the effect has turned into a loss, re-confirm with the real result
+  // (top frame) or reject outright (iframe) instead of letting it through blind.
+  if (allow && intent?.simCalls?.length && simP) {
+    try {
+      const before = await simP;
+      if (!before.some((l) => l.bad)) {
+        const fresh = await simulate(g, intent.simCalls);
+        if (fresh.some((l) => l.bad)) {
+          allow = window.top === window
+            ? await modal(g, { reason: t("gate_sim_changed"), score: decision.score }, location.hostname, impactP, Promise.resolve(fresh))
+            : false;
+        }
+      }
+    } catch { /* re-sim is best effort: fall back to the user's original choice */ }
+  }
   if (!allow) void safeSend({ type: "w3pg:gateRejected", details: g });
   return allow;
 }

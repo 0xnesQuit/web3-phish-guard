@@ -668,6 +668,9 @@
   "gate_sim_title": {
     "message": "Simulation (was tatsächlich passieren würde)"
   },
+  "gate_sim_changed": {
+    "message": "Die Auswirkung hat sich seit der Vorschau geändert: Diese Transaktion leert jetzt deine Wallet. Eine gefälschte Claim-Seite kann eine harmlose Simulation beim Signieren in einen Drainer verwandeln. Lehne ab, wenn du nicht absolut sicher bist."
+  },
   "gate_sim_out": {
     "message": "Verlässt Ihre Wallet: $1"
   },

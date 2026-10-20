@@ -668,6 +668,9 @@
   "gate_sim_title": {
     "message": "Mô phỏng (điều thực sự sẽ xảy ra)"
   },
+  "gate_sim_changed": {
+    "message": "Hiệu ứng đã thay đổi so với bản xem trước: giao dịch này giờ rút sạch ví của bạn. Một trang claim giả có thể biến mô phỏng vô hại thành rút sạch khi ký. Hãy từ chối trừ khi bạn hoàn toàn chắc chắn."
+  },
   "gate_sim_out": {
     "message": "Rời khỏi ví của bạn: $1"
   },

@@ -668,6 +668,9 @@
   "gate_sim_title": {
     "message": "Simulasi (apa yang sebenarnya terjadi)"
   },
+  "gate_sim_changed": {
+    "message": "Efeknya berubah sejak pratinjau: transaksi ini sekarang menguras dompet Anda. Halaman klaim palsu bisa mengubah simulasi tak berbahaya menjadi penguras saat penandatanganan. Tolak kecuali Anda benar-benar yakin."
+  },
   "gate_sim_out": {
     "message": "Keluar dari dompet Anda: $1"
   },

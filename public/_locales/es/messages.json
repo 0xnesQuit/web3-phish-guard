@@ -668,6 +668,9 @@
   "gate_sim_title": {
     "message": "Simulación (lo que ocurriría realmente)"
   },
+  "gate_sim_changed": {
+    "message": "El efecto cambió desde la vista previa: esta transacción ahora vacía tu billetera. Una página de reclamo falsa puede convertir una simulación inofensiva en un vaciado al firmar. Rechaza a menos que estés totalmente seguro."
+  },
   "gate_sim_out": {
     "message": "Sale de tu billetera: $1"
   },

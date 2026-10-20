@@ -668,6 +668,9 @@
   "gate_sim_title": {
     "message": "Simulation (ce qui se passerait réellement)"
   },
+  "gate_sim_changed": {
+    "message": "L'effet a changé depuis l'aperçu : cette transaction vide maintenant votre portefeuille. Une fausse page de réclamation peut transformer une simulation inoffensive en drainage au moment de signer. Refusez sauf si vous êtes absolument sûr."
+  },
   "gate_sim_out": {
     "message": "Quitte votre portefeuille : $1"
   },
