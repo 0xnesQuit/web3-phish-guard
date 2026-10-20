@@ -238,6 +238,19 @@ async function serverAgeDays(env: Env, registrable: string): Promise<number | un
       if (res.ok && (res.headers.get("content-type") ?? "").includes("json")) { ms = parseRegistration(await res.json()) ?? 0; if (ms) break; }
     }
   } catch { /* unknown */ }
+  // RDAP blind (no-RDAP TLD, redacted registration, or a datacenter block): fall back to the earliest TLS cert from
+  // Certificate Transparency (crt.sh), a broad "is this domain brand new" proxy. Not the exact registration date.
+  if (!ms) {
+    try {
+      const res = await fetch(`https://crt.sh/?q=${encodeURIComponent(registrable)}&output=json`, { signal: AbortSignal.timeout(9000) });
+      if (res.ok && (res.headers.get("content-type") ?? "").toLowerCase().includes("json")) {
+        const rows = (await res.json()) as Array<{ not_before?: string }>;
+        let min = Infinity;
+        for (const r of (Array.isArray(rows) ? rows : [])) { const t = r.not_before ? Date.parse(r.not_before + "Z") : NaN; if (Number.isFinite(t) && t < min) min = t; }
+        if (Number.isFinite(min)) ms = min;
+      }
+    } catch { /* crt.sh optional */ }
+  }
   await cachePut(k, { ms }, ms ? 7 * 86400 : 6 * 3600);
   return ms > 0 ? (Date.now() - ms) / 86400000 : undefined;
 }

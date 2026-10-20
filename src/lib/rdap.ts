@@ -61,9 +61,26 @@ export async function domainAgeDays(registrable: string, opts: { priority?: bool
     if (cached.registeredAt && now - cached.checkedAt < OK_TTL) return (now - cached.registeredAt) / 86400000;
     if (cached.failed && now - cached.checkedAt < FAIL_TTL) return undefined;
   }
-  const registeredAt = await queued(() => fetchRegistration(registrable), opts.priority !== false);
+  let registeredAt = await queued(() => fetchRegistration(registrable), opts.priority !== false);
+  // RDAP gave nothing (a TLD without RDAP, a redacted registration): fall back to the earliest TLS certificate from
+  // Certificate Transparency, a good "is this domain brand new" proxy that works where RDAP is blind. Not the exact
+  // registration date, but a days-old first cert means a days-old domain.
+  if (registeredAt === undefined) registeredAt = await firstCertMs(registrable);
   await chrome.storage.local.set({ [key]: { registeredAt, checkedAt: now, failed: registeredAt === undefined } satisfies AgeCache });
   return registeredAt ? (now - registeredAt) / 86400000 : undefined;
+}
+
+/** Earliest TLS certificate for a domain, via crt.sh (Certificate Transparency). A fallback age proxy when RDAP fails. */
+async function firstCertMs(registrable: string): Promise<number | undefined> {
+  try {
+    const res = await fetchWithTimeout(`https://crt.sh/?q=${encodeURIComponent(registrable)}&output=json`, 9000);
+    if (!res.ok || !(res.headers.get("content-type") ?? "").toLowerCase().includes("json")) return undefined;
+    const rows = (await res.json()) as Array<{ not_before?: string }>;
+    if (!Array.isArray(rows)) return undefined;
+    let min = Infinity;
+    for (const r of rows) { const ms = r.not_before ? Date.parse(r.not_before + "Z") : NaN; if (Number.isFinite(ms) && ms < min) min = ms; }
+    return Number.isFinite(min) ? min : undefined;
+  } catch { return undefined; }
 }
 
 async function bootstrap(): Promise<Bootstrap | null> {
