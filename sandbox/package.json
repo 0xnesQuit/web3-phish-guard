@@ -14,6 +14,8 @@
     "test": "node --test --experimental-strip-types test/*.test.ts"
   },
   "dependencies": {
+    "@walletconnect/sign-client": "2.26.0",
+    "@walletconnect/utils": "2.26.0",
     "express": "^4.21.2",
     "playwright": "1.49.1"
   },

@@ -10,6 +10,7 @@ import { decodeTx, decodeTypedData, type TxLike } from "./lib/txdecode.js";
 import { SCRIPT_MARKERS, SEED_FORM_HINTS, isBadHost, isPrivateHost, registrable } from "./markers.js";
 import { simulate } from "./simrpc.js";
 import { score } from "./score.js";
+import { tryWalletConnect } from "./walletconnect.js";
 import type { CapturedRequest, ScanOptions, ScanReport } from "./types.js";
 import type { SimTx } from "./lib/simulate.js";
 
@@ -98,9 +99,15 @@ export async function scanUrl(browser: Browser, url: string, opts: ScanOptions =
       await page.waitForTimeout(1200);
     }
 
+    // WalletConnect-routed requests never reach the injected observer; pair as a mobile wallet and capture them too.
+    let wcRaw: RawCapture[] = [];
+    if (opts.interact !== false) {
+      wcRaw = await tryWalletConnect(page, cfg.address, cfg.chainId, startedAt, deadline).catch(() => []);
+    }
+
     // read what the page asked the wallet to do
     const raw = (await page.evaluate(() => (window as unknown as { __w3pgCaptured?: unknown }).__w3pgCaptured).catch(() => [])) as RawCapture[];
-    const captures = (Array.isArray(raw) ? raw : []).slice(0, 40).map(decodeCapture);
+    const captures = [...(Array.isArray(raw) ? raw : []), ...wcRaw].slice(0, 40).map(decodeCapture);
     report.requests = captures;
 
     // fetch a few external scripts and grep them too (CDN-hosted drainer logic)

@@ -18,6 +18,8 @@ Worker asks this service. The user's own wallet is never involved.
    *would* have done ("USDC leaves the wallet, nothing comes back", "unlimited approval to 0x…").
 5. Page scripts are matched against known drainer-kit fingerprints, outbound hosts against a known-bad list, and
    the DOM is checked for seed-phrase / private-key inputs.
+6. When `WC_PROJECT_ID` is set, the sandbox also pairs as a WalletConnect v2 wallet (throw-away address, records and
+   rejects every request with 4001) to analyze drainers that only expose a WalletConnect QR.
 6. A score (0–100) and a verdict (`malicious` / `suspicious` / `clean`) plus short findings are returned.
 
 Nothing here impersonates a specific wallet brand, produces a signature, or holds a private key.
