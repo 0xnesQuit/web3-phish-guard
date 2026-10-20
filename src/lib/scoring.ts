@@ -63,7 +63,7 @@ function curatedTokenSet(brands: Brand[]): Set<string> {
   let s = curatedTokens.get(brands);
   if (!s) {
     s = new Set();
-    for (const b of brands) { if (b.tier === "generated") continue; for (const t of b.tokens) { const k = t.toLowerCase(); if (k.length >= 5 && !GENERIC.has(k)) { s.add(k); s.add(stripCloneAffixes(k)); } } }
+    for (const b of brands) { if (b.tier === "generated") continue; for (const t of b.tokens) { const k = t.toLowerCase(); if (k.length >= 5 && !GENERIC.has(k)) { s.add(k); s.add(stripCloneAffixes(k)); } } for (const t of b.shortTokens ?? []) s.add(t.toLowerCase()); }
     curatedTokens.set(brands, s);
   }
   return s;
@@ -191,8 +191,9 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
           brandSignalKind = b.domains.length ? "impersonation" : "unverified";
           break outer;
         }
-        // exact label match for short/generic tokens (catches blur-claim.xyz, not database.xyz)
-        if (generic && tokens.includes(tok) && tokens.filter((x) => !HOST_NOISE.has(x)).length > 1 && (tok.length >= 5 || earlyBait || p.freeHost)) {
+        // exact label match for short/generic tokens (catches blur-claim.xyz, not database.xyz). A hand-vetted curated
+        // short token (e.g. "qql") matches as a whole label on its own, no bait word needed (catches qql-pass / desk-qql).
+        if (generic && tokens.includes(tok) && tokens.filter((x) => !HOST_NOISE.has(x)).length > 1 && (tok.length >= 5 || earlyBait || p.freeHost || curatedTokenSet(ctx.brands).has(tok))) {
           matchedBrand = b;
           brandSignalKind = b.domains.length ? "impersonation" : "unverified";
           break outer;

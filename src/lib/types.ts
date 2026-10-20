@@ -8,6 +8,9 @@ export interface Brand {
   note?: string;
   /** seed = hand-curated high-profile brand; generated = auto-imported (DefiLlama), lower confidence */
   tier?: "seed" | "generated";
+  /** hand-vetted short tokens (< 5 chars) allowed to match as a WHOLE hostname label despite the length floor
+   *  (e.g. "qql" for QQL). Seed brands only; whole-label only, so "qql-mint" matches but "qqlx" does not. */
+  shortTokens?: string[];
 }
 
 export interface SignalLists {
