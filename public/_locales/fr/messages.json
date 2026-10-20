@@ -188,6 +188,12 @@
   "sbx_challenge_body": {
     "message": "Cette page est cachée derrière une vérification anti-bot (p. ex. Cloudflare), notre sandbox n'a donc pas pu voir ce qu'elle fait réellement. Cela ne signifie PAS qu'elle est sûre : les vrais drainers se cachent souvent ainsi. Sur un site nouveau ou inconnu, ne connectez pas votre wallet si vous n'êtes pas sûr."
   },
+  "sbx_inconclusive_title": {
+    "message": "Impossible de déclencher une attaque"
+  },
+  "sbx_inconclusive_body": {
+    "message": "Le sandbox a ouvert le site sans voir d'attaque — un drain ne se déclenche souvent qu'après la connexion d'un portefeuille, ce que nous n'avons pas fait. Cette page est déjà signalée comme risquée, donc NE la considérez PAS comme sûre."
+  },
   "sbx_state_busy": {
     "message": "Sandbox est occupé en ce moment."
   },

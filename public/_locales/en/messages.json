@@ -188,6 +188,12 @@
   "sbx_challenge_body": {
     "message": "This page is hidden behind a bot check (e.g. Cloudflare), so our sandbox could not see what it really does. This does NOT mean it is safe — real drainers often hide this way. On a new or unknown site, do not connect your wallet unless you are sure."
   },
+  "sbx_inconclusive_title": {
+    "message": "Couldn't trigger an attack"
+  },
+  "sbx_inconclusive_body": {
+    "message": "The sandbox opened the site but saw no attack — a drain often fires only after a wallet connects, which we did not do. This page is already flagged as risky, so do NOT treat this as safe."
+  },
   "sbx_state_busy": {
     "message": "Sandbox is busy right now."
   },

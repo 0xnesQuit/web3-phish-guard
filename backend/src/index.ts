@@ -447,6 +447,7 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   // cache: host + page content fingerprint + language (a forged "safe" snapshot cannot poison the real page's entry)
   const fp = await sha256(JSON.stringify([payload.host, payload.page.title, payload.page.text.slice(0, 3000), payload.page.scripts, payload.page.walletButtons, payload.page.providerEvents, language]));
   const cacheKey = `scan:${fp}`;
+  const hostKey = `scanhost:${payload.host}:${language}`;
   const cachedScan = await cacheGet<Record<string, unknown>>(cacheKey);
   if (cachedScan) return json({ ...cachedScan, cached: true });
 
@@ -469,7 +470,11 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
     ipLimit: Number(env.SCANS_PER_IP_PER_DAY) || 20, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: Number(env.SCANS_GLOBAL_PER_DAY) || 1500,
     cooldownSec: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60),
   });
-  if (!admission.ok) return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429);
+  if (!admission.ok) {
+    const hostCached = await cacheGet<Record<string, unknown>>(hostKey);
+    if (hostCached && (hostCached.verdict === "dangerous" || hostCached.verdict === "suspicious")) return json({ ...hostCached, cached: true });
+    return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429);
+  }
 
   // server-side facts
   const data = await serverData(env);
@@ -537,6 +542,7 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
     at: Date.now(),
   };
   await cachePut(cacheKey, result, 3600);
+  await cachePut(hostKey, result, 3600);
 
   // Auto-list (warn-only "auto" set, no network block until a moderator confirms). Every leg is server-side:
   //   - the server's own score without any client-supplied context is in the warn band or above,
@@ -831,9 +837,10 @@ async function handleQueue(req: Request, env: Env): Promise<Response> {
   if (!k) { earlyFail(env, "badurl"); return json({ error: "bad_url" }, 400); }
   const iid = await sbxInstall(req, env, b.installId);
   if (!iid) { earlyFail(env, "badurl", k.host); return json({ error: "bad_install_id" }, 400); }
-  // never queue what is already known
+  // never queue what is already known — unless the user asked for a fresh re-scan (force). A blocklist hit still wins.
+  const force = b.force === true;
   const known = await sbxLookup(env, k, url);
-  if (known) { bump(env, ["total", `day:${dayKey()}`, known.state === "blocklist" ? "blocklist" : "cache"]); logEv(env, { host: k.host, outcome: known.state === "blocklist" ? "blocklist" : "cache", verdict: str(known.report.verdict, 20) || undefined }); return json({ state: known.state, report: withState(known.report, known.state, { cached: true }) }); }
+  if (known && (known.state === "blocklist" || !force)) { bump(env, ["total", `day:${dayKey()}`, known.state === "blocklist" ? "blocklist" : "cache"]); logEv(env, { host: k.host, outcome: known.state === "blocklist" ? "blocklist" : "cache", verdict: str(known.report.verdict, 20) || undefined }); return json({ state: known.state, report: withState(known.report, known.state, { cached: true }) }); }
   const ipRaw = req.headers.get("cf-connecting-ip") ?? "0.0.0.0";
   const ip64 = ipRaw.includes(":") ? ipRaw.split(":").slice(0, 4).join(":") + "::/64" : ipRaw;
   if (env.SCAN_BURST && !(await env.SCAN_BURST.limit({ key: `q:${ip64}` })).success) { earlyFail(env, "rate", k.host); return json({ state: "queue_full", reason: "rate_limited", retryAfter: 20 }, 429, { "retry-after": "20" }); }

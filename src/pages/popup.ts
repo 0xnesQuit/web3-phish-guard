@@ -98,6 +98,7 @@ function renderDeep(r: DeepReport) {
   box.style.display = "block";
   const ai = r.ai;
   sb.report = r.sandbox;
+  sb.pageRisky = r.local.band !== "none" || r.ai?.verdict === "dangerous" || r.ai?.verdict === "suspicious";
   const facts = `${t("popup_facts_libs")}: ${r.page.libs.join(", ") || "–"} · ${t("popup_facts_scripts")}: ${r.page.scripts.length} · ${t("popup_facts_wallet")}: ${r.page.walletButtons.length} · ${t("popup_facts_seed")}: ${r.page.seedPhraseInputs} · ${t("popup_facts_markers")}: ${[...r.page.drainerMarkers, ...r.markers].length}${r.goplus?.phishing ? " · GoPlus: phishing" : ""}`;
   if (ai.error) {
     box.innerHTML = `<div class="v ${r.local.band === "block" ? "dangerous" : r.local.band === "warn" ? "suspicious" : "likely_safe"}">${esc(t("popup_local_only"))} · ${r.local.score}/100</div><div>${esc(t("popup_ai_unavailable"))} (${esc(ai.error)})</div><div class="facts">${esc(facts)}</div>${sandboxHtml()}`;
@@ -118,7 +119,7 @@ function renderDeep(r: DeepReport) {
 // sandbox status block + queue flow
 // ---------------------------------------------------------------------------
 interface Pending { jobId: string; state: "queued" | "running"; position?: number; eta?: number }
-const sb: { url: string; title?: string; report?: SandboxReport; job?: Pending; retryUntil?: number; retryKey?: string; err?: boolean; cancelled?: boolean; timer?: number; tick?: number } = { url: "" };
+const sb: { url: string; title?: string; pageRisky?: boolean; report?: SandboxReport; job?: Pending; retryUntil?: number; retryKey?: string; err?: boolean; cancelled?: boolean; timer?: number; tick?: number } = { url: "" };
 
 const USED = new Set(["fresh", "coalesced", "queued_done"]);
 const SHOW_RESULT = new Set(["fresh", "coalesced", "queued_done", "cache_hit", "blocklist", "challenge"]);
@@ -153,7 +154,7 @@ function paintSandbox() {
     if (sb.cancelled) line += " · " + t("sbx_queue_cancelled");
     if (left > 0) { bucket = "busy"; line = t(sb.retryKey ?? "sbx_queue_full", [String(left)]); }
     if (st === "busy" || left > 0) btn = `<button id="sbxqueue" class="primary" ${left > 0 ? "disabled" : ""}>${esc(t("sbx_queue_btn"))}</button>`;
-    else if (st === "cache_hit" || st === "blocklist") btn = `<button id="sbxqueue">${esc(t("sbx_queue_rescan"))}</button>`;
+    else if (st === "cache_hit" || st === "blocklist") btn = `<button id="sbxqueue" data-force="1">${esc(t("sbx_queue_rescan"))}</button>`;
     if (sb.err) line += " · " + t("sbx_queue_error");
   }
   const icon = s?.challenge ? "⚠" : bucket === "used" ? "✓" : bucket === "busy" ? "⏳" : "○";
@@ -161,6 +162,8 @@ function paintSandbox() {
   if (!sb.job && s && s.ok && SHOW_RESULT.has(st)) {
     if (s.challenge) {
       body = `<div class="v suspicious">${esc(t("sbx_challenge_title"))}${s.verdict === "suspicious" ? ` · ${s.score}/100` : ""}</div><div class="sbwarn">${esc(t("sbx_challenge_body"))}</div>`;
+    } else if (sb.pageRisky && (s.verdict === "clean" || s.verdict === "unknown")) {
+      body = `<div class="v suspicious">${esc(t("sbx_inconclusive_title"))}</div><div class="sbwarn">${esc(t("sbx_inconclusive_body"))}</div>`;
     } else {
       const cls = s.verdict === "malicious" ? "dangerous" : s.verdict === "suspicious" ? "suspicious" : "likely_safe";
       const calm = s.verdict !== "malicious" && s.verdict !== "suspicious";
@@ -175,7 +178,7 @@ function paintSandbox() {
     }
   }
   el.innerHTML = `<div class="sbh">${esc(t("popup_sandbox_title"))}</div><div class="sbstate sb-${bucket}"><span class="sbicon">${icon}</span> ${esc(line)}</div>${body}${btn}`;
-  el.querySelector("#sbxqueue")?.addEventListener("click", () => void startQueue());
+  el.querySelector("#sbxqueue")?.addEventListener("click", (e) => void startQueue((e.currentTarget as HTMLElement).getAttribute("data-force") === "1"));
   el.querySelector("#sbxcancel")?.addEventListener("click", () => void cancelQueued());
   window.clearInterval(sb.tick);
   if (left > 0) sb.tick = window.setInterval(() => { if (!sb.retryUntil || sb.retryUntil <= Date.now()) { window.clearInterval(sb.tick); sb.retryUntil = undefined; } paintSandbox(); }, 1000);
@@ -217,11 +220,11 @@ function applyQueue(r: Awaited<ReturnType<typeof queueSandbox>>, retried = false
 
 function hostOf(u: string) { try { return new URL(u).hostname; } catch { return u; } }
 
-async function startQueue() {
+async function startQueue(force = false) {
   if (!sb.url) return;
   const b = document.getElementById("sbxqueue") as HTMLButtonElement | null;
   if (b) b.disabled = true;
-  applyQueue(await queueSandbox(sb.url));
+  applyQueue(await queueSandbox(sb.url, force));
 }
 
 function schedulePoll(nextMs: number | undefined, retried: boolean) {

@@ -188,6 +188,12 @@
   "sbx_challenge_body": {
     "message": "Esta página está escondida atrás de uma verificação de bots (ex.: Cloudflare), então nosso sandbox não conseguiu ver o que ela realmente faz. Isso NÃO significa que seja segura — drainers de verdade costumam se esconder assim. Em um site novo ou desconhecido, não conecte sua carteira se não tiver certeza."
   },
+  "sbx_inconclusive_title": {
+    "message": "Não foi possível acionar um ataque"
+  },
+  "sbx_inconclusive_body": {
+    "message": "O sandbox abriu o site mas não viu nenhum ataque — um drain muitas vezes só dispara depois que uma carteira se conecta, o que não fizemos. Esta página já foi sinalizada como arriscada, então NÃO a considere segura."
+  },
   "sbx_state_busy": {
     "message": "Sandbox está ocupado no momento."
   },

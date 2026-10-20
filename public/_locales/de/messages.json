@@ -188,6 +188,12 @@
   "sbx_challenge_body": {
     "message": "Diese Seite ist hinter einer Bot-Prüfung (z. B. Cloudflare) versteckt, daher konnte unsere Sandbox nicht sehen, was sie wirklich tut. Das heißt NICHT, dass sie sicher ist — echte Drainer verstecken sich oft so. Verbinde auf einer neuen oder unbekannten Website deine Wallet nur, wenn du dir sicher bist."
   },
+  "sbx_inconclusive_title": {
+    "message": "Angriff konnte nicht ausgelöst werden"
+  },
+  "sbx_inconclusive_body": {
+    "message": "Die Sandbox hat die Seite geöffnet, aber keinen Angriff gesehen — ein Drain wird oft erst ausgelöst, nachdem eine Wallet verbunden wurde, was wir nicht getan haben. Diese Seite wurde bereits als riskant eingestuft, daher NICHT als sicher betrachten."
+  },
   "sbx_state_busy": {
     "message": "Sandbox ist gerade ausgelastet."
   },

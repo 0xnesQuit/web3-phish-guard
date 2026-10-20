@@ -188,6 +188,12 @@
   "sbx_challenge_body": {
     "message": "Bu sayfa bir bot doğrulamasının (ör. Cloudflare) arkasında; sandbox'ımız gerçekte ne yaptığını göremedi. Bu GÜVENLİ olduğu anlamına GELMEZ — gerçek drainer'lar sık sık böyle saklanır. Yeni veya bilinmeyen bir sitede, emin olmadan cüzdanını bağlama."
   },
+  "sbx_inconclusive_title": {
+    "message": "Saldırı tetiklenemedi"
+  },
+  "sbx_inconclusive_body": {
+    "message": "Sandbox siteyi açtı ama bir saldırı görmedi — drain çoğu zaman yalnızca cüzdan bağlandıktan sonra tetiklenir, biz bağlamadık. Bu sayfa diğer kontrollerce zaten riskli işaretlendi, bu yüzden güvenli sayma."
+  },
   "sbx_state_busy": {
     "message": "Sandbox şu anda meşgul."
   },

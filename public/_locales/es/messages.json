@@ -188,6 +188,12 @@
   "sbx_challenge_body": {
     "message": "Esta página está oculta tras una verificación de bots (p. ej. Cloudflare), por lo que nuestro sandbox no pudo ver lo que hace realmente. Esto NO significa que sea segura: los drainers reales suelen esconderse así. En un sitio nuevo o desconocido, no conectes tu wallet si no estás seguro."
   },
+  "sbx_inconclusive_title": {
+    "message": "No se pudo activar un ataque"
+  },
+  "sbx_inconclusive_body": {
+    "message": "El sandbox abrió el sitio pero no vio ningún ataque — un drain suele activarse solo después de conectar una wallet, algo que no hicimos. Esta página ya está marcada como riesgosa, así que NO la consideres segura."
+  },
   "sbx_state_busy": {
     "message": "Sandbox está ocupado ahora mismo."
   },

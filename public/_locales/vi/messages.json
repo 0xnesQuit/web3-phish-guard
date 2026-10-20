@@ -188,6 +188,12 @@
   "sbx_challenge_body": {
     "message": "Trang này bị ẩn sau bước kiểm tra bot (ví dụ Cloudflare), nên hộp cát của chúng tôi không thể thấy nó thực sự làm gì. Điều này KHÔNG có nghĩa là an toàn — các drainer thật thường ẩn mình như vậy. Trên trang mới hoặc không rõ, đừng kết nối ví nếu bạn không chắc chắn."
   },
+  "sbx_inconclusive_title": {
+    "message": "Không thể kích hoạt tấn công"
+  },
+  "sbx_inconclusive_body": {
+    "message": "Hộp cát đã mở trang web nhưng không thấy cuộc tấn công nào — drain thường chỉ kích hoạt sau khi kết nối ví, điều chúng tôi đã không làm. Trang này đã bị các lớp kiểm tra khác đánh dấu là rủi ro, vì vậy KHÔNG coi đây là an toàn."
+  },
   "sbx_state_busy": {
     "message": "Hộp cát đang bận."
   },

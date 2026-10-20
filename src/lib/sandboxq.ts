@@ -58,9 +58,9 @@ async function call<T>(path: string, init: RequestInit, timeoutMs = 15_000): Pro
 
 const strip = (u: string) => u.replace(/[?#].*$/, "");
 
-export async function queueSandbox(url: string): Promise<QueueResp> {
+export async function queueSandbox(url: string, force = false): Promise<QueueResp> {
   const installId = await getInstallId();
-  const r = await call<Record<string, unknown>>("/v1/sandbox/queue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: strip(url), installId }) });
+  const r = await call<Record<string, unknown>>("/v1/sandbox/queue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: strip(url), installId, ...(force ? { force: true } : {}) }) });
   if ("error" in r) return { state: "error", error: r.error };
   if (typeof r.body.state !== "string") return { state: "error", error: `http_${r.status}` };
   return r.body as unknown as QueueResp;

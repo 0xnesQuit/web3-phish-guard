@@ -188,6 +188,12 @@
   "sbx_challenge_body": {
     "message": "Halaman ini tersembunyi di balik verifikasi bot (mis. Cloudflare), sehingga sandbox kami tidak dapat melihat apa yang sebenarnya dilakukannya. Ini TIDAK berarti aman — drainer asli sering bersembunyi seperti ini. Di situs baru atau tidak dikenal, jangan hubungkan dompet Anda kecuali Anda yakin."
   },
+  "sbx_inconclusive_title": {
+    "message": "Tidak dapat memicu serangan"
+  },
+  "sbx_inconclusive_body": {
+    "message": "Sandbox membuka situs tetapi tidak melihat serangan — drain sering baru aktif setelah dompet terhubung, yang tidak kami lakukan. Halaman ini sudah ditandai berisiko, jadi JANGAN anggap ini aman."
+  },
   "sbx_state_busy": {
     "message": "Sandbox sedang sibuk."
   },
