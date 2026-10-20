@@ -119,7 +119,7 @@ function renderDeep(r: DeepReport) {
 // sandbox status block + queue flow
 // ---------------------------------------------------------------------------
 interface Pending { jobId: string; state: "queued" | "running"; position?: number; eta?: number }
-const sb: { url: string; title?: string; pageRisky?: boolean; report?: SandboxReport; job?: Pending; retryUntil?: number; retryKey?: string; err?: boolean; cancelled?: boolean; timer?: number; tick?: number } = { url: "" };
+const sb: { url: string; title?: string; pageRisky?: boolean; scanning?: boolean; report?: SandboxReport; job?: Pending; retryUntil?: number; retryKey?: string; err?: boolean; cancelled?: boolean; timer?: number; tick?: number } = { url: "" };
 
 const USED = new Set(["fresh", "coalesced", "queued_done"]);
 const SHOW_RESULT = new Set(["fresh", "coalesced", "queued_done", "cache_hit", "blocklist", "challenge"]);
@@ -143,6 +143,9 @@ function paintSandbox() {
     bucket = "busy";
     line = sb.job.state === "running" ? t("sbx_queue_running") : t("sbx_queue_waiting", [String(sb.job.position ?? "?"), String(sb.job.eta ?? "?")]);
     btn = `<button id="sbxcancel">${esc(t("sbx_queue_cancel"))}</button>`;
+  } else if (sb.scanning) {
+    bucket = "busy";
+    line = t("sbx_queue_running");
   } else {
     if (USED.has(st)) { bucket = "used"; line = t(st === "queued_done" ? "sbx_state_queued_done" : "sbx_state_used", [t(`verdict_${s?.verdict ?? "unknown"}`)]); }
     else if (st === "busy") { bucket = "busy"; line = t("sbx_state_busy"); }
@@ -197,7 +200,7 @@ function finishWith(report: SandboxReport) {
 }
 
 function applyQueue(r: Awaited<ReturnType<typeof queueSandbox>>, retried = false) {
-  sb.err = false; sb.cancelled = false;
+  sb.err = false; sb.cancelled = false; sb.scanning = false;
   if (r.state === "cache_hit" || r.state === "blocklist") return finishWith(asReport(r.report, r.state));
   if (r.state === "done") { void removeJob(r.jobId); return finishWith(asReport(r.report, "queued_done")); }
   if (r.state === "queued" || r.state === "running") {
@@ -224,6 +227,7 @@ async function startQueue(force = false) {
   if (!sb.url) return;
   const b = document.getElementById("sbxqueue") as HTMLButtonElement | null;
   if (b) b.disabled = true;
+  sb.scanning = true; ensureBox(); paintSandbox(); // visible "scanning…" while the fresh scan runs
   applyQueue(await queueSandbox(sb.url, force));
 }
 

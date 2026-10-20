@@ -759,7 +759,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!weight) return;
         const id = `${foreign ? "frame-" : ""}provider-${ev.kind}${ev.detail && ["eoa-spender", "poisoning", "delegation"].includes(ev.detail) ? "-" + ev.detail : ""}`;
         if (prev.signals.some((s) => s.id === id)) return;
-        const signals = [...prev.signals, { id, weight, ...providerKey(ev) }];
+        // A wallet-intent event on a page whose age we have not checked yet: fetch it now. A brand-new domain that
+        // opens a wallet connection is the classic drive-by drainer, and the age signal (+25 under 7 days) combined
+        // with the wallet-connect weight is what tips it into a warning. Provider signals already seen are preserved.
+        let base = prev;
+        if (!foreign && !safeSite && base.ageDays === undefined && base.registrable && WALLET_INTENT.has(ev.kind)) {
+          const ageDays = await domainAgeDays(base.registrable).catch(() => undefined);
+          if (ageDays !== undefined && (await stillOn(tabId, base.host))) {
+            const withAge = await evaluate(sender.url, { ageDays, origin: await getTabOrigin(tabId), socials: await getTabSocials(tabId) });
+            if (withAge) base = { ...withAge, ageDays, signals: [...withAge.signals, ...base.signals.filter((s) => s.id.startsWith("provider-") || s.id.startsWith("frame-provider-"))] };
+          }
+        }
+        const signals = [...base.signals, { id, weight, ...providerKey(ev) }];
         try {
           const k = `pev:${tabId}`;
           const list = ((await chrome.storage.session.get(k))[k] as string[] | undefined) ?? [];
@@ -770,7 +781,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // evidence from third-party frames may raise a warning but never tips the top page into a block
         const ownTotal = Math.max(0, Math.min(100, signals.filter((s) => !s.id.startsWith("frame-")).reduce((s, x) => s + x.weight, 0)));
         if (total >= BLOCK_THRESHOLD && ownTotal < BLOCK_THRESHOLD) total = BLOCK_THRESHOLD - 1;
-        const v: Verdict = { ...prev, signals, score: total, band: bandOf(total), at: Date.now() };
+        const v: Verdict = { ...base, signals, score: total, band: bandOf(total), at: Date.now() };
         await applyVerdict(tabId, v);
         sendResponse(v);
         return;
@@ -942,6 +953,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   })();
   return true;
 });
+
+/** Events that mean "this page is reaching for a wallet" — enough to warrant an RDAP age check on an unknown page. */
+const WALLET_INTENT = new Set(["wc-modal", "auto-connect", "risky-sign", "risky-tx"]);
 
 function providerWeight(ev: ProviderEvent): number {
   switch (ev.kind) {
