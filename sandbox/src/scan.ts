@@ -85,7 +85,11 @@ export async function scanUrl(browser: Browser, url: string, opts: ScanOptions =
     // nudge: click obvious connect / claim / mint controls so the page reveals what it does on connect
     if (opts.interact !== false) {
       await page.evaluate(() => { (window as unknown as Record<string, unknown>).__w3pgClicked = true; }).catch(() => undefined);
-      const labels = ["connect", "claim", "mint", "verify", "continue", "approve", "start", "enter"];
+      // "connect" opens the wallet picker; the wallet labels then select our injected decoy inside it (the modal
+      // lists MetaMask/Injected/Browser Wallet or, for EIP-6963 dapps, our announced "Sandbox Observer"), so a
+      // page that only drains AFTER a wallet connects actually connects and reveals its request. We never click
+      // "WalletConnect" (a QR for a separate mobile wallet we cannot pair). The action words run last.
+      const labels = ["connect", "metamask", "sandbox observer", "injected", "browser wallet", "browser extension", "claim", "mint", "verify", "continue", "approve", "start", "enter"];
       for (const label of labels) {
         if (Date.now() > deadline) break;
         const el = page.locator(`button, a, [role=button], div`).filter({ hasText: new RegExp(label, "i") }).first();
