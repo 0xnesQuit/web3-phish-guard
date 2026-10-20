@@ -347,9 +347,11 @@ const S = {
   seed_leave: { en: "Leave this page", tr: "Bu sayfadan çık", de: "Seite verlassen", es: "Salir de esta página", fr: "Quitter cette page", pt_BR: "Sair desta página", ru: "Покинуть страницу", hi: "इस पेज को छोड़ें", zh_CN: "离开此页面", ja: "このページを離れる", ko: "이 페이지 나가기", vi: "Rời trang này", id: "Tinggalkan halaman ini" },
   seed_stay: { en: "I understand the risk, stay", tr: "Riski anlıyorum, kal", de: "Ich verstehe das Risiko, bleiben", es: "Entiendo el riesgo, quedarme", fr: "Je comprends le risque, rester", pt_BR: "Entendo o risco, ficar", ru: "Я понимаю риск, остаться", hi: "मैं जोखिम समझता हूँ, रहें", zh_CN: "我了解风险，留下", ja: "リスクを理解した上で留まる", ko: "위험을 이해합니다, 머물기", vi: "Tôi hiểu rủi ro, ở lại", id: "Saya paham risikonya, tetap di sini" },
   sig_sol_sign: { en: "Solana transaction signing requested ($1)", tr: "Solana işlem imzası istendi ($1)", de: "Solana-Transaktionssignatur angefordert ($1)", es: "Se solicitó firmar una transacción de Solana ($1)", fr: "Signature de transaction Solana demandée ($1)", pt_BR: "Assinatura de transação Solana solicitada ($1)", ru: "Запрошена подпись транзакции Solana ($1)", hi: "Solana लेनदेन हस्ताक्षर का अनुरोध ($1)", zh_CN: "请求签署 Solana 交易（$1）", ja: "Solana トランザクション署名を要求（$1）", ko: "Solana 트랜잭션 서명 요청 ($1)", vi: "Yêu cầu ký giao dịch Solana ($1)", id: "Permintaan tanda tangan transaksi Solana ($1)" },
+  sig_seed_onload: { en: "The page asks for a recovery phrase or private key as soon as it loads", tr: "Sayfa açılır açılmaz kurtarma ifadesi veya özel anahtar istiyor" },
+  sig_drainer_script: { en: "Loads a script known from wallet-drainer kits ($1)", tr: "Cüzdan boşaltıcı kitlerinde bilinen bir script yüklüyor ($1)" },
 };
 
-const LANGS = ["en", "tr", "de", "es", "fr", "pt_BR", "ru", "hi", "zh_CN", "ja", "ko", "vi", "id"];
+const LANGS =["en", "tr", "de", "es", "fr", "pt_BR", "ru", "hi", "zh_CN", "ja", "ko", "vi", "id"];
 let missing = 0;
 for (const lang of LANGS) {
   const out = {};

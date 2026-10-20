@@ -739,5 +739,11 @@
   },
   "sig_sol_sign": {
     "message": "Solana işlem imzası istendi ($1)"
+  },
+  "sig_seed_onload": {
+    "message": "Sayfa açılır açılmaz kurtarma ifadesi veya özel anahtar istiyor"
+  },
+  "sig_drainer_script": {
+    "message": "Cüzdan boşaltıcı kitlerinde bilinen bir script yüklüyor ($1)"
   }
 }

@@ -97,6 +97,16 @@ export interface PageSocials {
   verified?: { handle: string; name: string; followers: number; domains: string[] };
 }
 
+/** Cheap on-load DOM signals (one idle pass, top frame): a few booleans and short strings, never page content. */
+export interface PageSignals {
+  /** a recovery-phrase / private-key field is on the page at load (same detection as the deep scan) */
+  seedInputOnLoad: boolean;
+  /** DRAINER_MARKERS matched against external script URLs only (lowercase matched text) */
+  drainerSrcMarkers: string[];
+  /** leading words of document.title, og:site_name and og:title, lowercase (brand-name check happens in scoring) */
+  titleHeads: string[];
+}
+
 /** What the optional X resolver learned (brand token -> official account, poster profile). */
 export interface XIntel {
   token: string;

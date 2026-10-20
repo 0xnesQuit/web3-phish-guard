@@ -739,5 +739,11 @@
   },
   "sig_sol_sign": {
     "message": "Solana 트랜잭션 서명 요청 ($1)"
+  },
+  "sig_seed_onload": {
+    "message": "The page asks for a recovery phrase or private key as soon as it loads"
+  },
+  "sig_drainer_script": {
+    "message": "Loads a script known from wallet-drainer kits ($1)"
   }
 }

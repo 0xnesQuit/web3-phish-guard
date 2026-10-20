@@ -15,7 +15,7 @@ import { RPC_ENDPOINTS, buildSimulateRequest, parseSimulation, summarizeChanges 
 import { decodeString, decodeUint, SEL } from "./lib/impact";
 import { t } from "./lib/i18n";
 import type { XIntel } from "./lib/types";
-import type { DeepReport, OriginContext, PageSnapshot, PageSocials, ProviderEvent, Signal, Verdict } from "./lib/types";
+import type { DeepReport, OriginContext, PageSignals, PageSnapshot, PageSocials, ProviderEvent, Signal, Verdict } from "./lib/types";
 
 const WARNING_PAGE = chrome.runtime.getURL("warning.html");
 const EXT_ORIGIN = chrome.runtime.getURL("").replace(/\/$/, "");
@@ -177,7 +177,7 @@ async function pruneSession(): Promise<void> {
     const open = new Set((await chrome.tabs.query({})).map((t) => t.id));
     const drop: string[] = [];
     for (const k of Object.keys(all)) {
-      const m = /^(verdict|deep|origin|soc|pev|click|xclick):(\d+)$/.exec(k);
+      const m = /^(verdict|deep|origin|soc|psg|pev|click|xclick):(\d+)$/.exec(k);
       if (m && !open.has(Number(m[2]))) drop.push(k);
       else if (k.startsWith("warn:")) { const w = all[k] as { at?: number } | null; if (typeof w?.at === "number" && Date.now() - w.at > 60 * 60_000) drop.push(k); }
     }
@@ -196,7 +196,7 @@ function pathEntryFor(host: string, pathname: string): string {
   return host + "/" + pathname.split("/").filter(Boolean).slice(0, 2).join("/");
 }
 
-async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext; x?: XIntel; socials?: PageSocials } = {}): Promise<Verdict | null> {
+async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginContext; x?: XIntel; socials?: PageSocials; page?: PageSignals } = {}): Promise<Verdict | null> {
   if (!/^https?:/.test(url)) return null;
   const { brands, lists } = await ensureReady();
   const p = parseHost(url, [...lists.freeHostsStrong, ...lists.freeHostsWeak]);
@@ -224,6 +224,7 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
     origin: extra.origin,
     x: extra.x,
     socials: extra.socials,
+    page: extra.page,
     handleIndex: extra.socials ? brandByHandle(brands) : undefined,
     brandByToken: extra.socials ? brandByToken(brands) : undefined,
   });
@@ -231,6 +232,9 @@ async function evaluate(url: string, extra: { ageDays?: number; origin?: OriginC
 
 async function getTabSocials(tabId: number): Promise<PageSocials | undefined> {
   return (await chrome.storage.session.get(`soc:${tabId}`))[`soc:${tabId}`] as PageSocials | undefined;
+}
+async function getTabPage(tabId: number): Promise<PageSignals | undefined> {
+  return (await chrome.storage.session.get(`psg:${tabId}`))[`psg:${tabId}`] as PageSignals | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -394,7 +398,7 @@ async function xIntelFor(v: Verdict, origin?: OriginContext): Promise<XIntel | u
 
 /** Full pipeline for one navigation: local score -> RDAP age -> X resolver. Later passes are dropped if the tab moved on. */
 async function evaluateAndApply(tabId: number, url: string, origin?: OriginContext): Promise<void> {
-  await chrome.storage.session.remove([`soc:${tabId}`, `pev:${tabId}`]);
+  await chrome.storage.session.remove([`soc:${tabId}`, `psg:${tabId}`, `pev:${tabId}`]);
   let v = await evaluate(url, { origin });
   if (!v) {
     await resetTab(tabId);
@@ -427,14 +431,14 @@ async function evaluateAndApply(tabId: number, url: string, origin?: OriginConte
   if (v.needsAgeCheck) {
     ageDays = await domainAgeDays(v.registrable);
     if (ageDays !== undefined && (await stillOn(tabId, v.host))) {
-      const v2 = await evaluate(url, { ageDays, origin, socials: await getTabSocials(tabId) });
+      const v2 = await evaluate(url, { ageDays, origin, socials: await getTabSocials(tabId), page: await getTabPage(tabId) });
       if (v2) { await applyVerdict(tabId, v2); v = v2; }
     }
   }
   if (v.xToken && v.band !== "block") {
     const x = await xIntelFor(v, origin);
     if (x && (await stillOn(tabId, v.host))) {
-      const v3 = await evaluate(url, { ageDays, origin, x, socials: await getTabSocials(tabId) });
+      const v3 = await evaluate(url, { ageDays, origin, x, socials: await getTabSocials(tabId), page: await getTabPage(tabId) });
       if (v3) await applyVerdict(tabId, v3);
     }
   }
@@ -525,7 +529,7 @@ async function deepScan(tabId: number, language: string): Promise<DeepReport | {
   ]);
   const socials = snapshot.socials ?? (await getTabSocials(tabId));
   const x = v.xToken ? await xIntelFor(v, origin) : undefined;
-  const v3 = await evaluate(tab.url, { ageDays, origin, x, socials });
+  const v3 = await evaluate(tab.url, { ageDays, origin, x, socials, page: await getTabPage(tabId) });
   if (v3) v = v3;
   // the AI verdict and the headless-browser sandbox run in parallel; the sandbox is best-effort and may be absent
   const [ai, sandbox] = await Promise.all([
@@ -678,7 +682,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   simStamps.delete(tabId);
   void clearTab(tabId);
   void removeBypassRulesForTab(tabId);
-  void chrome.storage.session.remove([`deep:${tabId}`, `origin:${tabId}`, `soc:${tabId}`, `pev:${tabId}`]).catch(() => undefined);
+  void chrome.storage.session.remove([`deep:${tabId}`, `origin:${tabId}`, `soc:${tabId}`, `psg:${tabId}`, `pev:${tabId}`]).catch(() => undefined);
 });
 
 // The overlay content script may load after the verdict was decided; nudge it once the page is complete.
@@ -776,11 +780,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!foreign && !safeSite && base.ageDays === undefined && base.registrable && WALLET_INTENT.has(ev.kind)) {
           const ageDays = await domainAgeDays(base.registrable).catch(() => undefined);
           if (ageDays !== undefined && (await stillOn(tabId, base.host))) {
-            const withAge = await evaluate(sender.url, { ageDays, origin: await getTabOrigin(tabId), socials: await getTabSocials(tabId) });
+            const withAge = await evaluate(sender.url, { ageDays, origin: await getTabOrigin(tabId), socials: await getTabSocials(tabId), page: await getTabPage(tabId) });
             if (withAge) base = { ...withAge, ageDays, signals: [...withAge.signals, ...base.signals.filter((s) => s.id.startsWith("provider-") || s.id.startsWith("frame-provider-"))] };
           }
         }
         const signals = [...base.signals, { id, weight, ...providerKey(ev) }];
+        // a connect request with no click is only a nudge on its own; next to a fresh domain, a bait word in the host,
+        // a free host or a recovery-phrase field it is the drive-by drainer pattern: straight to block
+        if (ev.kind === "auto-connect" && !ev.hadGesture && !foreign && !safeSite) {
+          const corroborated = base.signals.some((s) => s.id === "age-7" || s.id === "action-strong" || s.id === "action-medium" || s.id === "free-host" || s.id === "seed-input-onload");
+          const raw = signals.reduce((s, x) => s + x.weight, 0);
+          const topSite = !base.signals.some((s) => s.id === "free-host") && popularSet.has(base.registrable); // a top-50k site is never blocked by a heuristic
+          if (corroborated && !topSite && raw < BLOCK_THRESHOLD) signals.push({ id: "provider-auto-connect-combo", weight: BLOCK_THRESHOLD - raw, key: "sig_combo" });
+        }
         try {
           const k = `pev:${tabId}`;
           const list = ((await chrome.storage.session.get(k))[k] as string[] | undefined) ?? [];
@@ -811,9 +823,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         try { host = new URL(sender.url).hostname; } catch { return; }
         if (!(await stillOn(tabId, host))) return;
         const origin = await getTabOrigin(tabId);
-        const v = await evaluate(sender.url, { ageDays: prev?.ageDays, origin, socials });
+        const v = await evaluate(sender.url, { ageDays: prev?.ageDays, origin, socials, page: await getTabPage(tabId) });
         if (v && (!prev || v.score !== prev.score)) {
           const extra = (prev?.signals ?? []).filter((s) => s.id.startsWith("provider-") || s.id.startsWith("frame-provider-"));
+          const merged = extra.length ? { ...v, signals: [...v.signals, ...extra] } : v;
+          const total = Math.max(0, Math.min(100, merged.signals.reduce((s, x) => s + x.weight, 0)));
+          await applyVerdict(tabId, { ...merged, score: total, band: bandOf(total) });
+        }
+        return;
+      }
+      case "w3pg:pagesignals": {
+        // cheap on-load DOM signals (content/page-scan.ts quickScan): store them and re-judge, like w3pg:socials
+        const tabId = sender.tab?.id;
+        if (tabId === undefined || sender.frameId !== 0 || !sender.url) return;
+        const raw = msg.signals as Partial<PageSignals> | undefined;
+        if (!raw || typeof raw !== "object") return;
+        // sanitise: the sender is our content script, but the payload still crosses a message boundary
+        const strs = (a: unknown, n: number) => (Array.isArray(a) ? a.filter((x): x is string => typeof x === "string").map((x) => x.slice(0, 60)).slice(0, n) : []);
+        const page: PageSignals = { seedInputOnLoad: raw.seedInputOnLoad === true, drainerSrcMarkers: strs(raw.drainerSrcMarkers, 10), titleHeads: strs(raw.titleHeads, 12) };
+        const prev = await getTabVerdict(tabId);
+        if (!prev) return; // the onCommitted scan has not produced a verdict for this page yet
+        if (prev.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted")) return;
+        let host = "";
+        try { host = new URL(sender.url).hostname; } catch { return; }
+        if (prev.host !== host || !(await stillOn(tabId, host))) return;
+        await chrome.storage.session.set({ [`psg:${tabId}`]: page });
+        const v = await evaluate(sender.url, { ageDays: prev.ageDays, origin: await getTabOrigin(tabId), socials: await getTabSocials(tabId), page });
+        if (v && v.score !== prev.score) {
+          const extra = prev.signals.filter((s) => s.id.startsWith("provider-") || s.id.startsWith("frame-provider-"));
           const merged = extra.length ? { ...v, signals: [...v.signals, ...extra] } : v;
           const total = Math.max(0, Math.min(100, merged.signals.reduce((s, x) => s + x.weight, 0)));
           await applyVerdict(tabId, { ...merged, score: total, band: bandOf(total) });

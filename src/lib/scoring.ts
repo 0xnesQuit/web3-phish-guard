@@ -1,4 +1,4 @@
-import type { Band, Brand, OriginContext, PageSocials, ParsedHost, Signal, SignalLists, Verdict, XIntel } from "./types";
+import type { Band, Brand, OriginContext, PageSignals, PageSocials, ParsedHost, Signal, SignalLists, Verdict, XIntel } from "./types";
 import { isUnderDomain, levenshtein, tokenize } from "./hostname";
 import { isRedirector } from "./origin";
 import { homographHost } from "./idn";
@@ -46,6 +46,8 @@ export interface ScoreContext {
   x?: XIntel;
   /** X handles linked from the page itself */
   socials?: PageSocials;
+  /** cheap DOM signals from the on-load idle pass (seed field, drainer script URLs, title brand name) */
+  page?: PageSignals;
   /** lowercase X handle -> brand (from lists.brandByHandle) */
   handleIndex?: Map<string, Brand>;
   /** brand token -> brand (from lists.brandByToken) */
@@ -68,6 +70,22 @@ function curatedTokenSet(brands: Brand[]): Set<string> {
   }
   return s;
 }
+/** token -> curated brand with a known official domain (a title naming it can be checked against the host) */
+const curatedBrandIdx = new WeakMap<Brand[], Map<string, Brand>>();
+function curatedBrandIndex(brands: Brand[]): Map<string, Brand> {
+  let m = curatedBrandIdx.get(brands);
+  if (!m) {
+    m = new Map();
+    for (const b of brands) {
+      if (b.tier === "generated" || !b.domains.length) continue;
+      for (const t of b.tokens) { const k = t.toLowerCase(); if (k.length >= 5 && !GENERIC.has(k) && !m.has(k)) m.set(k, b); }
+    }
+    curatedBrandIdx.set(brands, m);
+  }
+  return m;
+}
+/** drainer-kit script names specific enough to block alone; the rest (drainer, inferno, webchunk.js, rotatingURL) only warn */
+const DRAINER_SRC_STRONG = /^(secureproxy\.php|ping_proxy|createprizetxs|claimsolana|scripts\/seaport\.js|scripts\/wallet_connect\.js|angel[_-]?drainer)$/i;
 const brandTokens = new WeakMap<Brand[], Set<string>>();
 /** every brand token (plain and affix-stripped), cached per brand array */
 function brandTokenSet(brands: Brand[]): Set<string> {
@@ -506,6 +524,31 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     }
   }
 
+  // ---- on-load DOM signals (one idle pass in the page; see content/page-scan.ts quickScan) ----------------
+  // trusted / official / allowed hosts returned above, so these only ever judge unknown pages.
+  const pg = ctx.page;
+  let titleBrand: Brand | undefined;
+  if (pg) {
+    // a web page asking for a recovery phrase or private key is the scam itself: legitimate wallets never do this
+    if (pg.seedInputOnLoad) signals.push({ id: "seed-input-onload", weight: BLOCK_THRESHOLD, key: "sig_seed_onload" });
+    // kit file names in <script src>; weak names (drainer, inferno...) warn, specific ones block
+    const kit = pg.drainerSrcMarkers.slice(0, 8);
+    if (kit.length) {
+      const strong = kit.some((m) => DRAINER_SRC_STRONG.test(m));
+      signals.push({ id: "drainer-script", weight: strong ? BLOCK_THRESHOLD : 30, key: "sig_drainer_script", sub: [kit.slice(0, 3).join(", ")] });
+    }
+    // the page presents itself as a curated brand (leading words of title / og:site_name / og:title) on a domain that is
+    // not the brand's. Popular hosts are excluded; the brand already named by the hostname is not counted twice.
+    if (!ctx.popular) {
+      const idx = curatedBrandIndex(ctx.brands);
+      for (const w of pg.titleHeads.slice(0, 24)) {
+        const b = w.length >= 5 ? idx.get(w) : undefined;
+        if (b && !b.domains.some((d) => isUnderDomain(p.host, d)) && !(brandFlagged && matchedBrand?.name === b.name)) { titleBrand = b; break; }
+      }
+      if (titleBrand) signals.push({ id: "title-brand-mismatch", weight: old ? 10 : 40, key: "sig_brand_impersonation", sub: [titleBrand.name, titleBrand.domains.slice(0, 2).join(", ")] });
+    }
+  }
+
   // ---- domain age -----------------------------------------------------------
   if (ctx.ageDays !== undefined) {
     if (ctx.ageDays < 7) signals.push({ id: "age-7", weight: 25, key: "sig_age_days", sub: [String(Math.max(0, Math.floor(ctx.ageDays)))] });
@@ -532,7 +575,9 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // so block it without waiting on RDAP — the client age lookup is slow/flaky for some TLDs, and these tokens are
   // distinctive and human-opted-in precisely because a legitimate site is extremely unlikely to carry them.
   const shortBrandMatch = !!matchedBrand && brandSignalKind === "impersonation" && (matchedBrand.shortTokens ?? []).some((st) => tokens.includes(st.toLowerCase()));
-  if ((matchedBrand && hasAction && (p.freeHost || fresh)) || (p.freeHost && strongBait && ctx.lists.freeHostsStrong.includes(p.freeHost)) || brandFresh || shortBrandMatch) {
+  // the title names a curated brand the host does not own: same bait + (free host | fresh) rule as a hostname match
+  const titleCombo = !!titleBrand && hasAction && (!!p.freeHost || fresh);
+  if ((matchedBrand && hasAction && (p.freeHost || fresh)) || titleCombo || (p.freeHost && strongBait && ctx.lists.freeHostsStrong.includes(p.freeHost)) || brandFresh || shortBrandMatch) {
     if (v.score < BLOCK_THRESHOLD) {
       signals.push({ id: "combo", weight: BLOCK_THRESHOLD - v.score, key: "sig_combo" });
       return done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });

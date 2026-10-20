@@ -3,7 +3,7 @@
  * but does nothing until the background asks (user pressed "deep scan"). Collects
  * structure and a bounded text sample; never form values, never cookies.
  */
-import type { PageSnapshot, PageSocials } from "../lib/types";
+import type { PageSignals, PageSnapshot, PageSocials } from "../lib/types";
 
 const LIBS: Array<[RegExp, string]> = [
   [/ethers(?:\.min)?\.js|ethers@|\bethers\b/i, "ethers.js"],
@@ -54,6 +54,21 @@ export function collectSocials(): PageSocials {
   return { xHandles: [...handles].slice(0, 10), count };
 }
 
+function meta(name: string): string {
+  return document.querySelector<HTMLMetaElement>(`meta[name="${name}"], meta[property="${name}"]`)?.content ?? "";
+}
+
+/** Inputs that look like a recovery-phrase / private-key field (label text or nearby text). Shared by the deep scan and quickScan. */
+function countSeedInputs(inputs: Iterable<HTMLElement>, stopAtFirst = false): number {
+  let n = 0;
+  for (const i of inputs) {
+    const label = `${i.getAttribute("placeholder") ?? ""} ${i.getAttribute("name") ?? ""} ${i.getAttribute("aria-label") ?? ""} ${i.id} ${(i as HTMLTextAreaElement).rows ? "textarea" : ""}`;
+    const near = (i.closest("label, div, form")?.textContent ?? "").slice(0, 200);
+    if (SEED_RE.test(label) || SEED_RE.test(near)) { n++; if (stopAtFirst) break; }
+  }
+  return n;
+}
+
 export function collect(): PageSnapshot {
   const ownReg = registrableish(location.hostname.toLowerCase());
   const scripts = Array.from(document.scripts);
@@ -94,14 +109,7 @@ export function collect(): PageSnapshot {
   const buttons = Array.from(document.querySelectorAll<HTMLElement>("button, a[role=button], [class*=btn], [class*=button], input[type=submit]"))
     .map((b) => (b.innerText || (b as HTMLInputElement).value || "").trim())
     .filter((t) => t && t.length < 60 && WALLET_BTN_RE.test(t));
-  const inputs = Array.from(document.querySelectorAll<HTMLElement>("input, textarea"));
-  let seedInputs = 0;
-  for (const i of inputs) {
-    const label = `${i.getAttribute("placeholder") ?? ""} ${i.getAttribute("name") ?? ""} ${i.getAttribute("aria-label") ?? ""} ${i.id} ${(i as HTMLTextAreaElement).rows ? "textarea" : ""}`;
-    const near = (i.closest("label, div, form")?.textContent ?? "").slice(0, 200);
-    if (SEED_RE.test(label) || SEED_RE.test(near)) seedInputs++;
-  }
-  const meta = (name: string) => document.querySelector<HTMLMetaElement>(`meta[name="${name}"], meta[property="${name}"]`)?.content ?? "";
+  const seedInputs = countSeedInputs(document.querySelectorAll<HTMLElement>("input, textarea"));
   return {
     title: document.title.slice(0, 300),
     description: (meta("description") || meta("og:description")).slice(0, 500),
@@ -140,6 +148,31 @@ function sendSocials() {
 }
 setTimeout(sendSocials, 800);
 setTimeout(sendSocials, 4000);
+
+// One cheap pass at idle for the on-load verdict: seed field, drainer-kit script URLs, brand name in the title.
+// Top frame, once, no observer, no network. Inline script bodies are left to the deep scan.
+let quickDone = false;
+function quickScan() {
+  if (quickDone) return;
+  quickDone = true;
+  try {
+    if (window.top !== window || !/^https?:$/.test(location.protocol)) return;
+    const markers = new Set<string>();
+    for (const s of Array.from(document.scripts).slice(0, 200)) {
+      if (!s.src) continue;
+      for (const re of DRAINER_MARKERS) { const m = re.exec(s.src); if (m) markers.add(m[0].toLowerCase().slice(0, 40)); }
+    }
+    const inputs = Array.from(document.querySelectorAll<HTMLElement>("input, textarea")).slice(0, 60);
+    const heads = new Set<string>();
+    for (const seg of [document.title, meta("og:site_name"), meta("og:title")]) {
+      for (const w of seg.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).slice(0, 3)) heads.add(w);
+    }
+    const signals: PageSignals = { seedInputOnLoad: countSeedInputs(inputs, true) > 0, drainerSrcMarkers: [...markers].slice(0, 10), titleHeads: [...heads].slice(0, 12) };
+    chrome.runtime.sendMessage({ type: "w3pg:pagesignals", signals }).catch(() => undefined);
+  } catch { /* ignore */ }
+}
+if (typeof requestIdleCallback === "function") requestIdleCallback(quickScan, { timeout: 3000 });
+else setTimeout(quickScan, 1200);
 
 // WalletConnect / AppKit modal: mobile wallets bypass the provider wrapper, so the modal itself is the signal
 let wcSent = false;
