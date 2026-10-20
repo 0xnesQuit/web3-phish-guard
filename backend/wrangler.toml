@@ -63,4 +63,4 @@ LISTS_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists
 [[ratelimits]]
 name = "SCAN_BURST"
 namespace_id = "1001"
-simple = { limit = 3, period = 60 }
+simple = { limit = 15, period = 60 }
