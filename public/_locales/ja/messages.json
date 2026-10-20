@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "既知の安全リストに含まれる（MetaMask 許可リスト）"
   },
+  "sig_deep_ai": {
+    "message": "ディープ分析がこれを有力なウォレットドレイナーとして検出しました"
+  },
   "sig_blocklist": {
     "message": "既知のフィッシングリストに含まれる（$1）"
   },

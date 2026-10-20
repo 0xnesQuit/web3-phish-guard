@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "Có trong danh sách an toàn đã biết (MetaMask allowlist)"
   },
+  "sig_deep_ai": {
+    "message": "Phân tích sâu đã gắn cờ đây là một drainer ví có khả năng cao"
+  },
   "sig_blocklist": {
     "message": "Có trong danh sách lừa đảo đã biết ($1)"
   },

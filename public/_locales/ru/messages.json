@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "В известном списке безопасных сайтов (allowlist MetaMask)"
   },
+  "sig_deep_ai": {
+    "message": "Глубокий анализ пометил это как вероятный drainer кошелька"
+  },
   "sig_blocklist": {
     "message": "В известном списке фишинговых сайтов ($1)"
   },

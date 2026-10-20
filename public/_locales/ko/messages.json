@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "알려진 안전 목록에 있음 (MetaMask 허용 목록)"
   },
+  "sig_deep_ai": {
+    "message": "심층 분석이 이를 지갑 드레이너 가능성이 높은 것으로 표시했습니다"
+  },
   "sig_blocklist": {
     "message": "알려진 피싱 목록에 있음 ($1)"
   },

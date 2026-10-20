@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "Em uma lista segura conhecida (allowlist da MetaMask)"
   },
+  "sig_deep_ai": {
+    "message": "A análise profunda sinalizou isto como um provável drainer de carteira"
+  },
   "sig_blocklist": {
     "message": "Em uma lista de phishing conhecida ($1)"
   },

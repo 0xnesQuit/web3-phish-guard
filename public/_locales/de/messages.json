@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "Auf einer bekannten sicheren Liste (MetaMask-Allowlist)"
   },
+  "sig_deep_ai": {
+    "message": "Die Tiefenanalyse hat dies als wahrscheinlichen Wallet-Drainer eingestuft"
+  },
   "sig_blocklist": {
     "message": "Auf einer bekannten Phishing-Liste ($1)"
   },

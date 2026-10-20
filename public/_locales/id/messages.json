@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "Ada di daftar aman yang dikenal (allowlist MetaMask)"
   },
+  "sig_deep_ai": {
+    "message": "Analisis mendalam menandai ini sebagai kemungkinan penguras dompet"
+  },
   "sig_blocklist": {
     "message": "Ada di daftar phishing yang dikenal ($1)"
   },

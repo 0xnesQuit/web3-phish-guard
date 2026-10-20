@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "ज्ञात सुरक्षित सूची में (MetaMask allowlist)"
   },
+  "sig_deep_ai": {
+    "message": "डीप एनालिसिस ने इसे संभावित वॉलेट ड्रेनर के रूप में चिह्नित किया"
+  },
   "sig_blocklist": {
     "message": "ज्ञात फ़िशिंग सूची में ($1)"
   },

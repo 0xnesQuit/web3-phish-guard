@@ -525,6 +525,13 @@ async function deepScan(tabId: number, language: string): Promise<DeepReport | {
   ]);
   const report: DeepReport = { host: v.host, at: Date.now(), local: { score: v.score, band: v.band, signals: v.signals }, page: snapshot, markers, goplus: ai.goplus, ai, sandbox };
   await chrome.storage.session.set({ [cacheKey]: report });
+  // Deep-scan escalation: a confident AI "dangerous" verdict pushes this tab to the full-page block (the same screen an
+  // on-load block shows), so a 90%-dangerous page is not left behind only a popup note. Respects an explicit user allow,
+  // and applyVerdict itself honours a "continue anyway" bypass, so it never nags after the user chose to stay.
+  if (ai.verdict === "dangerous" && (ai.confidence ?? 0) >= 0.85 && !v.signals.some((s) => s.id === "user-allow")) {
+    const signals = v.signals.some((s) => s.id === "deep-ai") ? v.signals : [...v.signals, { id: "deep-ai", weight: 100, key: "sig_deep_ai" }];
+    await applyVerdict(tabId, { ...v, signals, score: Math.round((ai.confidence ?? 0.85) * 100), band: "block", at: Date.now() });
+  }
   return report;
 }
 

@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "En una lista segura conocida (allowlist de MetaMask)"
   },
+  "sig_deep_ai": {
+    "message": "El análisis profundo lo marcó como un probable vaciador de billeteras"
+  },
   "sig_blocklist": {
     "message": "En una lista de phishing conocida ($1)"
   },

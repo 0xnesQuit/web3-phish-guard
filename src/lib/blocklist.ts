@@ -31,6 +31,9 @@ export const SOURCES: ListSource[] = [
   { id: "community", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6, tail: 10_000 },
   // same file, the AI-confirmed "auto" set (warn-only, never a network block)
   { id: "community-auto", url: "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data/community-blocklist.json", kind: "blocklist", every: 60 * 6, tail: 0 },
+  // the Worker's LIVE auto set, read directly and hourly: an AI/crowd auto-list reaches users in ~1h instead of
+  // waiting for the signed daily publish + the 6h GitHub refresh. Warn-only (same tier as community-auto).
+  { id: "community-live", url: "https://web3-phish-guard-api.w3pg.workers.dev/v1/community.json", kind: "blocklist", every: 60, tail: 0 },
   // ScamSniffer open database (7-day delayed, GPL-3.0 data; fetched at runtime, not bundled)
   { id: "scamsniffer", url: "https://raw.githubusercontent.com/scamsniffer/scam-database/main/blacklist/domains.json", kind: "blocklist", every: 60 * 24, tail: 15_000 },
 ];
@@ -129,7 +132,7 @@ let pathList: string[] = [];
 /** set only by warmLists(): a single hotlist diff must not make the worker think every list is loaded */
 let warmed = false;
 /** strongest source first: reviewed lists beat the broad PhishDestroy feed */
-const SOURCE_ORDER = ["metamask", "scamsniffer", "community", "phishdestroy", "community-auto"];
+const SOURCE_ORDER = ["metamask", "scamsniffer", "community", "phishdestroy", "community-auto", "community-live"];
 
 /**
  * Shared platforms that feeds sometimes list bare (ScamSniffer carries "sites.google.com", "r2.dev"; MetaMask's
@@ -477,7 +480,7 @@ export async function refreshSource(src: ListSource): Promise<number> {
     await chrome.storage.local.set({ "list:metamask-paths": { domains: paths, updatedAt: Date.now() } satisfies StoredList });
     pathList = paths;
     pathMem = buildPathIndex(paths);
-  } else if (src.id === "community-auto") {
+  } else if (src.id === "community-auto" || src.id === "community-live") {
     domains = extractDomains(json, ["auto"]);
   } else if (src.id === "community") {
     domains = extractDomains(json, ["domains"]);

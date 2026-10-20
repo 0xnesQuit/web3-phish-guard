@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "位于已知安全列表（MetaMask 白名单）"
   },
+  "sig_deep_ai": {
+    "message": "深度分析将其标记为可能的钱包盗取器"
+  },
   "sig_blocklist": {
     "message": "位于已知钓鱼列表（$1）"
   },

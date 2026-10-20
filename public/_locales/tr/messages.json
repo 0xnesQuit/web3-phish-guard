@@ -332,6 +332,9 @@
   "sig_allowlist": {
     "message": "Bilinen güvenli listede (MetaMask allowlist)"
   },
+  "sig_deep_ai": {
+    "message": "Derin analiz bunu muhtemel bir cüzdan drainer'ı olarak işaretledi"
+  },
   "sig_blocklist": {
     "message": "Bilinen phishing listesinde ($1)"
   },

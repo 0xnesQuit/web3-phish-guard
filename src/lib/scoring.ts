@@ -244,7 +244,7 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
     // when a local heuristic agrees (the combination is added further down). auto = AI-confirmed but unseen by a
     // moderator: warn, never block. A top-50k site is never blocked by a single feed, whichever it is.
     // 60: alone it warns; with any corroborating signal (came from X, a bait word, a fresh registration) it blocks
-    let weight = ctx.blocklistHit === "phishdestroy" || ctx.blocklistHit === "scamsniffer" ? 60 : ctx.blocklistHit === "community-auto" ? 40 : 100;
+    let weight = ctx.blocklistHit === "phishdestroy" || ctx.blocklistHit === "scamsniffer" ? 60 : ctx.blocklistHit === "community-auto" || ctx.blocklistHit === "community-live" ? 40 : 100;
     if (ctx.popular && ctx.blocklistHit !== "metamask") weight = Math.min(weight, 50);
     signals.push({ id: "blocklist", weight, key: "sig_blocklist", sub: [ctx.blocklistHit] });
   }
