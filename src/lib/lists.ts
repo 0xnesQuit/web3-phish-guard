@@ -10,6 +10,11 @@ let cache: { brands: Brand[]; lists: SignalLists } | null = null;
 export const DATA_FILES = ["brands.seed.json", "brands.generated.json", "brands.nft.json", "brands.cmc.json", "action-words.json", "free-hosts.json", "tlds.json", "trusted.json", "shared-hosts.json", "top-sites.json"] as const;
 export const REMOTE_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-guard-lists/main/data";
 
+/** Hand-vetted SHORT (<5 char) brand tokens, by brand name, injected into the loaded brand list (see loadStaticData).
+ *  A whole-label match of one of these on a non-official domain is near-certain impersonation (e.g. qql-pass.com). Add
+ *  only distinctive tokens a legitimate site would never carry. Lives in code so it survives the remote data fetch. */
+export const CURATED_SHORT_TOKENS: Record<string, string[]> = { QQL: ["qql"] };
+
 interface RemoteManifest { updatedAt: number; files: Record<string, { bytes: number; sha256?: string }>; sig?: string }
 
 /** Public half of the key the lists repo's Action signs manifests with (ECDSA P-256). */
@@ -237,6 +242,10 @@ export async function loadStaticData(): Promise<{ brands: Brand[]; lists: Signal
   const shared = [...(sharedFile?.hosts ?? []), ...(hosts?.strong ?? []), ...(hosts?.weak ?? [])];
   const trustedList = flattenTrusted(trusted); // curated by hand: marketplaces and social sites on it are deliberate
   const brands = sanitizeBrands(mergeBrands([...(seed ?? []), ...brandsFromTrusted(trustedList)], [...(generated ?? []), ...(nft ?? []), ...(cmc ?? [])]), shared);
+  // shortTokens live in CODE, not in the remotely-fetched brands.seed.json: the published list on the lists repo may
+  // lag (or predate the field), and loadJson prefers the remote copy over the bundle, so a data-only field would be
+  // dropped. Injecting here guarantees a hand-vetted short brand token (e.g. "qql") is present whatever the data source.
+  for (const b of brands) { const st = CURATED_SHORT_TOKENS[b.name]; if (st && b.tier !== "generated") b.shortTokens = [...new Set([...(b.shortTokens ?? []), ...st])]; }
   cache = {
     brands,
     lists: {
