@@ -525,7 +525,10 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // Combination rules from the research: brand + action word + (free host | fresh domain) is near-certain,
   // and so is a free host whose label is nothing but bait words (claim-evm-airdrop.netlify.app).
   const strongBait = new Set(strongActions).size >= 2;
-  if ((matchedBrand && hasAction && (p.freeHost || fresh)) || (p.freeHost && strongBait && ctx.lists.freeHostsStrong.includes(p.freeHost))) {
+  // A curated brand's name on a brand-new (<14-day) domain the brand does not own is near-certain impersonation on its
+  // own — block it without needing a bait word (catches desk-qql.com / qql-pass.com once the RDAP age resolves).
+  const brandFresh = !!matchedBrand && matchedBrand.tier !== "generated" && brandSignalKind === "impersonation" && ctx.ageDays !== undefined && ctx.ageDays < 14;
+  if ((matchedBrand && hasAction && (p.freeHost || fresh)) || (p.freeHost && strongBait && ctx.lists.freeHostsStrong.includes(p.freeHost)) || brandFresh) {
     if (v.score < BLOCK_THRESHOLD) {
       signals.push({ id: "combo", weight: BLOCK_THRESHOLD - v.score, key: "sig_combo" });
       return done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
