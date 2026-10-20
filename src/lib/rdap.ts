@@ -8,6 +8,9 @@
  * sent, never the full URL.
  */
 
+// Not imported from ./deepscan: the Worker's typecheck pulls this file in (parseRegistration), and deepscan drags in DOM types.
+const API_BASE = "https://web3-phish-guard-api.w3pg.workers.dev";
+
 interface AgeCache {
   registeredAt?: number; // ms epoch
   checkedAt: number;
@@ -66,6 +69,7 @@ export async function domainAgeDays(registrable: string, opts: { priority?: bool
   // Certificate Transparency, a good "is this domain brand new" proxy that works where RDAP is blind. Not the exact
   // registration date, but a days-old first cert means a days-old domain.
   if (registeredAt === undefined) registeredAt = await firstCertMs(registrable);
+  if (registeredAt === undefined) { const wd = await workerAgeDays(registrable); if (wd !== undefined) registeredAt = now - wd * 86400000; }
   await chrome.storage.local.set({ [key]: { registeredAt, checkedAt: now, failed: registeredAt === undefined } satisfies AgeCache });
   return registeredAt ? (now - registeredAt) / 86400000 : undefined;
 }
@@ -80,6 +84,17 @@ async function firstCertMs(registrable: string): Promise<number | undefined> {
     let min = Infinity;
     for (const r of rows) { const ms = r.not_before ? Date.parse(r.not_before + "Z") : NaN; if (Number.isFinite(ms) && ms < min) min = ms; }
     return Number.isFinite(min) ? min : undefined;
+  } catch { return undefined; }
+}
+
+/** Last-resort age via the Worker (server-side RDAP + crt.sh + a paid WHOIS key). Only reached when both client
+ *  sources were blind, and only for pages already being scored, so it is not sent for every site. */
+async function workerAgeDays(registrable: string): Promise<number | undefined> {
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/v1/age?host=${encodeURIComponent(registrable)}`, 9000);
+    if (!res.ok) return undefined;
+    const j = (await res.json()) as { ageDays?: number | null };
+    return typeof j.ageDays === "number" ? j.ageDays : undefined;
   } catch { return undefined; }
 }
 

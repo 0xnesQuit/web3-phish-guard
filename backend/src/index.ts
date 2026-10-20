@@ -53,6 +53,8 @@ export interface Env {
   SCANS_PER_HOST_PER_DAY: string;
   SCAN_HOST_COOLDOWN_MIN: string;
   SCAN_BURST?: RateLimit; // Cloudflare rate-limit binding: per-IP burst (atomic, edge-local)
+  WHOXY_API_KEY?: string; // paid WHOIS fallback for domain age (set via `wrangler secret put WHOXY_API_KEY`); last resort after RDAP + crt.sh
+  AGE_PER_IP_PER_DAY?: string;
   MODEL: string;
   LISTS_BASE: string;
   /** headless-browser sandbox (optional): its URL and bearer token live here, never in the extension */
@@ -222,6 +224,20 @@ async function metamaskHit(env: Env, host: string): Promise<boolean> {
 
 const RDAP_HEADERS = { accept: "application/rdap+json, application/json", "user-agent": "Mozilla/5.0 (compatible; W3PG-API/1.0; +https://github.com/0xnesQuit/web3-phish-guard-lists)" };
 
+/** Whoxy paid WHOIS lookup: returns the registration timestamp (ms) from create_date, or undefined. Key stays server-side. */
+async function whoxyAge(env: Env, registrable: string): Promise<number | undefined> {
+  const key = env.WHOXY_API_KEY;
+  if (!key) return undefined;
+  try {
+    const res = await fetch(`https://api.whoxy.com/?key=${encodeURIComponent(key)}&whois=${encodeURIComponent(registrable)}`, { signal: AbortSignal.timeout(9000) });
+    if (!res.ok) return undefined;
+    const j = (await res.json()) as { status?: number; create_date?: string };
+    if (j.status !== 1 || !j.create_date) return undefined;
+    const ms = Date.parse(j.create_date);
+    return Number.isFinite(ms) ? ms : undefined;
+  } catch { return undefined; }
+}
+
 /** RDAP registration age in days, via the IANA bootstrap; cached 7 days. */
 async function serverAgeDays(env: Env, registrable: string): Promise<number | undefined> {
   const k = `rdap:${registrable}`;
@@ -251,6 +267,9 @@ async function serverAgeDays(env: Env, registrable: string): Promise<number | un
       }
     } catch { /* crt.sh optional */ }
   }
+  // Last resort (paid): a WHOIS provider the Worker holds a key for. Only when both free sources were blind, so the
+  // query volume (and cost) is tiny, and the result is cached below like any other.
+  if (!ms && env.WHOXY_API_KEY) { const w = await whoxyAge(env, registrable); if (w) ms = w; }
   await cachePut(k, { ms }, ms ? 7 * 86400 : 6 * 3600);
   return ms > 0 ? (Date.now() - ms) / 86400000 : undefined;
 }
@@ -1437,6 +1456,19 @@ async function handleX(req: Request, env: Env, kind: "brand" | "user"): Promise<
 // /v1/resolve  (short-link expansion for the X timeline badges, from our IP instead of the user's)
 // ---------------------------------------------------------------------------
 const SHORTENERS = new Set(["t.co", "tr.ee", "bit.ly", "bitly.com", "tinyurl.com", "cutt.ly", "t.ly", "rb.gy", "shorturl.at", "is.gd", "v.gd", "rebrand.ly", "short.io", "tiny.cc", "lnkd.in", "buff.ly", "ow.ly", "s.id", "qrco.de", "dub.sh", "bl.ink", "shorte.st", "clck.ru", "goo.su", "u.to", "linkly.co", "snip.ly", "tiny.one", "urlz.fr", "shrtco.de", "go.link"]);
+/** Domain age for the extension when its own RDAP + crt.sh came up empty. Origin-gated, per-IP capped, edge-cached. */
+async function handleAge(req: Request, env: Env): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  const host = (new URL(req.url).searchParams.get("host") ?? "").toLowerCase().replace(/[^a-z0-9.-]/g, "");
+  if (!host || !host.includes(".") || host.length > 255) return json({ error: "bad_host" }, 400);
+  const ik = await ipKey(req, env);
+  if (!(await allow(env, `age:${ik}`, Number(env.AGE_PER_IP_PER_DAY) || 100))) return json({ error: "rate_limited" }, 429);
+  const data = await serverData(env);
+  const registrable = registrableOf(host, data.freeHosts) ?? host;
+  const ageDays = await serverAgeDays(env, registrable);
+  return json({ ageDays: ageDays ?? null }, 200, { "cache-control": "public, max-age=3600" });
+}
+
 async function handleResolve(req: Request, env: Env): Promise<Response> {
   if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
   const target = new URL(req.url).searchParams.get("url") ?? "";
@@ -1501,6 +1533,7 @@ export default {
     if (req.method === "GET" && url.pathname === "/v1/x/brand") return wrap(() => handleX(req, env, "brand"));
     if (req.method === "GET" && url.pathname === "/v1/x/user") return wrap(() => handleX(req, env, "user"));
     if (req.method === "GET" && url.pathname === "/v1/resolve") return wrap(() => handleResolve(req, env));
+    if (req.method === "GET" && url.pathname === "/v1/age") return wrap(() => handleAge(req, env));
     if (req.method === "GET" && url.pathname === "/v1/community.json") return wrap(async () => { const l = await communityList(env); const keep = (d: string) => !NEVER_BLOCK.has(d); return json({ updatedAt: l.updatedAt, domains: l.domains.filter(keep), auto: l.auto.filter(keep) }, 200, { "cache-control": "public, max-age=300" }); });
     if (req.method === "GET" && url.pathname === "/admin") return new Response(ADMIN_SHELL, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     if (req.method === "GET" && url.pathname === "/admin/data") return handleAdminData(req, env);

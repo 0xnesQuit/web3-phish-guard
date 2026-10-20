@@ -25,6 +25,7 @@ ALLOWED_ORIGINS = "chrome-extension://naacgiaegeohgmnhojncbcpjldbgngoo,chrome-ex
 SCANS_PER_IP_PER_DAY = "20"
 REPORTS_PER_IP_PER_DAY = "10"
 SIGNALS_PER_IP_PER_DAY = "40"
+AGE_PER_IP_PER_DAY = "100"
 CROWD_WINDOW_DAYS = "7"
 CROWD_MIN_INSTALLS = "3"
 CROWD_MIN_INSTALLS_YOUNG = "2"
