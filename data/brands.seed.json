@@ -809,5 +809,45 @@
       "pharosnetwork.xyz"
     ],
     "x": "pharos_network"
+  },
+  {
+    "name": "Moonbirds",
+    "tokens": [
+      "moonbirds"
+    ],
+    "domains": [
+      "moonbirds.xyz"
+    ],
+    "x": "moonbirds"
+  },
+  {
+    "name": "Ink",
+    "tokens": [
+      "inkonchain"
+    ],
+    "domains": [
+      "inkonchain.com"
+    ],
+    "x": "inkonchain"
+  },
+  {
+    "name": "Polymarket",
+    "tokens": [
+      "polymarket"
+    ],
+    "domains": [
+      "polymarket.com"
+    ],
+    "x": "Polymarket"
+  },
+  {
+    "name": "Variational",
+    "tokens": [
+      "variational"
+    ],
+    "domains": [
+      "variational.io"
+    ],
+    "x": "variational_io"
   }
 ]
