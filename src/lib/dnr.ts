@@ -67,18 +67,30 @@ export async function applyRules(rules: Rule[]): Promise<void> {
 }
 
 /** Let the user through to one host for the session (after "I understand the risk"). */
-export async function addBypassRule(entry: string): Promise<void> {
+export async function addBypassRule(entry: string, tabId: number): Promise<void> {
   const dnr = chrome.declarativeNetRequest;
   if (!dnr?.updateSessionRules) return;
   const existing = await dnr.getSessionRules();
   const used = new Set(existing.map((r) => r.id));
   let id = RULE_BYPASS_BASE;
   while (used.has(id) && id < RULE_BLOCK_BASE - 1) id++;
-  // "host/path" entries allow that page prefix only; a bare host allows the host
+  // "host/path" entries allow that page prefix only; a bare host allows the host. Scoped to the tab the user clicked
+  // "continue anyway" in (tabIds), so reopening the site in a fresh tab is blocked again; removed when the tab closes.
   const condition = entry.includes("/")
-    ? { urlFilter: "||" + entry + "^", resourceTypes: FRAMES }
-    : { requestDomains: [entry], resourceTypes: FRAMES };
+    ? { urlFilter: "||" + entry + "^", resourceTypes: FRAMES, tabIds: [tabId] }
+    : { requestDomains: [entry], resourceTypes: FRAMES, tabIds: [tabId] };
   await dnr.updateSessionRules({
     addRules: [{ id, priority: 20, action: { type: "allow" as chrome.declarativeNetRequest.RuleActionType }, condition }],
   }).catch(() => undefined);
+}
+
+/** Drop the per-tab "continue anyway" allow rules when the tab closes, so the site is blocked again next time. */
+export async function removeBypassRulesForTab(tabId: number): Promise<void> {
+  const dnr = chrome.declarativeNetRequest;
+  if (!dnr?.updateSessionRules) return;
+  try {
+    const existing = await dnr.getSessionRules();
+    const ids = existing.filter((r) => r.id >= RULE_BYPASS_BASE && r.id < RULE_BLOCK_BASE && (r.condition.tabIds ?? []).includes(tabId)).map((r) => r.id);
+    if (ids.length) await dnr.updateSessionRules({ removeRuleIds: ids });
+  } catch { /* best effort */ }
 }

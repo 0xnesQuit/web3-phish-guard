@@ -9,7 +9,7 @@ import { resolveBrand, resolvePoster } from "./lib/xquik";
 import { pollPendingJobs, getJobs, ensureSbxAlarm, getDone, getInstallId, SBX_ALARM } from "./lib/sandboxq";
 import type { SandboxReport } from "./lib/types";
 import { scanExternalScripts, askApi, askSandbox, sendReport, API_BASE } from "./lib/deepscan";
-import { buildRules, applyRules, addBypassRule } from "./lib/dnr";
+import { buildRules, applyRules, addBypassRule, removeBypassRulesForTab } from "./lib/dnr";
 import { SOL_ENDPOINTS, parseMessageAccounts, diffSolana, mergeDiffs, summarizeSolana, type SolAccount } from "./lib/solana";
 import { RPC_ENDPOINTS, buildSimulateRequest, parseSimulation, summarizeChanges } from "./lib/simulate";
 import { decodeString, decodeUint, SEL } from "./lib/impact";
@@ -140,7 +140,6 @@ function refreshAllSources(): Promise<void> {
 }
 
 /** Push the freshest known-phishing hosts into declarativeNetRequest so they are cancelled before any request. */
-const bypassedHosts: string[] = [];
 async function syncDnr(): Promise<void> {
   try {
     const { lists } = await loadStaticData();
@@ -150,7 +149,7 @@ async function syncDnr(): Promise<void> {
       ...newestDomains("metamask", 40_000),
       ...newestDomains("community", 10_000),
     ].filter((d) => !popularSet.has(d) && !popularSet.has(d.replace(/^www\./, "")));
-    const allow = [...(await getUserAllow()), ...lists.trusted, ...bypassedHosts];
+    const allow = [...(await getUserAllow()), ...lists.trusted];
     await applyRules(buildRules(block, allow, newestPaths(2000)));
   } catch (e) {
     console.warn("[w3pg] DNR sync failed", e);
@@ -557,7 +556,7 @@ async function applyVerdict(tabId: number, v: Verdict) {
   await chrome.action.setBadgeBackgroundColor({ tabId, color }).catch(() => undefined);
   await chrome.action.setBadgeText({ tabId, text: v.band === "none" ? "" : String(v.score) }).catch(() => undefined);
 
-  if (v.band === "block" && !(await isBypassed(v.host, safePath(v.url)))) {
+  if (v.band === "block" && !(await isBypassed(v.host, safePath(v.url), tabId))) {
     await showWarning(tabId, v);
     return;
   }
@@ -678,6 +677,7 @@ chrome.webNavigation.onErrorOccurred.addListener(async (d) => {
 chrome.tabs.onRemoved.addListener((tabId) => {
   simStamps.delete(tabId);
   void clearTab(tabId);
+  void removeBypassRulesForTab(tabId);
   void chrome.storage.session.remove([`deep:${tabId}`, `origin:${tabId}`, `soc:${tabId}`, `pev:${tabId}`]).catch(() => undefined);
 });
 
@@ -712,10 +712,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!p) { sendResponse(false); return; }
         // a path-level hit (one Google Sites page) is bypassed for that page only, never for the whole platform
         const entry = p.pathEntry ?? p.host;
-        await addBypass(entry);
+        await addBypass(entry, p.tabId);
         await consumeWarning(String(msg.nonce)); // a bypass is a one-shot use of the nonce
-        if (!p.pathEntry) bypassedHosts.push(p.host);
-        await addBypassRule(entry);
+        await addBypassRule(entry, p.tabId);
         sendResponse(true);
         return;
       }

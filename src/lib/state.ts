@@ -9,7 +9,7 @@ export async function getTabVerdict(tabId: number): Promise<Verdict | undefined>
   return (await chrome.storage.session.get(`tab:${tabId}`))[`tab:${tabId}`] as Verdict | undefined;
 }
 export async function clearTab(tabId: number): Promise<void> {
-  await chrome.storage.session.remove(`tab:${tabId}`);
+  await chrome.storage.session.remove([`tab:${tabId}`, `bypass:${tabId}`]);
 }
 
 export interface WarningPayload { url: string; host: string; score: number; signals: Verdict["signals"]; brandDomain?: string; reviewed?: boolean; tabId: number; /** host+path prefix when the hit came from a path-level entry (Google Sites pages): the bypass stays that narrow */ pathEntry?: string }
@@ -30,13 +30,16 @@ export async function consumeWarning(nonce: string): Promise<void> {
   if (/^[0-9a-f-]{36}$/.test(nonce)) await chrome.storage.session.remove(`warn:${nonce}`).catch(() => undefined);
 }
 
-/** Bypass entries are hosts, or "host/path" prefixes for path-level hits. */
-export async function addBypass(entry: string): Promise<void> {
-  const cur = ((await chrome.storage.session.get("bypass")).bypass as string[] | undefined) ?? [];
-  if (!cur.includes(entry)) await chrome.storage.session.set({ bypass: [...cur, entry] });
+/** Bypass entries are hosts, or "host/path" prefixes for path-level hits. Scoped to the tab where the user clicked
+ *  "continue anyway", and cleared when that tab closes (clearTab), so reopening a blocked site warns again. */
+export async function addBypass(entry: string, tabId: number): Promise<void> {
+  const k = `bypass:${tabId}`;
+  const cur = ((await chrome.storage.session.get(k))[k] as string[] | undefined) ?? [];
+  if (!cur.includes(entry)) await chrome.storage.session.set({ [k]: [...cur, entry] });
 }
-export async function isBypassed(host: string, pathname = "/"): Promise<boolean> {
-  const cur = ((await chrome.storage.session.get("bypass")).bypass as string[] | undefined) ?? [];
+export async function isBypassed(host: string, pathname: string, tabId: number): Promise<boolean> {
+  const k = `bypass:${tabId}`;
+  const cur = ((await chrome.storage.session.get(k))[k] as string[] | undefined) ?? [];
   const path = pathname.toLowerCase().replace(/\/+$/, "");
   return cur.some((e) => (e.includes("/") ? e.startsWith(host + "/") && (host + path === e || (host + path).startsWith(e + "/")) : e === host));
 }
