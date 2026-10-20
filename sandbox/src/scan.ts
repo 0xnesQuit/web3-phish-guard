@@ -78,13 +78,32 @@ export async function scanUrl(browser: Browser, url: string, opts: ScanOptions =
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: Math.min(20000, timeoutMs) }).catch(() => undefined);
     await page.waitForTimeout(1500);
 
+    // bot-challenge: a Cloudflare / CAPTCHA interstitial means the headless browser only saw the gate, not the real
+    // page. Give its JS a few seconds to auto-pass; if it still blocks us, report that honestly (the Worker + popup
+    // then show "could not inspect" and never a misleading "clean").
+    const CHALLENGE_RE = /_cf_chl_opt|\/cdn-cgi\/challenge-platform\/|challenges\.cloudflare\.com|just a moment|checking your browser|attention required|enable javascript and cookies|verify you are (a )?human|hcaptcha\.com|g-recaptcha/i;
+    let html = (await page.content().catch(() => "")) || "";
+    let title = (await page.title().catch(() => "")) || "";
+    const challenged = () => CHALLENGE_RE.test(title) || CHALLENGE_RE.test(html.slice(0, 20000));
+    if (challenged()) {
+      for (let i = 0; i < 5 && Date.now() < deadline && challenged(); i++) {
+        await page.waitForTimeout(1200);
+        title = (await page.title().catch(() => "")) || title;
+        html = (await page.content().catch(() => "")) || html;
+      }
+      if (challenged()) {
+        report.challenge = true;
+        report.flags.push("bot-challenge");
+        report.findings.push("Blocked by a bot challenge (Cloudflare/CAPTCHA) — the page could not be inspected");
+      }
+    }
+
     // page source: drainer markers + seed-phrase form
-    const html = (await page.content().catch(() => "")) || "";
     for (const re of SCRIPT_MARKERS) { const m = html.match(re); if (m) report.scriptMarkers.push(m[0].slice(0, 60)); }
     report.seedForm = SEED_FORM_HINTS.some((re) => re.test(html)) && /<input|<textarea/i.test(html);
 
     // nudge: click obvious connect / claim / mint controls so the page reveals what it does on connect
-    if (opts.interact !== false) {
+    if (!report.challenge && opts.interact !== false) {
       await page.evaluate(() => { (window as unknown as Record<string, unknown>).__w3pgClicked = true; }).catch(() => undefined);
       // "connect" opens the wallet picker; the wallet labels then select our injected decoy inside it (the modal
       // lists MetaMask/Injected/Browser Wallet or, for EIP-6963 dapps, our announced "Sandbox Observer"), so a
@@ -101,7 +120,7 @@ export async function scanUrl(browser: Browser, url: string, opts: ScanOptions =
 
     // WalletConnect-routed requests never reach the injected observer; pair as a mobile wallet and capture them too.
     let wcRaw: RawCapture[] = [];
-    if (opts.interact !== false) {
+    if (!report.challenge && opts.interact !== false) {
       wcRaw = await tryWalletConnect(page, cfg.address, cfg.chainId, startedAt, deadline).catch(() => []);
     }
 

@@ -41,6 +41,8 @@ export interface ScanReport {
   badHosts: string[];
   /** did the page try to read a seed phrase / private key */
   seedForm: boolean;
+  /** the page was behind a bot challenge (Cloudflare/CAPTCHA), so the browser never saw the real page */
+  challenge?: boolean;
 }
 
 export interface ScanOptions {

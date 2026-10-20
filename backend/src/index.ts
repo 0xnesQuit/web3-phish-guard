@@ -664,13 +664,18 @@ function sandboxSawNothing(r: Record<string, unknown>): boolean {
 /** If the sandbox saw nothing AND the page is behind a bot-challenge, return a challenge report (never "clean"),
  *  leaning suspicious when the domain is also brand-new (classic drainer evasion). Otherwise return the report as-is. */
 async function annotateChallenge(env: Env, url: string, host: string, report: Record<string, unknown>): Promise<{ report: Record<string, unknown>; state: string }> {
-  if (!sandboxSawNothing(report)) return { report, state: "fresh" };
-  let html = "";
-  try {
-    const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", accept: "text/html,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(8000) });
-    html = (await res.text()).slice(0, 20000);
-  } catch { return { report, state: "fresh" }; }
-  if (!CHALLENGE_RE.test(html)) return { report, state: "fresh" };
+  // The VPS rendered the page, so it is the authority: if its headless browser saw a bot challenge, trust that flag
+  // directly (a Worker-side fetch is served real content from inside Cloudflare's own network and would miss it).
+  const vpsFlagged = report.challenge === true;
+  if (!vpsFlagged) {
+    if (!sandboxSawNothing(report)) return { report, state: "fresh" };
+    let html = "";
+    try {
+      const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", accept: "text/html,*/*;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(8000) });
+      html = (await res.text()).slice(0, 20000);
+    } catch { return { report, state: "fresh" }; }
+    if (!CHALLENGE_RE.test(html)) return { report, state: "fresh" };
+  }
   let ageDays: number | undefined;
   try { ageDays = await serverAgeDays(env, host.split(".").slice(-2).join(".")); } catch { /* age optional */ }
   const young = ageDays !== undefined && ageDays < 45;
