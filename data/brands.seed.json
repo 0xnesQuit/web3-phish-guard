@@ -849,5 +849,46 @@
       "variational.io"
     ],
     "x": "variational_io"
+  },
+  {
+    "name": "Farcaster",
+    "tokens": [
+      "farcaster"
+    ],
+    "domains": [
+      "farcaster.xyz",
+      "warpcast.com"
+    ],
+    "x": "farcaster_xyz"
+  },
+  {
+    "name": "Fogo",
+    "tokens": [
+      "fogo"
+    ],
+    "domains": [
+      "fogo.io"
+    ],
+    "x": "FogoChain"
+  },
+  {
+    "name": "Infinex",
+    "tokens": [
+      "infinex"
+    ],
+    "domains": [
+      "infinex.xyz"
+    ],
+    "x": "infinex_app"
+  },
+  {
+    "name": "Kintsu",
+    "tokens": [
+      "kintsu"
+    ],
+    "domains": [
+      "kintsu.xyz"
+    ],
+    "x": "kintsu_xyz"
   }
 ]
