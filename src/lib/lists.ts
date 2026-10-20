@@ -13,7 +13,7 @@ export const REMOTE_BASE = "https://raw.githubusercontent.com/0xnesQuit/web3-phi
 /** Hand-vetted SHORT (<5 char) brand tokens, by brand name, injected into the loaded brand list (see loadStaticData).
  *  A whole-label match of one of these on a non-official domain is near-certain impersonation (e.g. qql-pass.com). Add
  *  only distinctive tokens a legitimate site would never carry. Lives in code so it survives the remote data fetch. */
-export const CURATED_SHORT_TOKENS: Record<string, string[]> = { QQL: ["qql"] };
+export const CURATED_SHORT_TOKENS: Record<string, string[]> = { QQL: ["qql"], Aave: ["aave"], Zama: ["zama"], Zora: ["zora"] };
 
 interface RemoteManifest { updatedAt: number; files: Record<string, { bytes: number; sha256?: string }>; sig?: string }
 
