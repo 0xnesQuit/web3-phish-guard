@@ -81,11 +81,13 @@ function render(v: Verdict) {
   const collapse = () => { if (!pinnedOpen) card.classList.add("min"); };
   const expand = () => card.classList.remove("min");
   let timer: number | undefined = window.setTimeout(collapse, COLLAPSE_AFTER_MS);
-  const onFirstInteraction = (e: Event) => { if (!e.isTrusted || !host.isConnected) return; if (timer !== undefined) { clearTimeout(timer); timer = undefined; } collapse(); };
-  // the user started using the page: get out of the way
+  const cancelTimer = () => { if (timer !== undefined) { clearTimeout(timer); timer = undefined; } };
+  // the user started using the PAGE: get out of the way. Interacting with our own card (e.target is the shadow host
+  // after retargeting) must NOT collapse it — otherwise clicking the Deep scan button hides it before the click lands.
+  const onFirstInteraction = (e: Event) => { if (!e.isTrusted || !host.isConnected || e.target === host) return; cancelTimer(); collapse(); };
   window.addEventListener("pointerdown", onFirstInteraction, { capture: true, passive: true });
   window.addEventListener("keydown", onFirstInteraction, { capture: true, passive: true });
-  card.addEventListener("mouseenter", expand);
+  card.addEventListener("mouseenter", () => { cancelTimer(); expand(); });
   card.addEventListener("mouseleave", () => { if (!pinnedOpen) collapse(); });
   root.getElementById("head")!.addEventListener("click", (e) => { if (!e.isTrusted || (e.target as HTMLElement).id === "close") return; pinnedOpen = !pinnedOpen; if (pinnedOpen) expand(); else collapse(); });
   root.getElementById("close")!.addEventListener("click", (e) => { if (!e.isTrusted) return; closed = true; keep.disconnect(); host.remove(); current = null; });
