@@ -528,7 +528,11 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   // A curated brand's name on a brand-new (<14-day) domain the brand does not own is near-certain impersonation on its
   // own — block it without needing a bait word (catches desk-qql.com / qql-pass.com once the RDAP age resolves).
   const brandFresh = !!matchedBrand && matchedBrand.tier !== "generated" && brandSignalKind === "impersonation" && ctx.ageDays !== undefined && ctx.ageDays < 14;
-  if ((matchedBrand && hasAction && (p.freeHost || fresh)) || (p.freeHost && strongBait && ctx.lists.freeHostsStrong.includes(p.freeHost)) || brandFresh) {
+  // A hand-vetted SHORT brand token (e.g. "qql") as a whole label on a non-official domain is near-certain on its own,
+  // so block it without waiting on RDAP — the client age lookup is slow/flaky for some TLDs, and these tokens are
+  // distinctive and human-opted-in precisely because a legitimate site is extremely unlikely to carry them.
+  const shortBrandMatch = !!matchedBrand && brandSignalKind === "impersonation" && (matchedBrand.shortTokens ?? []).some((st) => tokens.includes(st.toLowerCase()));
+  if ((matchedBrand && hasAction && (p.freeHost || fresh)) || (p.freeHost && strongBait && ctx.lists.freeHostsStrong.includes(p.freeHost)) || brandFresh || shortBrandMatch) {
     if (v.score < BLOCK_THRESHOLD) {
       signals.push({ id: "combo", weight: BLOCK_THRESHOLD - v.score, key: "sig_combo" });
       return done({ brand: matchedBrand?.name, ageDays: ctx.ageDays });
