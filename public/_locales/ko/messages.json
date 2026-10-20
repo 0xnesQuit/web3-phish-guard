@@ -77,6 +77,9 @@
   "overlay_hint": {
     "message": "지갑을 연결하거나 서명하기 전에 프로젝트 공식 X/Discord에서 주소를 확인하세요."
   },
+  "overlay_scanning": {
+    "message": "스캔 중…"
+  },
   "overlay_close": {
     "message": "닫기"
   },

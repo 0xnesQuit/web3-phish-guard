@@ -77,6 +77,9 @@
   "overlay_hint": {
     "message": "Verify the address on the project's official X/Discord before connecting your wallet or signing anything."
   },
+  "overlay_scanning": {
+    "message": "Scanning…"
+  },
   "overlay_close": {
     "message": "Close"
   },

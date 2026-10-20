@@ -934,6 +934,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse(await deepScan(Number(msg.tabId), String(msg.language || "en")));
         return;
       }
+      case "w3pg:overlayDeepScan": {
+        // The overlay is our own top-frame content script; a page's own (main-world) scripts cannot reach
+        // chrome.runtime, so only our content script sends this. Top frame only. Runs the same user-initiated deep scan.
+        const tabId = sender.tab?.id;
+        if (tabId === undefined || sender.frameId !== 0) return;
+        sendResponse(await deepScan(tabId, String(msg.language || "en")));
+        return;
+      }
       case "w3pg:getDeepReport": {
         if (!fromExtension(sender)) return;
         const tabId = Number(msg.tabId);

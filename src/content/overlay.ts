@@ -6,6 +6,7 @@
  * badge; hovering or clicking the badge opens the card again. Only the user's own click closes it.
  */
 import type { Verdict } from "../lib/types";
+import type { DeepReport } from "../lib/types";
 import { t, signalText } from "../lib/i18n";
 
 const ID = "w3pg-banner";
@@ -48,6 +49,17 @@ function render(v: Verdict) {
       .card.min .head{padding:6px 10px}
       .card.min .t{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .card.min .x{display:none}
+      .deep{margin-top:4px;font:inherit;font-weight:600;font-size:12px;background:#f5a524;color:#1a1200;border:0;border-radius:8px;padding:6px 12px;cursor:pointer}
+      .deep[disabled]{opacity:.6;cursor:default}
+      .card.min .deep,.card.min .deepout{display:none}
+      .deepout{margin-top:8px}
+      .deepout .v{font-weight:700;margin-bottom:4px}
+      .deepout .v.dangerous{color:#ff8a8a}
+      .deepout .v.suspicious{color:#ffd27a}
+      .deepout .v.safe{color:#9be3b0}
+      .deepout .sum{opacity:.92;margin-bottom:4px}
+      .deepout ul{margin:4px 0}
+      .deepout .sbx{opacity:.8;font-size:12px;margin-top:4px}
     </style>
     <div class="card" id="card" role="alert" aria-live="polite">
       <div class="head" id="head">
@@ -59,6 +71,8 @@ function render(v: Verdict) {
       <div class="body">
         <ul>${reasons}</ul>
         <div class="s">${esc(t("overlay_hint"))}</div>
+        <button class="deep" id="deep">${esc(t("popup_deep_scan"))}</button>
+        <div class="deepout" id="deepout"></div>
       </div>
     </div>`;
   const card = root.getElementById("card") as HTMLElement;
@@ -75,6 +89,19 @@ function render(v: Verdict) {
   card.addEventListener("mouseleave", () => { if (!pinnedOpen) collapse(); });
   root.getElementById("head")!.addEventListener("click", (e) => { if (!e.isTrusted || (e.target as HTMLElement).id === "close") return; pinnedOpen = !pinnedOpen; if (pinnedOpen) expand(); else collapse(); });
   root.getElementById("close")!.addEventListener("click", (e) => { if (!e.isTrusted) return; closed = true; keep.disconnect(); host.remove(); current = null; });
+  root.getElementById("deep")!.addEventListener("click", async (e) => {
+    if (!e.isTrusted) return;
+    pinnedOpen = true; expand();
+    const btn = e.currentTarget as HTMLButtonElement;
+    const out = root.getElementById("deepout") as HTMLElement;
+    btn.disabled = true; out.textContent = t("overlay_scanning");
+    try {
+      const lang = (() => { try { return chrome.i18n.getUILanguage().split("-")[0]; } catch { return "en"; } })();
+      const r = (await chrome.runtime.sendMessage({ type: "w3pg:overlayDeepScan", language: lang })) as DeepReport | { error: string } | undefined;
+      renderDeepInline(out, r);
+    } catch { out.textContent = t("popup_ai_unavailable"); }
+    if (host.isConnected) btn.disabled = false;
+  });
   const mount = () => (document.documentElement || document.body).appendChild(host);
   // a page that deletes the card gets it back; only the user's own click closes it
   const keep = new MutationObserver(() => {
@@ -88,6 +115,25 @@ function render(v: Verdict) {
 
 function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
+}
+
+function renderDeepInline(out: HTMLElement, r: DeepReport | { error: string } | undefined) {
+  const err = !r || "error" in r ? (r && "error" in r ? r.error : "error") : (r.ai?.error ?? "");
+  if (!r || "error" in r || err) {
+    out.innerHTML = `<div class="sbx">${esc(t("popup_ai_unavailable"))}${err ? ` (${esc(String(err))})` : ""}</div>`;
+    return;
+  }
+  const ai = r.ai ?? {};
+  const v = ai.verdict ?? "safe";
+  const cls = v === "dangerous" ? "dangerous" : v === "suspicious" ? "suspicious" : "safe";
+  const conf = Math.round((ai.confidence ?? 0) * 100);
+  const imp = ai.impersonates ? " · " + t("popup_impersonates", [ai.impersonates]) : "";
+  const reasons = (ai.reasons ?? []).slice(0, 4).map((x) => `<li>${esc(x)}</li>`).join("");
+  const sb = r.sandbox;
+  const sbxLine = sb && sb.ok
+    ? `<div class="sbx">${esc(t("popup_sandbox_title"))}: ${esc(sb.challenge ? t("sbx_state_challenge") : t("verdict_" + (sb.verdict ?? "unknown")))}</div>`
+    : "";
+  out.innerHTML = `<div class="v ${cls}">${esc(t("verdict_" + v))} · ${conf}%${esc(imp)}</div>${ai.summary ? `<div class="sum">${esc(ai.summary)}</div>` : ""}${reasons ? `<ul>${reasons}</ul>` : ""}${sbxLine}`;
 }
 
 const clear = () => { disposeCurrent?.(); disposeCurrent = null; current?.remove(); current = null; shownScore = -1; };

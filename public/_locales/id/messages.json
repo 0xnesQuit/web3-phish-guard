@@ -77,6 +77,9 @@
   "overlay_hint": {
     "message": "Verifikasi alamat di X/Discord resmi proyek sebelum menghubungkan dompet atau menandatangani apa pun."
   },
+  "overlay_scanning": {
+    "message": "Memindai…"
+  },
   "overlay_close": {
     "message": "Tutup"
   },

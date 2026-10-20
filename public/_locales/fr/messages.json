@@ -77,6 +77,9 @@
   "overlay_hint": {
     "message": "Vérifiez l'adresse sur le X/Discord officiel du projet avant de connecter votre portefeuille ou de signer quoi que ce soit."
   },
+  "overlay_scanning": {
+    "message": "Analyse en cours…"
+  },
   "overlay_close": {
     "message": "Fermer"
   },

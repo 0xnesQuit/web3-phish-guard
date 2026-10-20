@@ -77,6 +77,9 @@
   "overlay_hint": {
     "message": "在连接钱包或签名之前，请在项目官方 X/Discord 上核实该地址。"
   },
+  "overlay_scanning": {
+    "message": "正在扫描…"
+  },
   "overlay_close": {
     "message": "关闭"
   },

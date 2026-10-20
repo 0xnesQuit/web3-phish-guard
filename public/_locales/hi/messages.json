@@ -77,6 +77,9 @@
   "overlay_hint": {
     "message": "वॉलेट जोड़ने या कुछ भी साइन करने से पहले प्रोजेक्ट के आधिकारिक X/Discord पर पता सत्यापित करें।"
   },
+  "overlay_scanning": {
+    "message": "स्कैन हो रहा है…"
+  },
   "overlay_close": {
     "message": "बंद करें"
   },
