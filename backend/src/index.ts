@@ -544,22 +544,21 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   await cachePut(cacheKey, result, 3600);
   await cachePut(hostKey, result, 3600);
 
-  // Auto-list (warn-only "auto" set, no network block until a moderator confirms). Every leg is server-side:
-  //   - the server's own score without any client-supplied context is in the warn band or above,
-  //   - the domain is registrable, not official/trusted/allowlisted anywhere, and not a very-high-traffic domain,
-  //   - it is young (RDAP age known and under 60 days) or the server-only score alone already blocks,
-  //   - the server fetched the page itself and saw drainer-shaped content,
-  //   - the model is confident it is dangerous.
+  // Auto-list (warn-only "auto" set, no network block until a moderator confirms). A confident AI "dangerous"
+  // verdict is enough on its own: the older gate also required the server's own heuristic to agree and the server
+  // to re-fetch the page and see drainer content, but a Cloudflare-cloaked drainer defeats both (the server only
+  // ever sees the challenge), so those legs are dropped. Still never for official/trusted/allowlisted/popular
+  // domains, and still revocable via moderation. The verdict rests on the caller's snapshot, so a forged snapshot
+  // could warn-list a smaller legit site until a moderator removes it; the ipHash below helps spot such spam.
   const official = !!serverOnly && serverOnly.signals.some((s) => s.id === "brand-official" || s.id === "brand-official-generated" || s.id === "trusted" || s.id === "allowlist");
   const young = ageDays !== undefined && ageDays < 60;
-  const youngOrFree = young || !registrable; // free-host pages have no registration date of their own
-  if (result.verdict === "dangerous" && result.confidence >= 0.9 && serverOnly && serverOnly.score >= 35 && (youngOrFree || serverOnly.score >= 70) && listEntry && !official && !(await neverBlock(env, listEntry, data))) {
+  if (result.verdict === "dangerous" && result.confidence >= 0.9 && listEntry && !official && !(await neverBlock(env, listEntry, data))) {
     const list = await communityList(env);
-    if (!list.domains.includes(listEntry) && !list.auto.includes(listEntry) && (await verifyPageEvidence(payload))) {
+    if (!list.domains.includes(listEntry) && !list.auto.includes(listEntry)) {
       await updateCommunity(env, (l) => { if (!l.domains.includes(listEntry) && !l.auto.includes(listEntry)) l.auto.push(listEntry); });
       await enqueueReport(env, {
-        id: crypto.randomUUID(), url: payload.url.replace(/[?#].*$/, ""), host: payload.host, registrable: listEntry, score: serverOnly.score,
-        signals: [`AI: dangerous ${Math.round(result.confidence * 100)}%`, `server: ${serverOnly.score}/100`, ...serverOnly.signals.filter((s) => s.weight > 0).map((s) => s.key)],
+        id: crypto.randomUUID(), url: payload.url.replace(/[?#].*$/, ""), host: payload.host, registrable: listEntry, score: serverOnly?.score ?? Math.round(result.confidence * 100),
+        signals: [`AI: dangerous ${Math.round(result.confidence * 100)}%`, ...(young && ageDays !== undefined ? [`domain ${Math.floor(ageDays)}d old`] : []), ...(serverOnly ? [`server: ${serverOnly.score}/100`, ...serverOnly.signals.filter((s) => s.weight > 0).map((s) => s.key)] : [])],
         note: `[auto] ${result.summary}`, at: Date.now(), status: "auto", ipHash: ik,
       });
     }
