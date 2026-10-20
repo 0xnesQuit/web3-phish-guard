@@ -552,7 +552,7 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   // could warn-list a smaller legit site until a moderator removes it; the ipHash below helps spot such spam.
   const official = !!serverOnly && serverOnly.signals.some((s) => s.id === "brand-official" || s.id === "brand-official-generated" || s.id === "trusted" || s.id === "allowlist");
   const young = ageDays !== undefined && ageDays < 60;
-  if (result.verdict === "dangerous" && result.confidence >= 0.9 && listEntry && !official && !(await neverBlock(env, listEntry, data))) {
+  if (result.verdict === "dangerous" && result.confidence >= 0.85 && listEntry && !official && !(await neverBlock(env, listEntry, data))) {
     const list = await communityList(env);
     if (!list.domains.includes(listEntry) && !list.auto.includes(listEntry)) {
       await updateCommunity(env, (l) => { if (!l.domains.includes(listEntry) && !l.auto.includes(listEntry)) l.auto.push(listEntry); });
