@@ -57,6 +57,14 @@
   .policy p, .policy li{color:var(--muted); font-size:14.5px}
   .policy ol{padding-left:20px}
   .policy .upd{color:var(--faint); font-size:13px}
+  .placeholder-note{background:rgba(245,165,36,.12); color:#f5c97a; border:1px solid rgba(245,165,36,.3); border-radius:8px; padding:9px 12px; font-size:13px; margin:0 0 18px}
+  .give{margin-bottom:14px}
+  .give-label{color:var(--faint); font-size:13px; margin-bottom:5px}
+  .give-row{display:flex; align-items:center; gap:8px; background:var(--bg2); border:1px solid var(--line); border-radius:8px; padding:8px 10px}
+  .give-row code{flex:1; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; color:var(--ink); word-break:break-all}
+  .copy{background:var(--accent); color:#fff; border:0; border-radius:6px; padding:6px 13px; font-size:13px; cursor:pointer; white-space:nowrap}
+  .copy:hover{background:var(--accent2)}
+  .copy.done{background:var(--ok)}
   footer{border-top:1px solid var(--line); padding:28px 0; color:var(--faint); font-size:14px}
   footer .row{display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px}
 </style>
@@ -70,6 +78,7 @@
       <a href="#how">How it works</a>
       <a href="#privacy">Privacy</a>
       <a href="#support">Support</a>
+      <a href="#donate">Donate</a>
     </nav>
   </div>
 </header>
@@ -169,6 +178,38 @@
       </div>
     </div>
   </section>
+
+  <section id="donate">
+    <div class="wrap">
+      <h2>Support Guard3</h2>
+      <p class="sub">Guard3 is free, with no ads, no tracking and no data selling. Keeping it that way has real running costs, and your support is what keeps it independent.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>Where your support goes</h3>
+          <ul class="clean">
+            <li><b>AI deep scan:</b> each on-demand deep scan asks an AI model for a verdict, and those API calls cost money per scan.</li>
+            <li><b>Servers:</b> the backend that serves the blocklists, scores sites and rate-limits abuse runs on paid infrastructure.</li>
+            <li><b>The decoy-wallet sandbox:</b> a separate machine opens suspicious pages in a safe, isolated browser to see what they try to do.</li>
+            <li><b>Domain checks:</b> looking up how old a domain is uses a paid data source when the free ones come up empty.</li>
+            <li><b>Fresh lists:</b> the phishing and brand lists are updated continuously.</li>
+          </ul>
+          <p style="color:var(--muted); margin:14px 0 0">Every contribution, big or small, goes straight to these costs and helps Guard3 stay free, independent and growing. Thank you.</p>
+        </div>
+        <div class="card">
+          <h3>Ways to give</h3>
+          <p class="placeholder-note">These addresses are placeholders. The final donation details will be published here once Guard3 is live on the store.</p>
+          <div class="give">
+            <div class="give-label">ENS (coming soon)</div>
+            <div class="give-row"><code id="ens">guard3.eth</code><button class="copy" data-copy="ens">Copy</button></div>
+          </div>
+          <div class="give">
+            <div class="give-label">EVM (Ethereum, Base, Arbitrum, Optimism, Polygon)</div>
+            <div class="give-row"><code id="evm">0x0000000000000000000000000000000000000000</code><button class="copy" data-copy="evm">Copy</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -177,10 +218,27 @@
     <div>
       <a href="#how">How it works</a> &nbsp;·&nbsp;
       <a href="#privacy">Privacy</a> &nbsp;·&nbsp;
-      <a href="#support">Support</a>
+      <a href="#support">Support</a> &nbsp;·&nbsp;
+      <a href="#donate">Donate</a>
     </div>
   </div>
 </footer>
+
+<script>
+  document.querySelectorAll(".copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var el = document.getElementById(b.getAttribute("data-copy"));
+      if (!el) return;
+      var txt = (el.textContent || "").trim();
+      navigator.clipboard.writeText(txt).then(function () {
+        var old = b.textContent;
+        b.textContent = "Copied";
+        b.classList.add("done");
+        setTimeout(function () { b.textContent = old; b.classList.remove("done"); }, 1500);
+      }).catch(function () {});
+    });
+  });
+</script>
 
 </body>
 </html>
