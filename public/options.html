@@ -5,41 +5,171 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-i18n="opt_title">Guard3 settings</title>
 <style>
-  body { margin: 0; padding: 32px; font-family: system-ui, sans-serif; background: #111; color: #eee; max-width: 720px; }
-  h1 { font-size: 22px; margin: 0 0 24px; }
-  h2 { font-size: 16px; margin: 28px 0 8px; }
-  p { line-height: 1.5; opacity: .85; font-size: 14px; }
-  label { display: block; font-size: 13px; opacity: .8; margin: 12px 0 4px; }
-  input { width: 100%; box-sizing: border-box; font: 14px ui-monospace, monospace; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #1b1b1b; color: #eee; }
-  button { font: inherit; margin-top: 10px; margin-right: 8px; padding: 8px 14px; border-radius: 8px; border: 1px solid #444; background: #222; color: #eee; cursor: pointer; }
-  .ok { color: #9be3b0; font-size: 13px; margin-left: 6px; }
-  pre { background: #1b1b1b; padding: 10px; border-radius: 8px; font-size: 12px; white-space: pre-wrap; }
-  ul { padding-left: 18px; line-height: 1.8; font-size: 14px; }
-  a.rm { color: #ff8a8a; margin-left: 8px; cursor: pointer; font-size: 12px; }
+  :root {
+    --bg:#0b0e16; --bg2:#10141f; --card:#141926; --line:#222a3a;
+    --ink:#e8ecf6; --muted:#9aa6c0; --faint:#6b7691;
+    --accent:#5b8cff; --accent2:#7aa2ff; --danger:#ff5b6e; --ok:#43c08a;
+    --radius:14px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(900px 320px at 50% -120px, rgba(91,140,255,.14), transparent), var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 16px 64px; }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+  .logo { flex: none; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; box-shadow: 0 6px 20px rgba(91,140,255,.3); display: block; }
+  .brand { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent2); }
+  h1 { margin: 0; font-size: 22px; line-height: 1.25; overflow-wrap: anywhere; }
+  .sub { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  h2 { margin: 0 0 12px; font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
+  h3 { margin: 20px 0 4px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); overflow-wrap: anywhere; }
+  p { margin: 0; }
+  #warn-note { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .danger-note { margin: 8px 2px 0; font-size: 13px; color: var(--danger); overflow-wrap: anywhere; }
+
+  /* option rows */
+  label.opt, label.row {
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
+    border-radius: 10px; transition: background .15s, border-color .15s;
+  }
+  label.opt { padding: 11px 12px; border: 1px solid var(--line); background: var(--bg2); margin-top: 8px; }
+  label.opt:first-of-type { margin-top: 0; }
+  label.opt:hover { border-color: #33405a; }
+  label.opt:has(input:checked) { border-color: var(--accent); background: rgba(91,140,255,.08); }
+  label.opt.risky { color: var(--danger); }
+  label.opt.risky:has(input:checked) { border-color: var(--danger); background: rgba(255,91,110,.08); }
+  label.opt > span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+
+  label.row { padding: 12px 0; align-items: flex-start; justify-content: space-between; }
+  label.row + label.row { border-top: 1px solid var(--line); }
+  label.row:first-child { padding-top: 0; }
+  label.row:last-child { padding-bottom: 0; }
+  .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .ttl { display: block; font-weight: 600; }
+  .desc { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+
+  /* radio */
+  input[type=radio] {
+    appearance: none; -webkit-appearance: none; flex: none; margin: 0;
+    width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--faint);
+    background: transparent; cursor: pointer; transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=radio]:checked { border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--bg2), inset 0 0 0 10px var(--accent); }
+  #warn-off { border-color: var(--danger); }
+  #warn-off:checked { border-color: var(--danger); box-shadow: inset 0 0 0 3px var(--bg2), inset 0 0 0 10px var(--danger); }
+
+  /* toggle switch */
+  input[type=checkbox] {
+    appearance: none; -webkit-appearance: none; flex: none; margin: 2px 0 0; position: relative;
+    width: 42px; height: 24px; border-radius: 999px; background: #2a3348; border: 1px solid var(--line);
+    cursor: pointer; transition: background .2s, border-color .2s;
+  }
+  input[type=checkbox]::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: transform .2s;
+  }
+  input[type=checkbox]:checked { background: var(--accent); border-color: var(--accent); }
+  input[type=checkbox]:checked::after { transform: translateX(18px); }
+
+  input:focus-visible, button:focus-visible, a.rm:focus-visible { outline: 2px solid var(--accent2); outline-offset: 3px; }
+
+  /* trusted list */
+  ul#trusted { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  ul#trusted:empty { min-height: 44px; border: 1px dashed var(--line); border-radius: 10px; background: var(--bg2); }
+  ul#trusted li {
+    display: inline-flex; align-items: center; gap: 8px; max-width: 100%; overflow-wrap: anywhere;
+    padding: 6px 8px 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg2);
+    font: 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  a.rm {
+    flex: none; cursor: pointer; font: 600 12px system-ui, sans-serif; color: var(--danger);
+    padding: 2px 8px; border-radius: 999px; background: rgba(255,91,110,.1); transition: background .15s;
+  }
+  a.rm:hover { background: rgba(255,91,110,.22); }
+
+  /* lists */
+  .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+  button {
+    font: inherit; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 10px;
+    padding: 10px 18px; cursor: pointer; transition: background .15s, transform .1s;
+  }
+  button:hover { background: var(--accent2); }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .55; cursor: progress; }
+  .ok { font-size: 13px; color: var(--ok); overflow-wrap: anywhere; min-width: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
 </style>
 </head>
 <body>
-  <h1 data-i18n="opt_title">Guard3 settings</h1>
+  <div class="wrap">
+    <header>
+      <img class="logo" src="icons/icon128.png" alt="Guard3">
+      <div>
+        <div class="brand">Guard3</div>
+        <h1 data-i18n="opt_title">Guard3 settings</h1>
+      </div>
+    </header>
 
-  <h2 data-i18n="opt_warn_heading">Page protection</h2>
-  <label><input type="radio" name="warn" value="page" id="warn-page"> <span data-i18n="opt_warn_page">Show on the page</span></label>
-  <label><input type="radio" name="warn" value="popup" id="warn-popup"> <span data-i18n="opt_warn_popup">Toolbar only</span></label>
-  <label style="color:#ff8a8a"><input type="radio" name="warn" value="off" id="warn-off"> <span data-i18n="opt_warn_off">Off</span></label>
-  <p style="color:#ff8a8a;margin:2px 0 0 24px;font-size:12px" data-i18n="opt_warn_off_note">Known phishing pages will no longer be blocked.</p>
-  <p id="warn-note" data-i18n="opt_warn_note"></p>
+    <section class="card">
+      <h2 data-i18n="opt_warn_heading">Page protection</h2>
+      <label class="opt"><input type="radio" name="warn" value="page" id="warn-page"> <span data-i18n="opt_warn_page">Show on the page</span></label>
+      <label class="opt"><input type="radio" name="warn" value="popup" id="warn-popup"> <span data-i18n="opt_warn_popup">Toolbar only</span></label>
+      <label class="opt risky"><input type="radio" name="warn" value="off" id="warn-off"> <span data-i18n="opt_warn_off">Off</span></label>
+      <p class="danger-note" data-i18n="opt_warn_off_note">Known phishing pages will no longer be blocked.</p>
+      <p id="warn-note" data-i18n="opt_warn_note"></p>
+    </section>
 
-  <h2 data-i18n="opt_gate_heading">Wallet gate</h2>
-  <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="strict" style="width:auto;margin-top:3px"> <span><span data-i18n="opt_strict">Strict mode: check every transaction</span><br><span style="opacity:.7;font-size:12px" data-i18n="opt_strict_note">Show a confirmation for every transaction, even on trusted sites. More interruptions, wider coverage.</span></span></label>
-  <h3 style="font-size:14px;margin:18px 0 0" data-i18n="opt_online_heading">Online checks at the gate</h3>
-  <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="simulate" style="width:auto;margin-top:3px"> <span><span data-i18n="opt_sim_heading">Transaction simulation</span><br><span style="opacity:.7;font-size:12px" data-i18n="opt_simulate">Simulate held transactions through a public RPC (sends the pending transaction to publicnode / 1rpc / dRPC)</span></span></label>
-  <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="addrscreen" style="width:auto;margin-top:3px"> <span><span data-i18n="opt_addr_heading">Address screening</span><br><span style="opacity:.7;font-size:12px" data-i18n="opt_addr_note">Check the counterparty address against known-scam lists. The address already goes on-chain with the transaction. Turn off for no network at the gate.</span></span></label>
+    <section class="card">
+      <h2 data-i18n="opt_gate_heading">Wallet gate</h2>
+      <label class="row">
+        <span class="txt">
+          <span class="ttl" data-i18n="opt_strict">Strict mode: check every transaction</span>
+          <span class="desc" data-i18n="opt_strict_note">Show a confirmation for every transaction, even on trusted sites. More interruptions, wider coverage.</span>
+        </span>
+        <input type="checkbox" id="strict">
+      </label>
 
-  <h2 data-i18n="opt_trusted_heading">Domains you marked as trusted</h2>
-  <ul id="trusted"></ul>
+      <h3 data-i18n="opt_online_heading">Online checks at the gate</h3>
+      <label class="row">
+        <span class="txt">
+          <span class="ttl" data-i18n="opt_sim_heading">Transaction simulation</span>
+          <span class="desc" data-i18n="opt_simulate">Simulate held transactions through a public RPC (sends the pending transaction to publicnode / 1rpc / dRPC)</span>
+        </span>
+        <input type="checkbox" id="simulate">
+      </label>
+      <label class="row">
+        <span class="txt">
+          <span class="ttl" data-i18n="opt_addr_heading">Address screening</span>
+          <span class="desc" data-i18n="opt_addr_note">Check the counterparty address against known-scam lists. The address already goes on-chain with the transaction. Turn off for no network at the gate.</span>
+        </span>
+        <input type="checkbox" id="addrscreen">
+      </label>
+    </section>
 
-  <h2 data-i18n="opt_lists_heading">Lists</h2>
-  <button id="refreshlists" data-i18n="opt_refresh_lists">Refresh lists now</button>
-  <span id="listsstatus" class="ok"></span>
+    <section class="card">
+      <h2 data-i18n="opt_trusted_heading">Domains you marked as trusted</h2>
+      <ul id="trusted"></ul>
+    </section>
+
+    <section class="card">
+      <h2 data-i18n="opt_lists_heading">Lists</h2>
+      <div class="actions">
+        <button id="refreshlists" data-i18n="opt_refresh_lists">Refresh lists now</button>
+        <span id="listsstatus" class="ok"></span>
+      </div>
+    </section>
+  </div>
 
   <script src="options.js"></script>
 </body>
