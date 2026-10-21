@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "La page a copié une commande système dans le presse-papiers (« $1 ») ; ne la collez nulle part"
   },
+  "sig_clickfix_lure": {
+    "message": "Cette page affiche de fausses étapes de vérification qui vous demandent d'exécuter une commande sur votre ordinateur (par exemple Windows+R puis coller). Ne les suivez pas ; cela lance un logiciel malveillant."
+  },
   "sig_clipboard_swap": {
     "message": "La page a remplacé l'adresse copiée par une autre ($1)"
   },

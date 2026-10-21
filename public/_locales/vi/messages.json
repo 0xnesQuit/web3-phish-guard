@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "Trang đã sao chép lệnh hệ thống vào clipboard (\"$1\"); đừng dán ở bất cứ đâu"
   },
+  "sig_clickfix_lure": {
+    "message": "Trang này hiển thị các bước xác minh giả yêu cầu bạn chạy lệnh trên máy tính (ví dụ Windows+R rồi dán). Đừng làm theo; nó chạy mã độc."
+  },
   "sig_clipboard_swap": {
     "message": "Trang đã thay địa chỉ bạn sao chép bằng địa chỉ khác ($1)"
   },

@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "页面把系统命令复制到了剪贴板（“$1”）；切勿粘贴到任何地方"
   },
+  "sig_clickfix_lure": {
+    "message": "此页面显示虚假的验证步骤，要求你在电脑上运行命令（例如 Windows+R 然后粘贴）。请勿照做，这会运行恶意软件。"
+  },
   "sig_clipboard_swap": {
     "message": "页面把您复制的地址换成了另一个（$1）"
   },

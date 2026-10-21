@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "Die Seite hat einen Systembefehl in die Zwischenablage kopiert (\"$1\"); nirgends einfügen"
   },
+  "sig_clickfix_lure": {
+    "message": "Diese Seite zeigt gefälschte Verifizierungsschritte, die Sie auffordern, einen Befehl auf Ihrem Computer auszuführen (z. B. Windows+R, dann einfügen). Nicht befolgen; das startet Schadsoftware."
+  },
   "sig_clipboard_swap": {
     "message": "Die Seite hat die kopierte Adresse durch eine andere ersetzt ($1)"
   },

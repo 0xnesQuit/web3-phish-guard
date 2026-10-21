@@ -29,6 +29,20 @@ const SEED_RE = /(seed|mnemonic|recovery|secret)\s*(phrase|words?)|private\s*key
 const COUNTDOWN_RE = /\b\d{1,2}\s*:\s*\d{2}\s*:\s*\d{2}\b|\b(\d+\s*(h|hours?|saat|std|horas?|heures?|часов?|घंटे|小时|時間|시간|giờ|jam)\s*\d+\s*(m|min|dakika|minuten|minutos?|minutes?|минут|मिनट|分钟|分|분|phút|menit))\b|ends? in|time left|kalan süre|endet in|termina en|se termine dans|termina em|осталось|समाप्त|剩余|残り|남은 시간|còn lại|berakhir dalam|expires in/i;
 const WALLET_BTN_RE = /connect\s*wallet|cüzdan\s*bağla|claim|mint|airdrop|verify\s*wallet|check\s*eligibility|sync\s*wallet|validate|migrate|restore|wallet\s*verbinden|conectar\s*(billetera|wallet)|reclamar|connecter\s*(le\s*)?portefeuille|r[eé]clamer|conectar\s*carteira|resgatar|подключить\s*кошел[её]к|получить|вывести|वॉलेट\s*कनेक्ट|दावा|连接钱包|领取|铸造|ウォレット(を)?接続|請求|受け取る|지갑\s*연결|받기|클레임|kết nối ví|nhận|hubungkan\s*dompet|klaim/i;
 
+// ClickFix lure: instructions to run a command AND to paste. Both halves are required; either alone is common in tutorials.
+// Strong run triggers (the Windows Run dialog) are ClickFix-specific. Weak ones (Terminal, Spotlight) overlap with
+// legitimate install docs ("open your terminal and paste this"), so they also require fake-verification framing.
+const LURE_RUN_STRONG = /\b(?:win(?:dows)?(?:\s*key)?|⊞)\s*\+\s*r\b|⊞\s*\+?\s*r\b|\brun\s+dialog\b/i;
+const LURE_RUN_WEAK = /\bterminal\b|\b(?:cmd|command|⌘)\s*\+\s*space\b/i;
+const LURE_PASTE_RE = /\b(?:ctrl|control)\s*\+\s*v\b|\b(?:cmd|command)\s*\+\s*v\b|\bpaste\b/i;
+const LURE_VERIFY_RE = /\b(?:verif\w*|captcha|robot|cloudflare|human|security check)\b|\bnot a (?:ro)?bot\b/i;
+export function hasClickfixLure(text: string): boolean {
+  const t = text.slice(0, 20_000);
+  if (!LURE_PASTE_RE.test(t)) return false;
+  if (LURE_RUN_STRONG.test(t)) return true;
+  return LURE_RUN_WEAK.test(t) && LURE_VERIFY_RE.test(t);
+}
+
 function hostOf(u: string): string | null {
   try { return new URL(u, location.href).hostname.toLowerCase(); } catch { return null; }
 }
@@ -178,7 +192,7 @@ function quickScan() {
     for (const seg of [document.title, meta("og:site_name"), meta("og:title")]) {
       for (const w of seg.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).slice(0, 3)) heads.add(w);
     }
-    const signals: PageSignals = { seedInputOnLoad: countSeedInputs(inputs, true) > 0, drainerSrcMarkers: [...markers].slice(0, 10), titleHeads: [...heads].slice(0, 12) };
+    const signals: PageSignals = { seedInputOnLoad: countSeedInputs(inputs, true) > 0, drainerSrcMarkers: [...markers].slice(0, 10), titleHeads: [...heads].slice(0, 12), clickfixLure: hasClickfixLure(document.body?.innerText ?? "") };
     chrome.runtime.sendMessage({ type: "w3pg:pagesignals", signals }).catch(() => undefined);
   } catch { /* ignore */ }
 }

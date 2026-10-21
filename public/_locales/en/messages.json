@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "The page copied a system command to your clipboard (\"$1\"); never paste it anywhere"
   },
+  "sig_clickfix_lure": {
+    "message": "This page shows fake verification steps that tell you to run a command on your computer (for example Windows+R then paste). Do not follow them; it runs malware."
+  },
   "sig_clipboard_swap": {
     "message": "The page replaced the address you copied with another one ($1)"
   },

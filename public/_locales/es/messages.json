@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "La página copió un comando del sistema al portapapeles (\"$1\"); no lo pegues en ningún sitio"
   },
+  "sig_clickfix_lure": {
+    "message": "Esta página muestra pasos de verificación falsos que te piden ejecutar un comando en tu ordenador (por ejemplo Windows+R y pegar). No los sigas; ejecuta malware."
+  },
   "sig_clipboard_swap": {
     "message": "La página sustituyó la dirección copiada por otra ($1)"
   },

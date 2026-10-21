@@ -531,6 +531,8 @@ export function score(url: string, p: ParsedHost, ctx: ScoreContext): Verdict {
   if (pg) {
     // a web page asking for a recovery phrase or private key is the scam itself: legitimate wallets never do this
     if (pg.seedInputOnLoad) signals.push({ id: "seed-input-onload", weight: BLOCK_THRESHOLD, key: "sig_seed_onload" });
+    // fake verification steps ("Win+R, then paste"): a warn alone; with the clipboard clickfix event (60) the sum blocks
+    if (pg.clickfixLure) signals.push({ id: "clickfix-lure", weight: 40, key: "sig_clickfix_lure" });
     // kit file names in <script src>; weak names (drainer, inferno...) warn, specific ones block
     const kit = pg.drainerSrcMarkers.slice(0, 8);
     if (kit.length) {

@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "A página copiou um comando do sistema para a área de transferência (\"$1\"); nunca cole"
   },
+  "sig_clickfix_lure": {
+    "message": "Esta página mostra etapas de verificação falsas que mandam você executar um comando no computador (por exemplo Windows+R e colar). Não siga; isso executa malware."
+  },
   "sig_clipboard_swap": {
     "message": "A página trocou o endereço copiado por outro ($1)"
   },

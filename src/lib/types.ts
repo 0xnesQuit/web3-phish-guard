@@ -105,6 +105,8 @@ export interface PageSignals {
   drainerSrcMarkers: string[];
   /** leading words of document.title, og:site_name and og:title, lowercase (brand-name check happens in scoring) */
   titleHeads: string[];
+  /** the page text tells the user to open Run / Terminal AND paste (ClickFix lure); both halves must be present */
+  clickfixLure: boolean;
 }
 
 /** What the optional X resolver learned (brand token -> official account, poster profile). */

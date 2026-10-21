@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "Sayfa panonuza bir sistem komutu kopyaladı (\"$1\"); asla bir yere yapıştırmayın"
   },
+  "sig_clickfix_lure": {
+    "message": "Bu sayfa, bilgisayarınızda komut çalıştırmanızı isteyen sahte doğrulama adımları gösteriyor (örneğin Windows+R, sonra yapıştır). Uygulamayın; kötü amaçlı yazılım çalıştırır."
+  },
   "sig_clipboard_swap": {
     "message": "Sayfa kopyaladığınız adresi başka bir adresle değiştirdi ($1)"
   },

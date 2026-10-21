@@ -857,7 +857,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!raw || typeof raw !== "object") return;
         // sanitise: the sender is our content script, but the payload still crosses a message boundary
         const strs = (a: unknown, n: number) => (Array.isArray(a) ? a.filter((x): x is string => typeof x === "string").map((x) => x.slice(0, 60)).slice(0, n) : []);
-        const page: PageSignals = { seedInputOnLoad: raw.seedInputOnLoad === true, drainerSrcMarkers: strs(raw.drainerSrcMarkers, 10), titleHeads: strs(raw.titleHeads, 12) };
+        const page: PageSignals = { seedInputOnLoad: raw.seedInputOnLoad === true, drainerSrcMarkers: strs(raw.drainerSrcMarkers, 10), titleHeads: strs(raw.titleHeads, 12), clickfixLure: raw.clickfixLure === true };
         const prev = await getTabVerdict(tabId);
         if (!prev) return; // the onCommitted scan has not produced a verdict for this page yet
         if (prev.signals.some((s) => s.id === "user-allow" || s.id === "brand-official" || s.id === "trusted")) return;

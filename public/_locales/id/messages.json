@@ -542,6 +542,9 @@
   "sig_clickfix": {
     "message": "Halaman menyalin perintah sistem ke clipboard (\"$1\"); jangan tempel di mana pun"
   },
+  "sig_clickfix_lure": {
+    "message": "Halaman ini menampilkan langkah verifikasi palsu yang menyuruh Anda menjalankan perintah di komputer (misalnya Windows+R lalu tempel). Jangan ikuti; ini menjalankan malware."
+  },
   "sig_clipboard_swap": {
     "message": "Halaman mengganti alamat yang Anda salin dengan alamat lain ($1)"
   },
