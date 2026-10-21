@@ -9,13 +9,14 @@
  */
 import { t } from "../lib/i18n";
 import { KNOWN_CONTRACTS, nativeSymbol, toBig, isUnlimitedBig, formatUnits, deadlineText, decodeString, decodeUint, callData, SEL, tokenLabel, shortAddr, summarizeSeaport, type TokenMeta } from "../lib/impact";
+import { screenTargets, flagLabelKey, type Counterparty } from "../lib/addrscreen";
 import { decodeTx, decodeSendCalls, decodeTypedData, looksPoisoned, CLICKFIX_RE, CRYPTO_ADDR_RE, type TxIntent, type SignIntent } from "../lib/txdecode";
 
 const TAG = "w3pg";
 
 /** One translated "asset impact" line for the gate dialog. */
 interface ImpactLine { text: string; bad?: boolean; muted?: boolean }
-interface GateDetails { id: string; method: string; kind: string; counterparty?: string; counterpartyEoa?: boolean; unlimited?: boolean; token?: string; poisonedTwin?: string; batch?: string[]; primaryType?: string; deadline?: string; impact?: ImpactLine[]; sim?: ImpactLine[]; hadGesture: boolean }
+interface GateDetails { id: string; method: string; kind: string; counterparty?: string; counterpartyEoa?: boolean; unlimited?: boolean; token?: string; poisonedTwin?: string; batch?: string[]; primaryType?: string; deadline?: string; impact?: ImpactLine[]; sim?: ImpactLine[]; warn?: ImpactLine[]; hadGesture: boolean }
 /** What the decoders found; only used locally to compute the impact lines (never sent to the background). */
 interface ImpactIntent {
   tx?: TxIntent; sign?: SignIntent;
@@ -298,6 +299,49 @@ function simulateSol(txs: string[]): Promise<ImpactLine[]> {
   });
 }
 
+// ---- counterparty screen (known malicious address): runs only at the gate, never blocks the dialog ----
+const ADDR_CAP_MS = 5000;
+type AddrReply = { bad: boolean; flags: string[] };
+/** per-address, for the page lifetime (the Worker also caches 6-24 h) */
+const addrCache = new Map<string, Promise<AddrReply>>();
+function screenAddr(address: string, chain: number): Promise<AddrReply> {
+  const key = chain + ":" + address;
+  let p = addrCache.get(key);
+  if (!p) {
+    p = safeSend({ type: "w3pg:addr", address, chain }).then((r) => {
+      const o = (r ?? {}) as { bad?: unknown; flags?: unknown };
+      return { bad: o.bad === true, flags: Array.isArray(o.flags) ? o.flags.filter((f): f is string => typeof f === "string") : [] };
+    }, () => ({ bad: false, flags: [] }));
+    addrCache.set(key, p);
+  }
+  return p;
+}
+
+/** Warning rows for flagged counterparties; [] when nothing is flagged, nothing is screenable or anything fails (fail open). */
+function addrWarnLines(g: GateDetails, intent: ImpactIntent | undefined): Promise<ImpactLine[]> {
+  return new Promise((resolve) => {
+    if (!intent) return resolve([]);
+    const timer = setTimeout(() => resolve([]), ADDR_CAP_MS);
+    (async () => {
+      const items: Array<{ kind: string; counterparty?: string }> = [];
+      if (intent.tx) items.push(intent.tx);
+      for (const c of intent.calls ?? []) items.push(c);
+      if (intent.sign) items.push(intent.sign);
+      if (!items.length) return [];
+      const { user, chainId } = await walletContext(g.id);
+      const targets: Counterparty[] = screenTargets(items, user);
+      if (!targets.length) return [];
+      const chain = chainId ? parseInt(chainId, 16) || 1 : 1;
+      const lines: ImpactLine[] = [];
+      await Promise.all(targets.map(async (c) => {
+        const r = await screenAddr(c.address, chain);
+        if (r.bad && r.flags.length) lines.push({ text: t(c.role === "recipient" ? "gate_addr_bad_recipient" : "gate_addr_bad_spender", [short(c.address), t(flagLabelKey(r.flags))]), bad: true });
+      }));
+      return lines;
+    })().then((l) => { clearTimeout(timer); resolve(l); }, () => { clearTimeout(timer); resolve([]); });
+  });
+}
+
 // ---- recipients seen on this origin (address poisoning) ----
 const knownRecipients: string[] = [];
 function checkPoison(to: string | undefined): string | undefined {
@@ -423,14 +467,26 @@ async function gate(g: GateDetails, intent?: ImpactIntent): Promise<boolean> {
   // reads start now; the top frame shows the dialog at once and fills the rows in, an iframe waits (one-shot message)
   const impactP = describeImpact(g, intent);
   const simP = intent?.simCalls?.length ? simulate(g, intent.simCalls) : intent?.solTxs?.length ? simulateSol(intent.solTxs) : undefined;
+  const warn = { p: addrWarnLines(g, intent), shown: false };
   if (window.top !== window) {
-    try { const [lines, sim] = await Promise.all([impactP, simP]); if (lines.length) g.impact = lines; if (sim?.length) g.sim = sim; } catch { /* display only */ }
+    try { const [lines, sim, w] = await Promise.all([impactP, simP, warn.p]); if (lines.length) g.impact = lines; if (sim?.length) g.sim = sim; if (w.length) g.warn = w; } catch { /* display only */ }
     try {
       const r = (await safeSend({ type: "w3pg:gateTop", details: g, decision, frameHost: location.hostname })) as { allow?: boolean } | undefined;
       allow = typeof r?.allow === "boolean" ? r.allow : await modal(g, decision, location.hostname);
     } catch { allow = await modal(g, decision, location.hostname); }
   } else {
-    allow = await modal(g, decision, location.hostname, impactP, simP);
+    allow = await modal(g, decision, location.hostname, impactP, simP, warn);
+  }
+  // Late screen result: the user answered before the lookup finished and the address turned out to be flagged. Show the
+  // warning and ask again (top frame); an iframe cannot, so it rejects.
+  if (allow && !warn.shown && !g.warn?.length) {
+    try {
+      const w = await warn.p;
+      if (w.length) {
+        g.warn = w;
+        allow = window.top === window ? await modal(g, { reason: w[0].text, score: decision.score }, location.hostname, impactP, simP) : false;
+      }
+    } catch { /* screen is best effort */ }
   }
   // Simulation-spoofing guard: a drainer can show a harmless preview, then flip the contract state so the SAME signed
   // transaction drains on execution (the gap between simulation and signing). If the user proceeds on a preview that
@@ -489,7 +545,7 @@ function simHtml(lines: ImpactLine[] | undefined, checking: boolean): string {
   return head + lines.map((l) => `<li${l.muted ? ' class="chk"' : l.bad ? ' class="bad"' : ""}>${esc(l.text)}</li>`).join("");
 }
 
-function modal(g: GateDetails, d: { reason?: string; score?: number }, hostLabel: string, impactP?: Promise<ImpactLine[]>, simP?: Promise<ImpactLine[]>): Promise<boolean> {
+function modal(g: GateDetails, d: { reason?: string; score?: number }, hostLabel: string, impactP?: Promise<ImpactLine[]>, simP?: Promise<ImpactLine[]>, warn?: { p: Promise<ImpactLine[]>; shown: boolean }): Promise<boolean> {
   return new Promise((resolve) => {
     const host = document.createElement("div");
     host.id = "w3pg-gate";
@@ -515,6 +571,7 @@ function modal(g: GateDetails, d: { reason?: string; score?: number }, hostLabel
         .bad{color:#ff9b9b}
         .imp:empty{display:none}
         .imp .h{list-style:none;margin-left:-18px;font-weight:600;font-size:13px;opacity:.85}
+        .warn li{font-weight:700;color:#ff6b6b}
         .imp .chk{opacity:.6;font-style:italic}
         code{font-family:ui-monospace,monospace;background:#2a1414;padding:1px 6px;border-radius:5px}
         .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -528,6 +585,7 @@ function modal(g: GateDetails, d: { reason?: string; score?: number }, hostLabel
         <div class="card">
           <h1 id="w3pg-t">${esc(t("gate_title"))}</h1>
           <div class="sub">${esc(t("gate_sub", [String(d.score ?? "")]))}</div>
+          <ul id="warn" class="imp warn">${g.warn?.length ? g.warn.map((l) => `<li class="bad">${esc(l.text)}</li>`).join("") : ""}</ul>
           <ul>${rows.join("")}</ul>
           <ul id="imp" class="imp">${impactHtml(g.impact, !g.impact?.length && !!impactP)}</ul>
           <ul id="sim" class="imp">${simHtml(g.sim, !g.sim?.length && !!simP)}</ul>
@@ -549,6 +607,13 @@ function modal(g: GateDetails, d: { reason?: string; score?: number }, hostLabel
     root.getElementById("ok")!.addEventListener("click", (e) => { if (e.isTrusted) done(true); });
     root.addEventListener("keydown", (e) => { if (e.isTrusted && (e as KeyboardEvent).key === "Escape") done(false); });
     mount();
+    if (warn && !g.warn?.length) {
+      // the counterparty screen fills its rows in when it returns (addrWarnLines caps itself); a settled dialog ignores it
+      warn.p.then((lines) => {
+        const ul = root.getElementById("warn");
+        if (ul && !settled && lines.length) { ul.innerHTML = lines.map((l) => `<li class="bad">${esc(l.text)}</li>`).join(""); warn.shown = true; }
+      }, () => undefined);
+    }
     if (impactP && !g.impact?.length) {
       // the placeholder is already in the dialog; fill it when the reads finish (describeImpact caps itself at 4 s)
       impactP.then((lines) => {

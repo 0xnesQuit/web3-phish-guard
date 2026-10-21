@@ -17,6 +17,9 @@
   "warning_reasons": {
     "message": "Почему это подозрительно:"
   },
+  "warning_deep_title": {
+    "message": "Что показал глубокий анализ"
+  },
   "warning_back": {
     "message": "Назад (рекомендуется)"
   },
@@ -547,6 +550,24 @@
   },
   "gate_unlimited": {
     "message": "Неограниченная сумма: может забрать весь токен сейчас или позже"
+  },
+  "gate_addr_bad_spender": {
+    "message": "ВНИМАНИЕ: этот получатель разрешения ($1) помечен как вредоносный адрес: $2"
+  },
+  "gate_addr_bad_recipient": {
+    "message": "ВНИМАНИЕ: этот получатель ($1) помечен как вредоносный адрес: $2"
+  },
+  "gate_addr_l_phish": {
+    "message": "фишинг или кража"
+  },
+  "gate_addr_l_crime": {
+    "message": "киберпреступность или мошенничество"
+  },
+  "gate_addr_l_launder": {
+    "message": "отмывание денег"
+  },
+  "gate_addr_l_sanction": {
+    "message": "под санкциями"
   },
   "gate_poison": {
     "message": "Этот адрес имитирует использованный ранее ($1): address poisoning"

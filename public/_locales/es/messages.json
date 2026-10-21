@@ -17,6 +17,9 @@
   "warning_reasons": {
     "message": "Por qué parece sospechoso:"
   },
+  "warning_deep_title": {
+    "message": "Lo que encontró el análisis profundo"
+  },
   "warning_back": {
     "message": "Volver (recomendado)"
   },
@@ -547,6 +550,24 @@
   },
   "gate_unlimited": {
     "message": "Importe ilimitado: podría llevarse todo este token ahora o después"
+  },
+  "gate_addr_bad_spender": {
+    "message": "ADVERTENCIA: este gastador ($1) es una dirección maliciosa marcada: $2"
+  },
+  "gate_addr_bad_recipient": {
+    "message": "ADVERTENCIA: este destinatario ($1) es una dirección maliciosa marcada: $2"
+  },
+  "gate_addr_l_phish": {
+    "message": "phishing o robo"
+  },
+  "gate_addr_l_crime": {
+    "message": "cibercrimen o fraude"
+  },
+  "gate_addr_l_launder": {
+    "message": "lavado de dinero"
+  },
+  "gate_addr_l_sanction": {
+    "message": "sancionada"
   },
   "gate_poison": {
     "message": "Esta dirección imita una que usaste antes ($1): address poisoning"

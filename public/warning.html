@@ -12,6 +12,8 @@
   .host { font-family: ui-monospace, monospace; font-size: 18px; background: #3b1515; padding: 8px 12px; border-radius: 8px; word-break: break-all; margin: 16px 0; }
   .score { font-size: 14px; opacity: .8; }
   ul { padding-left: 20px; line-height: 1.6; }
+  #deeptitle { margin-bottom: 6px; }
+  .deepsum { font-size: 14px; opacity: .9; line-height: 1.5; }
   .actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
   button { font: inherit; padding: 12px 18px; border-radius: 10px; border: 0; cursor: pointer; font-weight: 600; }
   .back { background: #e5484d; color: #fff; }
@@ -29,6 +31,11 @@
     <div class="host" id="host" tabindex="-1" role="status" aria-live="polite"></div>
     <p data-i18n="warning_reasons">Why it looks suspicious:</p>
     <ul id="reasons"></ul>
+    <div id="deepbox" hidden>
+      <p id="deeptitle" data-i18n="warning_deep_title">What the deep analysis found</p>
+      <div class="deepsum" id="deepsum"></div>
+      <ul id="deepreasons"></ul>
+    </div>
     <div class="actions">
       <button class="back" id="back" data-i18n="warning_back">Go back (recommended)</button>
       <button class="back" id="official" hidden></button>

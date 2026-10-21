@@ -17,6 +17,9 @@
   "warning_reasons": {
     "message": "यह संदिग्ध क्यों लगता है:"
   },
+  "warning_deep_title": {
+    "message": "गहन विश्लेषण में क्या मिला"
+  },
   "warning_back": {
     "message": "वापस जाएँ (अनुशंसित)"
   },
@@ -547,6 +550,24 @@
   },
   "gate_unlimited": {
     "message": "असीमित राशि: यह टोकन पूरा अभी या बाद में ले सकता है"
+  },
+  "gate_addr_bad_spender": {
+    "message": "चेतावनी: यह स्पेंडर ($1) एक चिह्नित दुर्भावनापूर्ण पता है: $2"
+  },
+  "gate_addr_bad_recipient": {
+    "message": "चेतावनी: यह प्राप्तकर्ता ($1) एक चिह्नित दुर्भावनापूर्ण पता है: $2"
+  },
+  "gate_addr_l_phish": {
+    "message": "फिशिंग या चोरी"
+  },
+  "gate_addr_l_crime": {
+    "message": "साइबर अपराध या धोखाधड़ी"
+  },
+  "gate_addr_l_launder": {
+    "message": "मनी लॉन्ड्रिंग"
+  },
+  "gate_addr_l_sanction": {
+    "message": "प्रतिबंधित"
   },
   "gate_poison": {
     "message": "यह पता आपके पहले वाले पते ($1) की नकल है: address poisoning"

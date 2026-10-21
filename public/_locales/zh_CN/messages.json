@@ -17,6 +17,9 @@
   "warning_reasons": {
     "message": "可疑原因："
   },
+  "warning_deep_title": {
+    "message": "深度分析的发现"
+  },
   "warning_back": {
     "message": "返回（推荐）"
   },
@@ -547,6 +550,24 @@
   },
   "gate_unlimited": {
     "message": "无限额度：现在或以后可取走该代币的全部"
+  },
+  "gate_addr_bad_spender": {
+    "message": "警告：此授权对象（$1）是已被标记的恶意地址：$2"
+  },
+  "gate_addr_bad_recipient": {
+    "message": "警告：此收款方（$1）是已被标记的恶意地址：$2"
+  },
+  "gate_addr_l_phish": {
+    "message": "钓鱼或盗窃"
+  },
+  "gate_addr_l_crime": {
+    "message": "网络犯罪或欺诈"
+  },
+  "gate_addr_l_launder": {
+    "message": "洗钱"
+  },
+  "gate_addr_l_sanction": {
+    "message": "受制裁"
   },
   "gate_poison": {
     "message": "此地址模仿您用过的地址（$1）：地址投毒"

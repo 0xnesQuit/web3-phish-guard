@@ -12,7 +12,7 @@ export async function clearTab(tabId: number): Promise<void> {
   await chrome.storage.session.remove([`tab:${tabId}`, `bypass:${tabId}`]);
 }
 
-export interface WarningPayload { url: string; host: string; score: number; signals: Verdict["signals"]; brandDomain?: string; reviewed?: boolean; tabId: number; /** host+path prefix when the hit came from a path-level entry (Google Sites pages): the bypass stays that narrow */ pathEntry?: string }
+export interface WarningPayload { url: string; host: string; score: number; signals: Verdict["signals"]; brandDomain?: string; reviewed?: boolean; tabId: number; /** compact AI deep-scan findings, shown on the block page */ deep?: { summary?: string; reasons?: string[]; impersonates?: string }; /** host+path prefix when the hit came from a path-level entry (Google Sites pages): the bypass stays that narrow */ pathEntry?: string }
 
 /** Store the warning page's payload under a random nonce: readable for 10 minutes (reloads), consumed by a bypass. */
 export async function putWarning(p: WarningPayload): Promise<string> {

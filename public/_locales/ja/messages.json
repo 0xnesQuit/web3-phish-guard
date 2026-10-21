@@ -17,6 +17,9 @@
   "warning_reasons": {
     "message": "疑わしい理由："
   },
+  "warning_deep_title": {
+    "message": "詳細分析で判明したこと"
+  },
   "warning_back": {
     "message": "戻る（推奨）"
   },
@@ -547,6 +550,24 @@
   },
   "gate_unlimited": {
     "message": "無制限：このトークンを今後いつでも全額引き出せる"
+  },
+  "gate_addr_bad_spender": {
+    "message": "警告：この承認先（$1）は悪意のあるアドレスとして報告されています：$2"
+  },
+  "gate_addr_bad_recipient": {
+    "message": "警告：この受取人（$1）は悪意のあるアドレスとして報告されています：$2"
+  },
+  "gate_addr_l_phish": {
+    "message": "フィッシングまたは窃盗"
+  },
+  "gate_addr_l_crime": {
+    "message": "サイバー犯罪または詐欺"
+  },
+  "gate_addr_l_launder": {
+    "message": "マネーロンダリング"
+  },
+  "gate_addr_l_sanction": {
+    "message": "制裁対象"
   },
   "gate_poison": {
     "message": "このアドレスは以前使った相手（$1）を模倣：アドレスポイズニング"

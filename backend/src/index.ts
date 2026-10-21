@@ -55,6 +55,7 @@ export interface Env {
   SCAN_BURST?: RateLimit; // Cloudflare rate-limit binding: per-IP burst (atomic, edge-local)
   WHOXY_API_KEY?: string; // paid WHOIS fallback for domain age (set via `wrangler secret put WHOXY_API_KEY`); last resort after RDAP + crt.sh
   AGE_PER_IP_PER_DAY?: string;
+  ADDR_PER_IP_PER_DAY?: string;
   MODEL: string;
   LISTS_BASE: string;
   /** headless-browser sandbox (optional): its URL and bearer token live here, never in the extension */
@@ -464,6 +465,25 @@ async function goPlus(host: string): Promise<boolean | undefined> {
     return j.result ? j.result.phishing_site === 1 : undefined;
   } catch {
     return undefined;
+  }
+}
+
+/** GoPlus address_security flags that mean clear malice. Weak signals (blacklist_doubt, mixer, fake_kyc, honeypot_related_address,
+ *  malicious_mining_activities, gas_abuse, ...) are deliberately NOT here: a false positive on a real router is worse than a miss. */
+const ADDR_BAD_FLAGS = ["phishing_activities", "stealing_attack", "cybercrime", "financial_crime", "money_laundering", "sanctioned", "blackmail_activities", "darkweb_transactions"] as const;
+const GOPLUS_CHAINS = new Set([1, 10, 56, 100, 137, 250, 324, 8453, 42161, 43114, 59144, 81457, 534352]);
+
+/** Which of the clear-malice flags GoPlus sets for an address; [] on any error (fail open). */
+async function goPlusAddress(address: string, chain: number): Promise<string[]> {
+  try {
+    const res = await fetch(`https://api.gopluslabs.io/api/v1/address_security/${address}?chain_id=${chain}`, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return [];
+    const j = (await res.json()) as { result?: Record<string, unknown> };
+    const r = j.result;
+    if (!r || typeof r !== "object") return [];
+    return ADDR_BAD_FLAGS.filter((f) => r[f] === "1");
+  } catch {
+    return [];
   }
 }
 
@@ -1472,6 +1492,27 @@ async function handleAge(req: Request, env: Env): Promise<Response> {
   return json({ ageDays: ageDays ?? null }, 200, { "cache-control": "public, max-age=3600" });
 }
 
+/** Is this wallet-request counterparty a known malicious address (GoPlus)? Origin-gated, per-IP capped, edge-cached. Fails open. */
+async function handleAddr(req: Request, env: Env): Promise<Response> {
+  if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
+  const q = new URL(req.url).searchParams;
+  const address = (q.get("address") ?? "").toLowerCase();
+  if (!/^0x[0-9a-f]{40}$/.test(address)) return json({ error: "bad_address" }, 400);
+  const chainRaw = q.get("chain");
+  const chain = chainRaw === null || chainRaw === "" ? 1 : Number(chainRaw);
+  if (!Number.isInteger(chain) || !GOPLUS_CHAINS.has(chain)) return json({ bad: false, flags: [] }, 200, { "cache-control": "public, max-age=3600" });
+  const key = `addr:${chain}:${address}`;
+  const cached = await cacheGet<{ bad: boolean; flags: string[] }>(key);
+  if (cached) return json(cached, 200, { "cache-control": "public, max-age=3600" });
+  const ik = await ipKey(req, env);
+  if (!(await allow(env, `addr:${ik}`, Number(env.ADDR_PER_IP_PER_DAY) || 300))) return json({ error: "rate_limited" }, 429);
+  const flags = await goPlusAddress(address, chain);
+  const out = { bad: flags.length > 0, flags };
+  // a clean answer may be an API hiccup (goPlusAddress fails open): keep it 6 h; a real flag for a day
+  await cachePut(key, out, out.bad ? 86400 : 6 * 3600);
+  return json(out, 200, { "cache-control": "public, max-age=3600" });
+}
+
 async function handleResolve(req: Request, env: Env): Promise<Response> {
   if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
   const target = new URL(req.url).searchParams.get("url") ?? "";
@@ -1536,6 +1577,7 @@ export default {
     if (req.method === "GET" && url.pathname === "/v1/x/brand") return wrap(() => handleX(req, env, "brand"));
     if (req.method === "GET" && url.pathname === "/v1/x/user") return wrap(() => handleX(req, env, "user"));
     if (req.method === "GET" && url.pathname === "/v1/resolve") return wrap(() => handleResolve(req, env));
+    if (req.method === "GET" && url.pathname === "/v1/addr") return wrap(() => handleAddr(req, env));
     if (req.method === "GET" && url.pathname === "/v1/age") return wrap(() => handleAge(req, env));
     if (req.method === "GET" && url.pathname === "/v1/community.json") return wrap(async () => { const l = await communityList(env); const keep = (d: string) => !NEVER_BLOCK.has(d); return json({ updatedAt: l.updatedAt, domains: l.domains.filter(keep), auto: l.auto.filter(keep) }, 200, { "cache-control": "public, max-age=300" }); });
     if (req.method === "GET" && url.pathname === "/admin") return new Response(ADMIN_SHELL, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });

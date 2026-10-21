@@ -14,6 +14,7 @@ import { SOL_ENDPOINTS, parseMessageAccounts, diffSolana, mergeDiffs, summarizeS
 import { RPC_ENDPOINTS, buildSimulateRequest, parseSimulation, summarizeChanges } from "./lib/simulate";
 import { decodeString, decodeUint, SEL } from "./lib/impact";
 import { t } from "./lib/i18n";
+import { parseAddrReply } from "./lib/addrscreen";
 import type { XIntel } from "./lib/types";
 import type { DeepReport, OriginContext, PageSignals, PageSnapshot, PageSocials, ProviderEvent, Signal, Verdict } from "./lib/types";
 
@@ -576,7 +577,17 @@ async function showWarning(tabId: number, v: Verdict) {
   const brand = v.brand ? brands.find((b) => b.name === v.brand) : undefined;
   const reviewed = v.signals.some((s) => s.id === "blocklist" && s.sub?.[0] !== undefined && REVIEWED.has(s.sub[0]));
   const pathEntry = !blocklistHit(v.host) && blocklistPathHit(v.host, safePath(v.url)) ? pathEntryFor(v.host, safePath(v.url)) : undefined;
-  const nonce = await putWarning({ url: v.url, host: v.host, score: v.score, signals: v.signals, brandDomain: brand?.domains[0], reviewed, tabId, pathEntry });
+  let deep: { summary?: string; reasons?: string[]; impersonates?: string } | undefined;
+  try {
+    const rep = (await chrome.storage.session.get(`deep:${tabId}`))[`deep:${tabId}`] as DeepReport | undefined;
+    const ai = rep?.ai;
+    if (ai && !ai.error) {
+      const reasons = (ai.reasons ?? []).filter((x) => typeof x === "string" && x).slice(0, 6);
+      const summary = typeof ai.summary === "string" && ai.summary ? ai.summary : undefined;
+      if (summary || reasons.length) deep = { summary, reasons: reasons.length ? reasons : undefined, impersonates: ai.impersonates || undefined };
+    }
+  } catch { /* no stored deep report */ }
+  const nonce = await putWarning({ url: v.url, host: v.host, score: v.score, signals: v.signals, brandDomain: brand?.domains[0], reviewed, tabId, pathEntry, deep });
   await chrome.tabs.update(tabId, { url: `${WARNING_PAGE}?n=${nonce}` }).catch(() => undefined);
 }
 
@@ -902,6 +913,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "w3pg:simulate": {
         sendResponse(await simulateTx(sender.tab?.id, msg).catch((): SimReply => ({ ok: false, reason: "error" })));
+        return;
+      }
+      case "w3pg:addr": {
+        // gate counterparty screen: only from a content script, only a well-formed address; any failure means "not flagged"
+        const address = typeof msg.address === "string" ? msg.address.toLowerCase() : "";
+        if (sender.tab?.id === undefined || !/^0x[0-9a-f]{40}$/.test(address)) { sendResponse({ bad: false, flags: [] }); return; }
+        const chain = Number.isInteger(msg.chain) && msg.chain > 0 ? msg.chain : 1;
+        try {
+          const res = await fetch(`${API_BASE}/v1/addr?address=${address}&chain=${chain}`, { signal: AbortSignal.timeout(7000), credentials: "omit" });
+          sendResponse(res.ok ? parseAddrReply(await res.json()) : { bad: false, flags: [] });
+        } catch { sendResponse({ bad: false, flags: [] }); }
         return;
       }
       case "w3pg:simulateSol": {

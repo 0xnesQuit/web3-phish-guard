@@ -17,6 +17,9 @@
   "warning_reasons": {
     "message": "Pourquoi c'est suspect :"
   },
+  "warning_deep_title": {
+    "message": "Ce que l'analyse approfondie a trouvé"
+  },
   "warning_back": {
     "message": "Retour (recommandé)"
   },
@@ -547,6 +550,24 @@
   },
   "gate_unlimited": {
     "message": "Montant illimité : pourrait prendre tout ce jeton, maintenant ou plus tard"
+  },
+  "gate_addr_bad_spender": {
+    "message": "ATTENTION : ce bénéficiaire d'autorisation ($1) est une adresse malveillante signalée : $2"
+  },
+  "gate_addr_bad_recipient": {
+    "message": "ATTENTION : ce destinataire ($1) est une adresse malveillante signalée : $2"
+  },
+  "gate_addr_l_phish": {
+    "message": "hameçonnage ou vol"
+  },
+  "gate_addr_l_crime": {
+    "message": "cybercriminalité ou fraude"
+  },
+  "gate_addr_l_launder": {
+    "message": "blanchiment d'argent"
+  },
+  "gate_addr_l_sanction": {
+    "message": "sous sanctions"
   },
   "gate_poison": {
     "message": "Cette adresse imite une adresse déjà utilisée ($1) : address poisoning"

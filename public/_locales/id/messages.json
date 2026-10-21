@@ -17,6 +17,9 @@
   "warning_reasons": {
     "message": "Mengapa terlihat mencurigakan:"
   },
+  "warning_deep_title": {
+    "message": "Temuan analisis mendalam"
+  },
   "warning_back": {
     "message": "Kembali (disarankan)"
   },
@@ -547,6 +550,24 @@
   },
   "gate_unlimited": {
     "message": "Jumlah tak terbatas: bisa mengambil seluruh token ini sekarang atau nanti"
+  },
+  "gate_addr_bad_spender": {
+    "message": "PERINGATAN: pihak yang diberi izin ($1) adalah alamat berbahaya yang ditandai: $2"
+  },
+  "gate_addr_bad_recipient": {
+    "message": "PERINGATAN: penerima ($1) adalah alamat berbahaya yang ditandai: $2"
+  },
+  "gate_addr_l_phish": {
+    "message": "phishing atau pencurian"
+  },
+  "gate_addr_l_crime": {
+    "message": "kejahatan siber atau penipuan"
+  },
+  "gate_addr_l_launder": {
+    "message": "pencucian uang"
+  },
+  "gate_addr_l_sanction": {
+    "message": "terkena sanksi"
   },
   "gate_poison": {
     "message": "Alamat ini meniru alamat yang pernah Anda pakai ($1): address poisoning"

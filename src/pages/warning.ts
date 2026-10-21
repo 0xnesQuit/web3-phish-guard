@@ -1,7 +1,7 @@
 import type { Signal } from "../lib/types";
 import { t, signalText, localizePage } from "../lib/i18n";
 
-interface Payload { url: string; host: string; score: number; signals: Signal[]; brandDomain?: string; reviewed?: boolean }
+interface Payload { url: string; host: string; score: number; signals: Signal[]; brandDomain?: string; reviewed?: boolean; deep?: { summary?: string; reasons?: string[]; impersonates?: string } }
 
 const $ = (id: string) => document.getElementById(id)!;
 localizePage();
@@ -20,6 +20,11 @@ async function main() {
   $("host").textContent = p.host;
   $("score").textContent = t("warning_score", [String(p.score)]);
   $("reasons").innerHTML = p.signals.filter((s) => s.weight > 0).map((s) => `<li>${esc(signalText(s))}</li>`).join("");
+  if (p.deep && (p.deep.summary || p.deep.reasons?.length)) {
+    $("deepbox").hidden = false;
+    $("deepsum").textContent = p.deep.summary ?? "";
+    $("deepreasons").innerHTML = (p.deep.reasons ?? []).map((x) => `<li>${esc(x)}</li>`).join("");
+  }
   if (p.brandDomain) {
     const b = $("official") as HTMLButtonElement;
     b.hidden = false;

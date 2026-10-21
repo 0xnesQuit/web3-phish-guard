@@ -34,14 +34,21 @@ async function main() {
   }
 
   $("options").onclick = () => chrome.runtime.openOptionsPage();
-  if (tab?.id !== undefined && tab.url && /^https?:/.test(tab.url)) {
-    const tabId = tab.id;
-    const existing = (await chrome.runtime.sendMessage({ type: "w3pg:getDeepReport", tabId })) as DeepReport | null;
-    sb.url = tab.url;
-    sb.title = tab.title;
-    chrome.action.setBadgeText({ text: "" }).catch(() => undefined); // clears the "sandbox result waiting" fallback badge
+  // The stored deep report is keyed by tab id, so it is shown even when the tab is the extension's warning page.
+  const isHttp = tab?.id !== undefined && !!tab.url && /^https?:/.test(tab.url);
+  if (tab?.id !== undefined) {
+    const existing = (await chrome.runtime.sendMessage({ type: "w3pg:getDeepReport", tabId: tab.id })) as DeepReport | null;
+    if (isHttp) {
+      sb.url = tab.url!;
+      sb.title = tab.title;
+      chrome.action.setBadgeText({ text: "" }).catch(() => undefined); // clears the "sandbox result waiting" fallback badge
+    }
     if (existing && !existing.ai.error) renderDeep(existing);
-    await restoreSandbox(!!existing && !existing.ai.error);
+    // no live sandbox jobs can be matched without an http url; the report's own sandbox block is already painted
+    if (isHttp) await restoreSandbox(!!existing && !existing.ai.error);
+  }
+  if (isHttp && tab?.id !== undefined) {
+    const tabId = tab.id;
     $("deepscan").onclick = async () => {
       const btn = $("deepscan") as HTMLButtonElement;
       btn.disabled = true;
