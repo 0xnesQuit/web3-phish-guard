@@ -273,16 +273,40 @@
     "message": "안전"
   },
   "opt_warn_heading": {
-    "message": "\"의심\" 경고 표시 위치"
+    "message": "페이지 보호"
   },
   "opt_warn_page": {
-    "message": "페이지 상단 노란 배너와 아이콘"
+    "message": "페이지에 표시"
   },
   "opt_warn_popup": {
-    "message": "아이콘과 팝업에만 (페이지 배너 없음)"
+    "message": "도구 모음에만"
   },
   "opt_warn_note": {
     "message": "위험한 페이지(70점 이상)는 항상 전체 화면 경고를 엽니다."
+  },
+  "opt_warn_off": {
+    "message": "끄기"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3가 페이지에서 경고를 중지합니다. 차단 목록에 있는 알려진 피싱은 브라우저가 계속 차단합니다."
+  },
+  "opt_gate_heading": {
+    "message": "지갑 게이트"
+  },
+  "opt_strict": {
+    "message": "엄격 모드: 모든 트랜잭션 확인"
+  },
+  "opt_strict_note": {
+    "message": "신뢰하는 사이트에서도 모든 트랜잭션에 확인을 표시합니다. 방해는 늘지만 보호 범위가 넓어집니다."
+  },
+  "opt_online_heading": {
+    "message": "게이트의 온라인 검사"
+  },
+  "opt_addr_heading": {
+    "message": "주소 스크리닝"
+  },
+  "opt_addr_note": {
+    "message": "상대방 주소를 알려진 사기 목록과 대조합니다. 주소는 어차피 트랜잭션과 함께 온체인으로 전송됩니다. 게이트에서 네트워크를 쓰지 않으려면 끄세요."
   },
   "opt_sim_heading": {
     "message": "트랜잭션 시뮬레이션"

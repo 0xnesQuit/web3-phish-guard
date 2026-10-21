@@ -273,16 +273,40 @@
     "message": "安全"
   },
   "opt_warn_heading": {
-    "message": "「疑わしい」警告の表示場所"
+    "message": "ページ保護"
   },
   "opt_warn_page": {
-    "message": "ページ上の黄色いバナーとアイコン"
+    "message": "ページ上に表示"
   },
   "opt_warn_popup": {
-    "message": "アイコンとポップアップのみ（バナーなし）"
+    "message": "ツールバーのみ"
   },
   "opt_warn_note": {
     "message": "危険なページ（70 点以上）は常に全画面警告を表示します。"
+  },
+  "opt_warn_off": {
+    "message": "オフ"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 はページ上での警告を停止します。ブロックリストにある既知のフィッシングはブラウザーによって引き続きブロックされます。"
+  },
+  "opt_gate_heading": {
+    "message": "ウォレットゲート"
+  },
+  "opt_strict": {
+    "message": "厳格モード：すべての取引を確認"
+  },
+  "opt_strict_note": {
+    "message": "信頼済みサイトでも、すべての取引で確認を表示します。中断は増えますが、保護範囲が広がります。"
+  },
+  "opt_online_heading": {
+    "message": "ゲートでのオンラインチェック"
+  },
+  "opt_addr_heading": {
+    "message": "アドレススクリーニング"
+  },
+  "opt_addr_note": {
+    "message": "相手のアドレスを既知の詐欺リストと照合します。アドレスは取引とともにどのみちオンチェーンに送られます。ゲートで通信したくない場合はオフにしてください。"
   },
   "opt_sim_heading": {
     "message": "トランザクションのシミュレーション"

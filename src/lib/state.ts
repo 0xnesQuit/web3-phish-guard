@@ -57,6 +57,15 @@ export async function simulateEnabled(): Promise<boolean> {
   return (await chrome.storage.local.get("simulate")).simulate !== false;
 }
 
+/** Strict mode: the wallet gate asks for every signing request. Off unless the user turned it on. */
+export async function strictGateEnabled(): Promise<boolean> {
+  return (await chrome.storage.local.get("strictGate")).strictGate === true;
+}
+/** Gate counterparty address screening (sends the address to the Worker): on unless the user turned it off. */
+export async function addrScreenEnabled(): Promise<boolean> {
+  return (await chrome.storage.local.get("addrScreen")).addrScreen !== false;
+}
+
 export async function getUserAllow(): Promise<string[]> {
   return ((await chrome.storage.local.get("userAllow")).userAllow as string[] | undefined) ?? [];
 }

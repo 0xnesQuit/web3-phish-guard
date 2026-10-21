@@ -273,16 +273,40 @@
     "message": "Seguro"
   },
   "opt_warn_heading": {
-    "message": "Onde mostrar os avisos de \"suspeito\""
+    "message": "Proteção da página"
   },
   "opt_warn_page": {
-    "message": "Faixa amarela na página e no ícone"
+    "message": "Mostrar na página"
   },
   "opt_warn_popup": {
-    "message": "Apenas no ícone e no popup (sem faixa na página)"
+    "message": "Somente barra de ferramentas"
   },
   "opt_warn_note": {
     "message": "Páginas perigosas (70+) sempre abrem o aviso em tela cheia."
+  },
+  "opt_warn_off": {
+    "message": "Desativado"
+  },
+  "opt_warn_off_note": {
+    "message": "O Guard3 para de avisar na página. O phishing conhecido na lista de bloqueio continua bloqueado pelo seu navegador."
+  },
+  "opt_gate_heading": {
+    "message": "Portão da carteira"
+  },
+  "opt_strict": {
+    "message": "Modo estrito: verificar cada transação"
+  },
+  "opt_strict_note": {
+    "message": "Mostrar uma confirmação para cada transação, mesmo em sites confiáveis. Mais interrupções, cobertura maior."
+  },
+  "opt_online_heading": {
+    "message": "Verificações online no portão"
+  },
+  "opt_addr_heading": {
+    "message": "Verificação de endereços"
+  },
+  "opt_addr_note": {
+    "message": "Verificar o endereço da contraparte em listas de golpes conhecidos. O endereço já vai para a blockchain com a transação. Desative para nenhuma rede no portão."
   },
   "opt_sim_heading": {
     "message": "Simulação de transações"

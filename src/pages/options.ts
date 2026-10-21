@@ -4,16 +4,26 @@ const $ = (id: string) => document.getElementById(id)!;
 
 async function main() {
   localizePage();
-  const s = (await chrome.runtime.sendMessage({ type: "w3pg:getSettings" })) as { warnDisplay: "page" | "popup"; simulate: boolean };
-  ($(s.warnDisplay === "popup" ? "warn-popup" : "warn-page") as HTMLInputElement).checked = true;
-  for (const id of ["warn-page", "warn-popup"]) {
-    $(id).onchange = async () => { await chrome.runtime.sendMessage({ type: "w3pg:setSettings", warnDisplay: ($(id) as HTMLInputElement).value }); };
+  const s = (await chrome.runtime.sendMessage({ type: "w3pg:getSettings" })) as { warnDisplay: "page" | "popup" | "off"; simulate: boolean; strictGate?: boolean; addrScreen?: boolean };
+  ($(s.warnDisplay === "popup" ? "warn-popup" : s.warnDisplay === "off" ? "warn-off" : "warn-page") as HTMLInputElement).checked = true;
+  // the "70+ always blocks" note is only true while page protection is on; hide it for "off"
+  const syncWarnNote = () => { ($("warn-note") as HTMLElement).style.display = ($("warn-off") as HTMLInputElement).checked ? "none" : ""; };
+  for (const id of ["warn-page", "warn-popup", "warn-off"]) {
+    $(id).onchange = async () => { await chrome.runtime.sendMessage({ type: "w3pg:setSettings", warnDisplay: ($(id) as HTMLInputElement).value }); syncWarnNote(); };
   }
+  syncWarnNote();
 
 
   const sim = $("simulate") as HTMLInputElement;
   sim.checked = s.simulate !== false;
   sim.onchange = async () => { await chrome.runtime.sendMessage({ type: "w3pg:setSettings", simulate: sim.checked }); };
+
+  const strict = $("strict") as HTMLInputElement;
+  strict.checked = s.strictGate === true;
+  strict.onchange = async () => { await chrome.runtime.sendMessage({ type: "w3pg:setSettings", strictGate: strict.checked }); };
+  const addr = $("addrscreen") as HTMLInputElement;
+  addr.checked = s.addrScreen !== false;
+  addr.onchange = async () => { await chrome.runtime.sendMessage({ type: "w3pg:setSettings", addrScreen: addr.checked }); };
 
   $("refreshlists").onclick = async () => {
     const b = $("refreshlists") as HTMLButtonElement;

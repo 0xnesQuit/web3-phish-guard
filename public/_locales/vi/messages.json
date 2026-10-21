@@ -273,16 +273,40 @@
     "message": "An toàn"
   },
   "opt_warn_heading": {
-    "message": "Hiển thị cảnh báo \"đáng ngờ\" ở đâu"
+    "message": "Bảo vệ trang"
   },
   "opt_warn_page": {
-    "message": "Dải vàng trên trang và trong biểu tượng"
+    "message": "Hiện trên trang"
   },
   "opt_warn_popup": {
-    "message": "Chỉ trong biểu tượng và popup (không dải trên trang)"
+    "message": "Chỉ thanh công cụ"
   },
   "opt_warn_note": {
     "message": "Trang nguy hiểm (70+) luôn mở cảnh báo toàn trang."
+  },
+  "opt_warn_off": {
+    "message": "Tắt"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 ngừng cảnh báo trên trang. Lừa đảo đã biết trong danh sách chặn vẫn bị trình duyệt chặn."
+  },
+  "opt_gate_heading": {
+    "message": "Cổng ví"
+  },
+  "opt_strict": {
+    "message": "Chế độ nghiêm ngặt: kiểm tra mọi giao dịch"
+  },
+  "opt_strict_note": {
+    "message": "Hiện xác nhận cho mọi giao dịch, kể cả trên trang tin cậy. Gián đoạn nhiều hơn, phạm vi rộng hơn."
+  },
+  "opt_online_heading": {
+    "message": "Kiểm tra trực tuyến tại cổng"
+  },
+  "opt_addr_heading": {
+    "message": "Sàng lọc địa chỉ"
+  },
+  "opt_addr_note": {
+    "message": "Đối chiếu địa chỉ đối tác với danh sách lừa đảo đã biết. Địa chỉ vốn đã lên chuỗi cùng giao dịch. Tắt nếu không muốn dùng mạng tại cổng."
   },
   "opt_sim_heading": {
     "message": "Mô phỏng giao dịch"

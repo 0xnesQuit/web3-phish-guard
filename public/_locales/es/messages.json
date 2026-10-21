@@ -273,16 +273,40 @@
     "message": "Seguro"
   },
   "opt_warn_heading": {
-    "message": "Dónde mostrar los avisos de \"sospechoso\""
+    "message": "Protección de la página"
   },
   "opt_warn_page": {
-    "message": "Banda amarilla en la página y en el icono"
+    "message": "Mostrar en la página"
   },
   "opt_warn_popup": {
-    "message": "Solo en el icono y el popup (sin banda en la página)"
+    "message": "Solo barra de herramientas"
   },
   "opt_warn_note": {
     "message": "Las páginas peligrosas (70+) siempre abren el aviso a pantalla completa."
+  },
+  "opt_warn_off": {
+    "message": "Desactivado"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 deja de avisar en la página. El phishing conocido de la lista de bloqueo sigue bloqueado por tu navegador."
+  },
+  "opt_gate_heading": {
+    "message": "Control de la billetera"
+  },
+  "opt_strict": {
+    "message": "Modo estricto: revisar cada transacción"
+  },
+  "opt_strict_note": {
+    "message": "Mostrar una confirmación en cada transacción, incluso en sitios de confianza. Más interrupciones, mayor cobertura."
+  },
+  "opt_online_heading": {
+    "message": "Comprobaciones en línea en el control"
+  },
+  "opt_addr_heading": {
+    "message": "Revisión de direcciones"
+  },
+  "opt_addr_note": {
+    "message": "Comprobar la dirección de la contraparte con listas de estafas conocidas. La dirección ya va a la cadena con la transacción. Desactívalo para no usar la red en el control."
   },
   "opt_sim_heading": {
     "message": "Simulación de transacciones"

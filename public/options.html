@@ -21,20 +21,25 @@
 <body>
   <h1 data-i18n="opt_title">Guard3 settings</h1>
 
-  <h2 data-i18n="opt_warn_heading">Where to show "suspicious" warnings</h2>
-  <label><input type="radio" name="warn" value="page" id="warn-page"> <span data-i18n="opt_warn_page">Yellow banner on the page and in the extension icon</span></label>
-  <label><input type="radio" name="warn" value="popup" id="warn-popup"> <span data-i18n="opt_warn_popup">Only in the extension icon and popup (no banner on the page)</span></label>
-  <p data-i18n="opt_warn_note"></p>
+  <h2 data-i18n="opt_warn_heading">Page protection</h2>
+  <label><input type="radio" name="warn" value="page" id="warn-page"> <span data-i18n="opt_warn_page">Show on the page</span></label>
+  <label><input type="radio" name="warn" value="popup" id="warn-popup"> <span data-i18n="opt_warn_popup">Toolbar only</span></label>
+  <label style="color:#ff8a8a"><input type="radio" name="warn" value="off" id="warn-off"> <span data-i18n="opt_warn_off">Off</span></label>
+  <p style="color:#ff8a8a;margin:2px 0 0 24px;font-size:12px" data-i18n="opt_warn_off_note">Known phishing pages will no longer be blocked.</p>
+  <p id="warn-note" data-i18n="opt_warn_note"></p>
 
-  <h2 data-i18n="opt_sim_heading">Transaction simulation</h2>
-  <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="simulate" style="width:auto;margin-top:3px"> <span data-i18n="opt_simulate">Simulate held transactions through a public RPC (sends the pending transaction to publicnode / 1rpc / dRPC)</span></label>
+  <h2 data-i18n="opt_gate_heading">Wallet gate</h2>
+  <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="strict" style="width:auto;margin-top:3px"> <span><span data-i18n="opt_strict">Strict mode: check every transaction</span><br><span style="opacity:.7;font-size:12px" data-i18n="opt_strict_note">Show a confirmation for every transaction, even on trusted sites. More interruptions, wider coverage.</span></span></label>
+  <h3 style="font-size:14px;margin:18px 0 0" data-i18n="opt_online_heading">Online checks at the gate</h3>
+  <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="simulate" style="width:auto;margin-top:3px"> <span><span data-i18n="opt_sim_heading">Transaction simulation</span><br><span style="opacity:.7;font-size:12px" data-i18n="opt_simulate">Simulate held transactions through a public RPC (sends the pending transaction to publicnode / 1rpc / dRPC)</span></span></label>
+  <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="addrscreen" style="width:auto;margin-top:3px"> <span><span data-i18n="opt_addr_heading">Address screening</span><br><span style="opacity:.7;font-size:12px" data-i18n="opt_addr_note">Check the counterparty address against known-scam lists. The address already goes on-chain with the transaction. Turn off for no network at the gate.</span></span></label>
+
+  <h2 data-i18n="opt_trusted_heading">Domains you marked as trusted</h2>
+  <ul id="trusted"></ul>
 
   <h2 data-i18n="opt_lists_heading">Lists</h2>
   <button id="refreshlists" data-i18n="opt_refresh_lists">Refresh lists now</button>
   <span id="listsstatus" class="ok"></span>
-
-  <h2 data-i18n="opt_trusted_heading">Domains you marked as trusted</h2>
-  <ul id="trusted"></ul>
 
   <script src="options.js"></script>
 </body>

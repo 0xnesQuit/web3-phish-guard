@@ -3,7 +3,7 @@ import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
 import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle, brandByToken } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, blocklistPathHit, allowlistHit, siblingHit, attackedBrandHit, listStatus, newestDomains, newestPaths } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
-import { simulateEnabled, setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning, consumeWarning } from "./lib/state";
+import { simulateEnabled, strictGateEnabled, addrScreenEnabled, setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning, consumeWarning } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener, isAdHop } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
 import { pollPendingJobs, getJobs, ensureSbxAlarm, getDone, getInstallId, SBX_ALARM } from "./lib/sandboxq";
@@ -373,8 +373,9 @@ async function simulateSol(tabId: number | undefined, msg: { txs?: unknown }): P
   return { ok: false, reason: "unavailable" };
 }
 
-async function warnDisplay(): Promise<"page" | "popup"> {
-  return (((await chrome.storage.local.get("warnDisplay")).warnDisplay as string | undefined) === "popup" ? "popup" : "page");
+async function warnDisplay(): Promise<"page" | "popup" | "off"> {
+  const w = (await chrome.storage.local.get("warnDisplay")).warnDisplay as string | undefined;
+  return w === "popup" || w === "off" ? w : "page";
 }
 
 /** True while the tab still shows the host a (slow) verdict was computed for. */
@@ -561,6 +562,8 @@ async function applyVerdict(tabId: number, v: Verdict) {
   await chrome.action.setBadgeBackgroundColor({ tabId, color }).catch(() => undefined);
   await chrome.action.setBadgeText({ tabId, text: v.band === "none" ? "" : String(v.score) }).catch(() => undefined);
 
+  // "off": no on-load page UI at all (no full-page block, no overlay); the wallet gate and the popup are unaffected
+  if (v.band === "block" && (await warnDisplay()) === "off") return;
   if (v.band === "block" && !(await isBypassed(v.host, safePath(v.url), tabId))) {
     await showWarning(tabId, v);
     return;
@@ -684,6 +687,7 @@ chrome.webNavigation.onErrorOccurred.addListener(async (d) => {
     const v = await evaluate(d.url, { origin: await getTabOrigin(d.tabId) });
     if (v && v.signals.some((s) => s.id === "blocklist")) {
       await setTabVerdict(d.tabId, v);
+      if ((await warnDisplay()) === "off") return;
       await showWarning(d.tabId, v);
     }
   } catch { /* ignore */ }
@@ -883,7 +887,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             if (own) v = own.score >= v.score || own.signals.some((s) => s.id === "trusted" || s.id === "brand-official") ? own : { ...v, signals: v.signals.filter((s) => !["user-allow", "brand-official", "trusted"].includes(s.id)) };
           }
         }
-        sendResponse(gateDecision(v, (msg.details ?? {}) as Record<string, unknown>));
+        const gd = gateDecision(v, (msg.details ?? {}) as Record<string, unknown>);
+        // strict mode: interpose the dialog for every signing request, whatever the risk or the site's standing
+        sendResponse(!gd.ask && (await strictGateEnabled()) ? { ask: true, score: v?.score } : gd);
         return;
       }
       case "w3pg:gateTop": {
@@ -919,6 +925,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // gate counterparty screen: only from a content script, only a well-formed address; any failure means "not flagged"
         const address = typeof msg.address === "string" ? msg.address.toLowerCase() : "";
         if (sender.tab?.id === undefined || !/^0x[0-9a-f]{40}$/.test(address)) { sendResponse({ bad: false, flags: [] }); return; }
+        // address screening off: nothing leaves the device
+        if (!(await addrScreenEnabled())) { sendResponse({ bad: false, flags: [] }); return; }
         const chain = Number.isInteger(msg.chain) && msg.chain > 0 ? msg.chain : 1;
         try {
           const res = await fetch(`${API_BASE}/v1/addr?address=${address}&chain=${chain}`, { signal: AbortSignal.timeout(7000), credentials: "omit" });
@@ -979,13 +987,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "w3pg:getSettings": {
         if (!fromExtension(sender)) return;
-        sendResponse({ warnDisplay: await warnDisplay(), simulate: await simulateEnabled() });
+        sendResponse({ warnDisplay: await warnDisplay(), simulate: await simulateEnabled(), strictGate: await strictGateEnabled(), addrScreen: await addrScreenEnabled() });
         return;
       }
       case "w3pg:setSettings": {
         if (!fromExtension(sender)) return;
-        if (msg.warnDisplay === "page" || msg.warnDisplay === "popup") await chrome.storage.local.set({ warnDisplay: msg.warnDisplay });
+        if (msg.warnDisplay === "page" || msg.warnDisplay === "popup" || msg.warnDisplay === "off") await chrome.storage.local.set({ warnDisplay: msg.warnDisplay });
         if (typeof msg.simulate === "boolean") await chrome.storage.local.set({ simulate: msg.simulate });
+        if (typeof msg.strictGate === "boolean") await chrome.storage.local.set({ strictGate: msg.strictGate });
+        if (typeof msg.addrScreen === "boolean") await chrome.storage.local.set({ addrScreen: msg.addrScreen });
         sendResponse(true);
         return;
       }

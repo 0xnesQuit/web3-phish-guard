@@ -273,16 +273,40 @@
     "message": "Sicher"
   },
   "opt_warn_heading": {
-    "message": "Wo \"verdächtig\"-Warnungen erscheinen"
+    "message": "Seitenschutz"
   },
   "opt_warn_page": {
-    "message": "Gelbes Banner auf der Seite und im Symbol"
+    "message": "Auf der Seite anzeigen"
   },
   "opt_warn_popup": {
-    "message": "Nur im Symbol und Popup (kein Banner auf der Seite)"
+    "message": "Nur Symbolleiste"
   },
   "opt_warn_note": {
     "message": "Gefährliche Seiten (70+) öffnen unabhängig davon immer die Vollbild-Warnung."
+  },
+  "opt_warn_off": {
+    "message": "Aus"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 warnt nicht mehr auf der Seite. Bekanntes Phishing auf der Sperrliste wird weiterhin vom Browser blockiert."
+  },
+  "opt_gate_heading": {
+    "message": "Wallet-Schranke"
+  },
+  "opt_strict": {
+    "message": "Strenger Modus: jede Transaktion prüfen"
+  },
+  "opt_strict_note": {
+    "message": "Für jede Transaktion eine Bestätigung zeigen, auch auf vertrauenswürdigen Seiten. Mehr Unterbrechungen, größere Abdeckung."
+  },
+  "opt_online_heading": {
+    "message": "Online-Prüfungen an der Schranke"
+  },
+  "opt_addr_heading": {
+    "message": "Adressprüfung"
+  },
+  "opt_addr_note": {
+    "message": "Die Gegenadresse mit bekannten Betrugslisten abgleichen. Die Adresse geht ohnehin mit der Transaktion on-chain. Ausschalten für keinen Netzwerkzugriff an der Schranke."
   },
   "opt_sim_heading": {
     "message": "Transaktionssimulation"

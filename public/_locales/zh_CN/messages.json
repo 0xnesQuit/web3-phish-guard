@@ -273,16 +273,40 @@
     "message": "安全"
   },
   "opt_warn_heading": {
-    "message": "在哪里显示“可疑”警告"
+    "message": "页面防护"
   },
   "opt_warn_page": {
-    "message": "页面顶部黄色横幅并显示在图标中"
+    "message": "在页面上显示"
   },
   "opt_warn_popup": {
-    "message": "仅在图标和弹窗中（页面无横幅）"
+    "message": "仅工具栏"
   },
   "opt_warn_note": {
     "message": "危险页面（70 分以上）始终打开整页警告。"
+  },
+  "opt_warn_off": {
+    "message": "关闭"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 不再在页面上发出警告。黑名单中的已知钓鱼网站仍会被你的浏览器拦截。"
+  },
+  "opt_gate_heading": {
+    "message": "钱包关卡"
+  },
+  "opt_strict": {
+    "message": "严格模式：检查每一笔交易"
+  },
+  "opt_strict_note": {
+    "message": "对每笔交易都显示确认，即使在可信网站上。打扰更多，覆盖更广。"
+  },
+  "opt_online_heading": {
+    "message": "关卡处的在线检查"
+  },
+  "opt_addr_heading": {
+    "message": "地址筛查"
+  },
+  "opt_addr_note": {
+    "message": "将对方地址与已知诈骗名单比对。该地址本来就会随交易上链。关闭后关卡处不会产生网络请求。"
   },
   "opt_sim_heading": {
     "message": "交易模拟"

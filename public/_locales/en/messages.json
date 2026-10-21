@@ -273,16 +273,40 @@
     "message": "Safe"
   },
   "opt_warn_heading": {
-    "message": "Where to show \"suspicious\" warnings"
+    "message": "Page protection"
   },
   "opt_warn_page": {
-    "message": "Yellow banner on the page and in the extension icon"
+    "message": "Show on the page"
   },
   "opt_warn_popup": {
-    "message": "Only in the extension icon and popup (no banner on the page)"
+    "message": "Toolbar only"
   },
   "opt_warn_note": {
     "message": "Dangerous pages (score 70+) always open the full-page warning regardless of this setting."
+  },
+  "opt_warn_off": {
+    "message": "Off"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 stops warning on the page. Known phishing on the blocklist is still blocked by your browser."
+  },
+  "opt_gate_heading": {
+    "message": "Wallet gate"
+  },
+  "opt_strict": {
+    "message": "Strict mode: check every transaction"
+  },
+  "opt_strict_note": {
+    "message": "Show a confirmation for every transaction, even on trusted sites. More interruptions, wider coverage."
+  },
+  "opt_online_heading": {
+    "message": "Online checks at the gate"
+  },
+  "opt_addr_heading": {
+    "message": "Address screening"
+  },
+  "opt_addr_note": {
+    "message": "Check the counterparty address against known-scam lists. The address already goes on-chain with the transaction. Turn off for no network at the gate."
   },
   "opt_sim_heading": {
     "message": "Transaction simulation"

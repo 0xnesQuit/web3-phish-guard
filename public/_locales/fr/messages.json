@@ -273,16 +273,40 @@
     "message": "Sûr"
   },
   "opt_warn_heading": {
-    "message": "Où afficher les avertissements « suspect »"
+    "message": "Protection de la page"
   },
   "opt_warn_page": {
-    "message": "Bandeau jaune sur la page et dans l'icône"
+    "message": "Afficher sur la page"
   },
   "opt_warn_popup": {
-    "message": "Uniquement dans l'icône et le popup (pas de bandeau)"
+    "message": "Barre d'outils uniquement"
   },
   "opt_warn_note": {
     "message": "Les pages dangereuses (70+) ouvrent toujours l'avertissement plein écran."
+  },
+  "opt_warn_off": {
+    "message": "Désactivé"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 n'avertit plus sur la page. Le phishing connu de la liste de blocage reste bloqué par votre navigateur."
+  },
+  "opt_gate_heading": {
+    "message": "Garde du portefeuille"
+  },
+  "opt_strict": {
+    "message": "Mode strict : vérifier chaque transaction"
+  },
+  "opt_strict_note": {
+    "message": "Afficher une confirmation pour chaque transaction, même sur les sites fiables. Plus d'interruptions, couverture plus large."
+  },
+  "opt_online_heading": {
+    "message": "Vérifications en ligne à la garde"
+  },
+  "opt_addr_heading": {
+    "message": "Contrôle des adresses"
+  },
+  "opt_addr_note": {
+    "message": "Vérifier l'adresse de la contrepartie avec des listes d'arnaques connues. L'adresse est déjà publiée sur la chaîne avec la transaction. Désactivez pour aucun accès réseau à la garde."
   },
   "opt_sim_heading": {
     "message": "Simulation de transactions"

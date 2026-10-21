@@ -273,16 +273,40 @@
     "message": "Güvenli"
   },
   "opt_warn_heading": {
-    "message": "\"Şüpheli\" uyarıları nerede gösterilsin"
+    "message": "Sayfa koruması"
   },
   "opt_warn_page": {
-    "message": "Sayfanın üstünde sarı şerit ve uzantı ikonunda"
+    "message": "Sayfada göster"
   },
   "opt_warn_popup": {
-    "message": "Sadece uzantı ikonunda ve popup'ta (sayfada şerit yok)"
+    "message": "Yalnızca araç çubuğu"
   },
   "opt_warn_note": {
     "message": "Tehlikeli sayfalar (70+ puan) bu ayardan bağımsız olarak her zaman tam sayfa uyarı açar."
+  },
+  "opt_warn_off": {
+    "message": "Kapalı"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 sayfada uyarmayı bırakır. Blocklist'teki bilinen phishing tarayıcın tarafından engellenmeye devam eder."
+  },
+  "opt_gate_heading": {
+    "message": "Cüzdan kapısı"
+  },
+  "opt_strict": {
+    "message": "Sıkı mod: her işlemi kontrol et"
+  },
+  "opt_strict_note": {
+    "message": "Güvenilir sitelerde bile her işlem için onay göster. Daha fazla kesinti, daha geniş koruma."
+  },
+  "opt_online_heading": {
+    "message": "Kapıdaki çevrimiçi kontroller"
+  },
+  "opt_addr_heading": {
+    "message": "Adres taraması"
+  },
+  "opt_addr_note": {
+    "message": "Karşı tarafın adresini bilinen dolandırıcılık listeleriyle karşılaştır. Adres zaten işlemle birlikte zincire gidiyor. Kapıda hiç ağ isteği istemiyorsanız kapatın."
   },
   "opt_sim_heading": {
     "message": "İşlem simülasyonu"

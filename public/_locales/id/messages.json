@@ -273,16 +273,40 @@
     "message": "Aman"
   },
   "opt_warn_heading": {
-    "message": "Di mana menampilkan peringatan \"mencurigakan\""
+    "message": "Perlindungan halaman"
   },
   "opt_warn_page": {
-    "message": "Spanduk kuning di halaman dan di ikon"
+    "message": "Tampilkan di halaman"
   },
   "opt_warn_popup": {
-    "message": "Hanya di ikon dan popup (tanpa spanduk)"
+    "message": "Hanya bilah alat"
   },
   "opt_warn_note": {
     "message": "Halaman berbahaya (70+) selalu membuka peringatan layar penuh."
+  },
+  "opt_warn_off": {
+    "message": "Nonaktif"
+  },
+  "opt_warn_off_note": {
+    "message": "Guard3 berhenti memperingatkan di halaman. Phishing yang dikenal di daftar blokir tetap diblokir oleh browser Anda."
+  },
+  "opt_gate_heading": {
+    "message": "Gerbang dompet"
+  },
+  "opt_strict": {
+    "message": "Mode ketat: periksa setiap transaksi"
+  },
+  "opt_strict_note": {
+    "message": "Tampilkan konfirmasi untuk setiap transaksi, bahkan di situs tepercaya. Lebih sering terganggu, cakupan lebih luas."
+  },
+  "opt_online_heading": {
+    "message": "Pemeriksaan online di gerbang"
+  },
+  "opt_addr_heading": {
+    "message": "Penyaringan alamat"
+  },
+  "opt_addr_note": {
+    "message": "Cocokkan alamat lawan transaksi dengan daftar penipuan yang dikenal. Alamat itu memang sudah masuk on-chain bersama transaksi. Matikan agar tidak ada jaringan di gerbang."
   },
   "opt_sim_heading": {
     "message": "Simulasi transaksi"
