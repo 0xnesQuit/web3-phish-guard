@@ -487,6 +487,49 @@ async function goPlusAddress(address: string, chain: number): Promise<string[]> 
   }
 }
 
+// Exact address lists, both MIT licensed and public raw files. Cached 24 h (they change slowly); any failure gives an empty set (fail open).
+//  - OFAC SDN Ethereum addresses: https://github.com/0xB10C/ofac-sanctioned-digital-currency-addresses (branch "lists", MIT), JSON array of address strings
+//  - MyEtherWallet darklist: https://github.com/MyEtherWallet/ethereum-lists (src/addresses/addresses-darklist.json, MIT), JSON array of { address, comment, date }
+const OFAC_URL = "https://raw.githubusercontent.com/0xB10C/ofac-sanctioned-digital-currency-addresses/lists/sanctioned_addresses_ETH.json";
+const MEW_DARKLIST_URL = "https://raw.githubusercontent.com/MyEtherWallet/ethereum-lists/master/src/addresses/addresses-darklist.json";
+const ADDR_LIST_TTL = 86400;
+const addrListMem = new Map<string, { set: Set<string>; at: number }>();
+
+async function loadAddrList(name: string, url: string, pick: (item: unknown) => unknown): Promise<Set<string>> {
+  const mem = addrListMem.get(name);
+  if (mem && Date.now() - mem.at < ADDR_LIST_TTL * 1000) return mem.set;
+  try {
+    let arr = await cacheGet<string[]>(`addrlist:${name}`);
+    if (!arr) {
+      const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+      if (!res.ok) return mem?.set ?? new Set();
+      const raw = (await res.json()) as unknown;
+      arr = Array.isArray(raw)
+        ? raw.map(pick).filter((a): a is string => typeof a === "string").map((a) => a.toLowerCase()).filter((a) => /^0x[0-9a-f]{40}$/.test(a))
+        : [];
+      if (arr.length > 0) await cachePut(`addrlist:${name}`, arr, ADDR_LIST_TTL);
+    }
+    const set = new Set(arr);
+    if (set.size > 0) addrListMem.set(name, { set, at: Date.now() });
+    return set;
+  } catch {
+    return mem?.set ?? new Set();
+  }
+}
+
+/** Flags from the exact OFAC / MEW darklist match for a lowercase address; [] on a miss or any error. */
+async function listAddrFlags(address: string): Promise<string[]> {
+  if (/^0x0{40}$/.test(address)) return [];
+  const [ofac, mew] = await Promise.all([
+    loadAddrList("ofac", OFAC_URL, (x) => x),
+    loadAddrList("mew", MEW_DARKLIST_URL, (x) => (x && typeof x === "object" ? (x as { address?: unknown }).address : undefined)),
+  ]);
+  const flags: string[] = [];
+  if (ofac.has(address)) flags.push("sanctioned");
+  if (mew.has(address)) flags.push("phishing_activities");
+  return flags;
+}
+
 const RANK: Record<string, number> = { safe: 0, likely_safe: 1, suspicious: 2, dangerous: 3 };
 
 async function handleScan(req: Request, env: Env): Promise<Response> {
@@ -1492,7 +1535,7 @@ async function handleAge(req: Request, env: Env): Promise<Response> {
   return json({ ageDays: ageDays ?? null }, 200, { "cache-control": "public, max-age=3600" });
 }
 
-/** Is this wallet-request counterparty a known malicious address (GoPlus)? Origin-gated, per-IP capped, edge-cached. Fails open. */
+/** Is this wallet-request counterparty a known malicious address (GoPlus, OFAC, MEW darklist)? Origin-gated, per-IP capped, edge-cached. Fails open. */
 async function handleAddr(req: Request, env: Env): Promise<Response> {
   if (!originAllowed(req, env)) return json({ error: "origin_not_allowed" }, 403);
   const q = new URL(req.url).searchParams;
@@ -1500,13 +1543,15 @@ async function handleAddr(req: Request, env: Env): Promise<Response> {
   if (!/^0x[0-9a-f]{40}$/.test(address)) return json({ error: "bad_address" }, 400);
   const chainRaw = q.get("chain");
   const chain = chainRaw === null || chainRaw === "" ? 1 : Number(chainRaw);
-  if (!Number.isInteger(chain) || !GOPLUS_CHAINS.has(chain)) return json({ bad: false, flags: [] }, 200, { "cache-control": "public, max-age=3600" });
+  const listFlags = await listAddrFlags(address);
+  if (!Number.isInteger(chain) || !GOPLUS_CHAINS.has(chain)) return json({ bad: listFlags.length > 0, flags: listFlags }, 200, { "cache-control": "public, max-age=3600" });
   const key = `addr:${chain}:${address}`;
   const cached = await cacheGet<{ bad: boolean; flags: string[] }>(key);
   if (cached) return json(cached, 200, { "cache-control": "public, max-age=3600" });
   const ik = await ipKey(req, env);
-  if (!(await allow(env, `addr:${ik}`, Number(env.ADDR_PER_IP_PER_DAY) || 300))) return json({ error: "rate_limited" }, 429);
-  const flags = await goPlusAddress(address, chain);
+  // even when the per-IP GoPlus budget is spent, still serve the free exact-list (OFAC / MEW) result so a sanctioned or darklisted address is never missed
+  if (!(await allow(env, `addr:${ik}`, Number(env.ADDR_PER_IP_PER_DAY) || 300))) return json({ bad: listFlags.length > 0, flags: listFlags }, 200, { "cache-control": "public, max-age=3600" });
+  const flags = [...new Set([...listFlags, ...(await goPlusAddress(address, chain))])];
   const out = { bad: flags.length > 0, flags };
   // a clean answer may be an API hiccup (goPlusAddress fails open): keep it 6 h; a real flag for a day
   await cachePut(key, out, out.bad ? 86400 : 6 * 3600);
