@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "KI-Analyse nicht verfügbar"
   },
+  "ai_err_cooldown": {
+    "message": "Die KI-Analyse ist für diese Seite gerade ausgelastet. Versuche es in etwa $1 Min. erneut."
+  },
+  "ai_err_generic": {
+    "message": "Die KI-Analyse konnte gerade nicht abgeschlossen werden."
+  },
+  "ai_err_collect": {
+    "message": "Diese Seite konnte nicht gelesen werden."
+  },
+  "ai_err_not_http": {
+    "message": "Nur normale Webseiten (http oder https) können gescannt werden."
+  },
   "popup_impersonates": {
     "message": "imitiert $1"
   },

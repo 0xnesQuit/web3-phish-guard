@@ -80,8 +80,8 @@ export async function askApi(snapshot: PageSnapshot, ctx: DeepContext, extra: { 
     const res = await fetch(`${base}/v1/scan`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal });
     clearTimeout(t);
     if (!res.ok) {
-      const err = (await res.json().catch(() => ({}))) as { error?: string };
-      return { error: err.error ?? `http_${res.status}` };
+      const err = (await res.json().catch(() => ({}))) as { error?: string; retryAfterMin?: number };
+      return { error: err.error ?? `http_${res.status}`, ...(typeof err.retryAfterMin === "number" ? { retryAfterMin: err.retryAfterMin } : {}) };
     }
     return (await res.json()) as DeepReport["ai"];
   } catch {

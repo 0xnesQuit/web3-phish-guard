@@ -1,6 +1,6 @@
 import type { DeepReport, SandboxReport, Verdict } from "../lib/types";
 import { queueSandbox, pollJob, cancelJob, asReport, addJob, removeJob, getJobs, getDone, sameUrl } from "../lib/sandboxq";
-import { t, signalText, localizePage } from "../lib/i18n";
+import { t, signalText, localizePage, deepErrorText } from "../lib/i18n";
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -67,7 +67,8 @@ async function main() {
       btn.disabled = false;
       if ("error" in r && !("ai" in r)) {
         const limited = ["host_cooldown", "rate_limited", "host_capacity_reached", "daily_capacity_reached"].includes(r.error);
-        box.innerHTML = `<div>${esc(limited ? t("popup_scan_limited") : t("popup_scan_failed"))}${limited ? "" : ` (${esc(r.error)})`}</div>`;
+        const known = limited || r.error === "collect_failed" || r.error === "not_http";
+        box.innerHTML = `<div>${esc(known ? deepErrorText(r.error) : t("popup_scan_failed"))}</div>`;
         return;
       }
       renderDeep(r as DeepReport);
@@ -101,7 +102,7 @@ function renderDeep(r: DeepReport) {
   sb.pageRisky = r.local.band !== "none" || r.ai?.verdict === "dangerous" || r.ai?.verdict === "suspicious";
   const facts = `${t("popup_facts_libs")}: ${r.page.libs.join(", ") || "–"} · ${t("popup_facts_scripts")}: ${r.page.scripts.length} · ${t("popup_facts_wallet")}: ${r.page.walletButtons.length} · ${t("popup_facts_seed")}: ${r.page.seedPhraseInputs} · ${t("popup_facts_markers")}: ${[...r.page.drainerMarkers, ...r.markers].length}${r.goplus?.phishing ? " · GoPlus: phishing" : ""}`;
   if (ai.error) {
-    box.innerHTML = `<div class="v ${r.local.band === "block" ? "dangerous" : r.local.band === "warn" ? "suspicious" : "likely_safe"}">${esc(t("popup_local_only"))} · ${r.local.score}/100</div><div>${esc(t("popup_ai_unavailable"))} (${esc(ai.error)})</div><div class="facts">${esc(facts)}</div>${sandboxHtml()}`;
+    box.innerHTML = `<div class="v ${r.local.band === "block" ? "dangerous" : r.local.band === "warn" ? "suspicious" : "likely_safe"}">${esc(t("popup_local_only"))} · ${r.local.score}/100</div><div>${esc(deepErrorText(ai.error, ai.retryAfterMin))}</div><div class="facts">${esc(facts)}</div>${sandboxHtml()}`;
   paintSandbox();
     return;
   }

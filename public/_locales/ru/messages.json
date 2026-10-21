@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "ИИ-анализ недоступен"
   },
+  "ai_err_cooldown": {
+    "message": "ИИ-анализ для этого сайта сейчас занят. Повторите примерно через $1 мин."
+  },
+  "ai_err_generic": {
+    "message": "Сейчас не удалось завершить ИИ-анализ."
+  },
+  "ai_err_collect": {
+    "message": "Не удалось прочитать эту страницу."
+  },
+  "ai_err_not_http": {
+    "message": "Можно проверять только обычные веб-страницы (http или https)."
+  },
   "popup_impersonates": {
     "message": "имитирует $1"
   },

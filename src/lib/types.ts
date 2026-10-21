@@ -142,7 +142,7 @@ export interface DeepReport {
   page: PageSnapshot;
   markers: string[];
   goplus?: { phishing?: boolean };
-  ai: { verdict?: string; confidence?: number; summary?: string; reasons?: string[]; advice?: string[]; impersonates?: string; model?: string; cached?: boolean; error?: string; goplus?: { phishing?: boolean } };
+  ai: { verdict?: string; confidence?: number; summary?: string; reasons?: string[]; advice?: string[]; impersonates?: string; model?: string; cached?: boolean; error?: string; retryAfterMin?: number; goplus?: { phishing?: boolean } };
   /** server-side sandbox result: the page was opened with a throw-away wallet and watched. Carries a state; ok:false when it did not run. */
   sandbox?: SandboxReport;
 }

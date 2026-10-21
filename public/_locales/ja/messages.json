@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "AI 分析を利用できません"
   },
+  "ai_err_cooldown": {
+    "message": "このサイトの AI 分析は現在混み合っています。約 $1 分後にもう一度お試しください。"
+  },
+  "ai_err_generic": {
+    "message": "AI 分析を今は完了できませんでした。"
+  },
+  "ai_err_collect": {
+    "message": "このページを読み取れませんでした。"
+  },
+  "ai_err_not_http": {
+    "message": "通常のウェブページ（http または https）のみスキャンできます。"
+  },
   "popup_impersonates": {
     "message": "$1 を偽装"
   },

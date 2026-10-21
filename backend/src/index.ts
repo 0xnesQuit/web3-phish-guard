@@ -81,6 +81,9 @@ const LISTS_DEFAULT = "https://raw.githubusercontent.com/0xnesQuit/web3-phish-gu
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
+/** Minutes left on a host cooldown (rounded up); falls back to the configured window when the remaining time is unknown. */
+const cooldownMin = (retryAfterSec: number | undefined, env: Env) =>
+  retryAfterSec && retryAfterSec > 0 ? Math.max(1, Math.ceil(retryAfterSec / 60)) : Number(env.SCAN_HOST_COOLDOWN_MIN) || 30;
 const json = (data: unknown, status = 200, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra } });
 
@@ -505,7 +508,7 @@ async function handleScan(req: Request, env: Env): Promise<Response> {
   if (!admission.ok) {
     const hostCached = await cacheGet<Record<string, unknown>>(hostKey);
     if (hostCached && (hostCached.verdict === "dangerous" || hostCached.verdict === "suspicious")) return json({ ...hostCached, cached: true });
-    return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429);
+    return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: cooldownMin(admission.retryAfterSec, env) } : { error: admission.error }, 429);
   }
 
   // server-side facts
@@ -794,7 +797,7 @@ async function handleSandbox(req: Request, env: Env): Promise<Response> {
       ipLimit: Number(env.SANDBOX_PER_IP_PER_DAY) || 30, hostLimit: Number(env.SCANS_PER_HOST_PER_DAY) || 200, globalLimit: Number(env.SANDBOX_GLOBAL_PER_DAY) || 2000,
       cooldownSec: Math.max(60, (Number(env.SCAN_HOST_COOLDOWN_MIN) || 30) * 60),
     });
-    if (!admission.ok) { failStat(env, admission.error === "host_cooldown" ? "cooldown" : "rate", host); return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: Number(env.SCAN_HOST_COOLDOWN_MIN) || 30 } : { error: admission.error }, 429); }
+    if (!admission.ok) { failStat(env, admission.error === "host_cooldown" ? "cooldown" : "rate", host); return json(admission.error === "host_cooldown" ? { error: "host_cooldown", retryAfterMin: cooldownMin(admission.retryAfterSec, env) } : { error: admission.error }, 429); }
 
     // 4. scan via the backend pool
     const report0 = await sandboxFetch(env, url);

@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "AI 분석 불가"
   },
+  "ai_err_cooldown": {
+    "message": "이 사이트의 AI 분석이 현재 바쁩니다. 약 $1분 후에 다시 시도하세요."
+  },
+  "ai_err_generic": {
+    "message": "지금은 AI 분석을 완료할 수 없습니다."
+  },
+  "ai_err_collect": {
+    "message": "이 페이지를 읽을 수 없습니다."
+  },
+  "ai_err_not_http": {
+    "message": "일반 웹 페이지(http 또는 https)만 검사할 수 있습니다."
+  },
   "popup_impersonates": {
     "message": "$1 사칭"
   },

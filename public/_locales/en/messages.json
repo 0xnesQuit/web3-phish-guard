@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "AI analysis unavailable"
   },
+  "ai_err_cooldown": {
+    "message": "AI analysis is busy for this site. Try again in about $1 min."
+  },
+  "ai_err_generic": {
+    "message": "AI analysis could not be completed right now."
+  },
+  "ai_err_collect": {
+    "message": "This page could not be read."
+  },
+  "ai_err_not_http": {
+    "message": "Only regular web pages (http or https) can be scanned."
+  },
   "popup_impersonates": {
     "message": "impersonates $1"
   },

@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "Không có phân tích AI"
   },
+  "ai_err_cooldown": {
+    "message": "Phân tích AI cho trang này đang bận. Hãy thử lại sau khoảng $1 phút."
+  },
+  "ai_err_generic": {
+    "message": "Hiện chưa thể hoàn tất phân tích AI."
+  },
+  "ai_err_collect": {
+    "message": "Không thể đọc trang này."
+  },
+  "ai_err_not_http": {
+    "message": "Chỉ có thể quét các trang web thông thường (http hoặc https)."
+  },
   "popup_impersonates": {
     "message": "giả mạo $1"
   },

@@ -58,10 +58,10 @@ export class W3pgState extends DurableObject {
   }
 
   /** Scan admission in one transaction: per-caller day budget, per-caller-per-host cooldown, per-host and global day budgets. */
-  async admitScan(p: { ip: string; host: string; ipLimit: number; hostLimit: number; globalLimit: number; cooldownSec: number }): Promise<{ ok: true } | { ok: false; error: string }> {
+  async admitScan(p: { ip: string; host: string; ipLimit: number; hostLimit: number; globalLimit: number; cooldownSec: number }): Promise<{ ok: true } | { ok: false; error: string; retryAfterSec?: number }> {
     const now = Date.now();
     const cd = await this.ctx.storage.get<number>(`cd:${p.ip}:${p.host}`);
-    if (cd && cd > now) return { ok: false, error: "host_cooldown" };
+    if (cd && cd > now) return { ok: false, error: "host_cooldown", retryAfterSec: Math.ceil((cd - now) / 1000) };
     // peek every budget first so a refused request consumes nothing
     const day = Math.floor(now / DAY);
     const keys = [`scan:${p.ip}`, `scan:host:${p.host}`, "scan:global"].map((k) => `c:${day}:${k}`);

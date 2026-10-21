@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "Analisis AI tidak tersedia"
   },
+  "ai_err_cooldown": {
+    "message": "Analisis AI untuk situs ini sedang sibuk. Coba lagi sekitar $1 menit lagi."
+  },
+  "ai_err_generic": {
+    "message": "Analisis AI belum dapat diselesaikan saat ini."
+  },
+  "ai_err_collect": {
+    "message": "Halaman ini tidak dapat dibaca."
+  },
+  "ai_err_not_http": {
+    "message": "Hanya halaman web biasa (http atau https) yang dapat dipindai."
+  },
   "popup_impersonates": {
     "message": "meniru $1"
   },

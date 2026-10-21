@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "AI विश्लेषण उपलब्ध नहीं"
   },
+  "ai_err_cooldown": {
+    "message": "इस साइट के लिए AI विश्लेषण अभी व्यस्त है। लगभग $1 मिनट बाद फिर कोशिश करें।"
+  },
+  "ai_err_generic": {
+    "message": "AI विश्लेषण अभी पूरा नहीं हो सका।"
+  },
+  "ai_err_collect": {
+    "message": "यह पेज पढ़ा नहीं जा सका।"
+  },
+  "ai_err_not_http": {
+    "message": "केवल सामान्य वेब पेज (http या https) स्कैन किए जा सकते हैं।"
+  },
   "popup_impersonates": {
     "message": "$1 की नकल"
   },

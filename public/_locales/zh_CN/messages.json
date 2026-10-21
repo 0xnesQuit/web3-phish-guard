@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "AI 分析不可用"
   },
+  "ai_err_cooldown": {
+    "message": "此网站的 AI 分析暂时繁忙。请约 $1 分钟后重试。"
+  },
+  "ai_err_generic": {
+    "message": "AI 分析暂时无法完成。"
+  },
+  "ai_err_collect": {
+    "message": "无法读取此页面。"
+  },
+  "ai_err_not_http": {
+    "message": "只能扫描普通网页（http 或 https）。"
+  },
   "popup_impersonates": {
     "message": "冒充 $1"
   },

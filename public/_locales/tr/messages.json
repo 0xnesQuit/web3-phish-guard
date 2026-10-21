@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "AI analizi alınamadı"
   },
+  "ai_err_cooldown": {
+    "message": "Bu site için AI analizi şu an meşgul. Yaklaşık $1 dk sonra tekrar dene."
+  },
+  "ai_err_generic": {
+    "message": "AI analizi şu an tamamlanamadı."
+  },
+  "ai_err_collect": {
+    "message": "Bu sayfa okunamadı."
+  },
+  "ai_err_not_http": {
+    "message": "Yalnızca normal web sayfaları (http veya https) taranabilir."
+  },
   "popup_impersonates": {
     "message": "$1 taklidi"
   },

@@ -7,7 +7,7 @@
  */
 import type { Verdict } from "../lib/types";
 import type { DeepReport } from "../lib/types";
-import { t, signalText } from "../lib/i18n";
+import { t, signalText, deepErrorText } from "../lib/i18n";
 
 const ID = "w3pg-banner";
 const COLLAPSE_AFTER_MS = 8000;
@@ -101,7 +101,7 @@ function render(v: Verdict) {
       const lang = (() => { try { return chrome.i18n.getUILanguage().split("-")[0]; } catch { return "en"; } })();
       const r = (await chrome.runtime.sendMessage({ type: "w3pg:overlayDeepScan", language: lang })) as DeepReport | { error: string } | undefined;
       renderDeepInline(out, r);
-    } catch { out.textContent = t("popup_ai_unavailable"); }
+    } catch { out.textContent = deepErrorText(undefined); }
     if (host.isConnected) btn.disabled = false;
   });
   const mount = () => (document.documentElement || document.body).appendChild(host);
@@ -122,7 +122,7 @@ function esc(s: string) {
 function renderDeepInline(out: HTMLElement, r: DeepReport | { error: string } | undefined) {
   const err = !r || "error" in r ? (r && "error" in r ? r.error : "error") : (r.ai?.error ?? "");
   if (!r || "error" in r || err) {
-    out.innerHTML = `<div class="sbx">${esc(t("popup_ai_unavailable"))}${err ? ` (${esc(String(err))})` : ""}</div>`;
+    out.innerHTML = `<div class="sbx">${esc(deepErrorText(String(err), r && "ai" in r ? r.ai?.retryAfterMin : undefined))}</div>`;
     return;
   }
   const ai = r.ai ?? {};

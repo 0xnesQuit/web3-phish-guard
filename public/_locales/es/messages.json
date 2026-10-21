@@ -131,6 +131,18 @@
   "popup_ai_unavailable": {
     "message": "Análisis de IA no disponible"
   },
+  "ai_err_cooldown": {
+    "message": "El análisis de IA está ocupado para este sitio. Inténtalo de nuevo en unos $1 min."
+  },
+  "ai_err_generic": {
+    "message": "No se pudo completar el análisis de IA en este momento."
+  },
+  "ai_err_collect": {
+    "message": "No se pudo leer esta página."
+  },
+  "ai_err_not_http": {
+    "message": "Solo se pueden analizar páginas web normales (http o https)."
+  },
   "popup_impersonates": {
     "message": "suplanta a $1"
   },
