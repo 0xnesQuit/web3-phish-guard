@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guard3 — Web3 phishing and wallet-drainer protection</title>
+<meta name="description" content="Guard3 is a browser extension that warns or blocks before a crypto phishing page loads and pauses risky wallet requests so you can review what you are about to sign.">
+<style>
+  :root{
+    --bg:#0b0e16; --bg2:#10141f; --card:#141926; --line:#222a3a;
+    --ink:#e8ecf6; --muted:#9aa6c0; --faint:#6b7691;
+    --accent:#5b8cff; --accent2:#7aa2ff; --danger:#ff5b6e; --ok:#43c08a;
+    --radius:14px; --maxw:960px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent2); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 16px}
+  header{position:sticky; top:0; z-index:10; background:rgba(11,14,22,.82); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+  .nav{display:flex; align-items:center; justify-content:space-between; height:62px}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; color:var(--ink)}
+  .dot{width:16px; height:16px; border-radius:5px; background:linear-gradient(135deg,var(--accent),#9c6bff)}
+  .nav nav a{color:var(--muted); margin-left:22px; font-size:15px}
+  .nav nav a:hover{color:var(--ink); text-decoration:none}
+  .btn{display:inline-block; background:var(--accent); color:#fff; font-weight:700; padding:12px 20px; border-radius:10px; border:0; cursor:pointer}
+  .btn:hover{background:var(--accent2); text-decoration:none}
+  .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--accent)}
+  .hero{padding:84px 0 40px; background:radial-gradient(1200px 400px at 50% -120px,rgba(91,140,255,.16),transparent)}
+  .hero h1{font-size:clamp(30px,5vw,50px); line-height:1.12; margin:0 0 18px; letter-spacing:-.5px}
+  .hero p.lead{font-size:clamp(17px,2.4vw,21px); color:var(--muted); max-width:640px; margin:0 0 28px}
+  .cta{display:flex; gap:12px; flex-wrap:wrap}
+  .note{color:var(--faint); font-size:13px; margin-top:14px}
+  section{padding:52px 0; border-top:1px solid var(--line)}
+  h2{font-size:clamp(23px,3.4vw,30px); margin:0 0 6px; letter-spacing:-.3px}
+  .sub{color:var(--muted); margin:0 0 28px; max-width:620px}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px}
+  .card h3{margin:0 0 8px; font-size:18px}
+  .card p{margin:0; color:var(--muted); font-size:15px}
+  .badge{display:inline-block; font-size:12px; font-weight:700; padding:3px 9px; border-radius:999px; margin-bottom:12px}
+  .b-warn{background:rgba(255,91,110,.14); color:#ff8d9b}
+  .b-sign{background:rgba(91,140,255,.14); color:var(--accent2)}
+  .b-scan{background:rgba(67,192,138,.14); color:#6fd6a8}
+  ul.clean{list-style:none; padding:0; margin:0}
+  ul.clean li{padding:10px 0; border-bottom:1px solid var(--line); color:var(--muted)}
+  ul.clean li:last-child{border-bottom:0}
+  ul.clean li b{color:var(--ink)}
+  .policy h3{margin:26px 0 6px; font-size:17px}
+  .policy p, .policy li{color:var(--muted); font-size:14.5px}
+  .policy ol{padding-left:20px}
+  .policy .upd{color:var(--faint); font-size:13px}
+  footer{border-top:1px solid var(--line); padding:28px 0; color:var(--faint); font-size:14px}
+  footer .row{display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand"><span class="dot"></span> Guard3</div>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#support">Support</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" style="border-top:0">
+    <div class="wrap">
+      <h1>A second pair of eyes before you sign.</h1>
+      <p class="lead">Guard3 warns or blocks before a known crypto phishing page loads, and pauses risky wallet requests so you can see what you are about to approve.</p>
+      <div class="cta">
+        <a class="btn" href="https://chromewebstore.google.com/detail/naacgiaegeohgmnhojncbcpjldbgngoo">Get Guard3 for Chrome</a>
+        <a class="btn ghost" href="#how">See how it works</a>
+      </div>
+      <p class="note">Free and open. No account, no sign-up, no personal data collected. Works in Chrome and Firefox.</p>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">Guard3 protects you from fake airdrop, mint and claim pages that trick you into signing a transaction or giving up your recovery phrase. It works in two layers.</p>
+      <div class="grid">
+        <div class="card">
+          <span class="badge b-warn">Layer 1</span>
+          <h3>Warns before a scam page loads</h3>
+          <p>Every page is checked on your device against reviewed community blocklists and on-page heuristics. Lookalike domains, fake airdrop checkers and known drainer pages get a warning, or a full-page block for the clear ones, before you interact.</p>
+        </div>
+        <div class="card">
+          <span class="badge b-sign">Layer 2</span>
+          <h3>Reviews risky wallet requests</h3>
+          <p>When a site asks your wallet to approve, sign or transfer, Guard3 holds the request and shows in plain language what it would really do: unlimited approvals, Permit2, raw signatures, with a live simulation of what would leave your wallet.</p>
+        </div>
+        <div class="card">
+          <span class="badge b-scan">On demand</span>
+          <h3>Deep scan when you want certainty</h3>
+          <p>One click runs a closer analysis (an AI verdict plus a decoy-wallet sandbox) and explains, point by point, why a page looks dangerous or why it is probably fine.</p>
+        </div>
+        <div class="card">
+          <span class="badge b-scan">Honest by design</span>
+          <h3>Not an alarm machine</h3>
+          <p>Guard3 separates a merely unofficial page from a real drainer and tells you the difference. A suspicious verdict comes with the reasons, so you decide with the full picture.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <div class="wrap policy">
+      <h2>Privacy</h2>
+      <p class="sub">The short version: every page is checked locally first, the full URLs you visit are never sent to us, and the requests that do leave your browser are listed below.</p>
+      <p class="upd">Last updated: 2026-10-19</p>
+
+      <h3>What stays on your device</h3>
+      <p>Every page you open is evaluated locally in your browser first. The hostname is checked against phishing lists, brand lists and heuristics stored inside the extension. The full URLs you visit are never sent to us or logged.</p>
+
+      <h3>What leaves your device, and when</h3>
+      <ol>
+        <li><b>List updates</b> (automatic, every 12 hours): updated phishing and brand lists are downloaded from GitHub. These requests carry no information about your browsing.</li>
+        <li><b>Domain age lookup</b> (automatic, only for suspicious pages): when the local score is undecided, the extension asks a public registry (RDAP) for the registration date of the domain name only. No path, query string or page content is sent.</li>
+        <li><b>Link shortener resolution</b> (automatic, only on x.com): shortened links visible in your timeline are resolved by our server so they can be scored before you click. Your browser does not contact the destination.</li>
+        <li><b>X account check</b> (automatic, only for suspicious pages): the project name in the hostname or the handle that carried the link is sent to our server to look up the account. Never the page URL.</li>
+        <li><b>Deep scan</b> (only when you press the button): the page address without its query string, a snapshot of the page (title, a text sample, script file names, link domains, wallet-related buttons) and the extension's findings are sent to our server, which asks an AI model for a verdict. The page text is not stored.</li>
+        <li><b>Reports</b> (only when you press "Report this site"): the page address without its query string, the score and your optional note are sent for human review. A daily-rotating keyed hash of your IP is kept for abuse prevention and deleted with the report after 90 days.</li>
+        <li><b>Transaction simulation</b> (on by default, only when a wallet request is held): the pending transaction is sent straight from your browser to a public RPC node to simulate what would leave your wallet. It is never sent to us, carries no cookies, and nothing is broadcast. You can turn it off in settings.</li>
+      </ol>
+
+      <h3>What we never do</h3>
+      <ul class="clean">
+        <li>We do not sell data, show ads, or share data with third parties beyond the services named above.</li>
+        <li>We do not collect wallet addresses, seed phrases, private keys, form inputs, cookies, or browsing history.</li>
+        <li>The AI API key is stored only on our server; the extension cannot be used to access it.</li>
+      </ul>
+
+      <h3>Your controls</h3>
+      <ul class="clean">
+        <li>Deep scan and reporting are manual; nothing is sent until you press the button.</li>
+        <li>Transaction simulation can be switched off in the settings page.</li>
+        <li>You can mark any domain as trusted or remove it again in settings.</li>
+        <li>Uninstalling the extension removes all locally stored data.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="support">
+    <div class="wrap">
+      <h2>Support</h2>
+      <p class="sub">Questions, a false positive, or a scam site we missed? We read every report.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>Report an issue</h3>
+          <p>Open an issue on GitHub: <a href="https://github.com/0xnesQuit/web3-phish-guard-lists/issues">github.com/0xnesQuit/web3-phish-guard-lists/issues</a>. Include the site and what you expected.</p>
+        </div>
+        <div class="card">
+          <h3>Report a scam site</h3>
+          <p>Use the "Report this site" button in the extension on the page itself. A moderator reviews reports before anything is added to the public blocklist.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap row">
+    <div>Guard3. Web3 phishing and wallet-drainer protection.</div>
+    <div>
+      <a href="#how">How it works</a> &nbsp;·&nbsp;
+      <a href="#privacy">Privacy</a> &nbsp;·&nbsp;
+      <a href="#support">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
