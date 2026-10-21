@@ -3,7 +3,7 @@
  * but does nothing until the background asks (user pressed "deep scan"). Collects
  * structure and a bounded text sample; never form values, never cookies.
  */
-import type { PageSignals, PageSnapshot, PageSocials } from "../lib/types";
+import type { PageSignals, PageSnapshot, PageSocials, Verdict } from "../lib/types";
 
 const LIBS: Array<[RegExp, string]> = [
   [/ethers(?:\.min)?\.js|ethers@|\bethers\b/i, "ethers.js"],
@@ -134,8 +134,9 @@ export function collect(): PageSnapshot {
   };
 }
 
-// Report social links shortly after load (and once more after SPAs render), so the background can
-// check whether the page links to a real project's X account while sitting on a different domain.
+// Report social links once at idle, so the background can check whether the page links to a real project's X
+// account while sitting on a different domain. Socials only change a verdict on a page that already looks off
+// (see scoring), so the anchor walk is skipped on plain pages; one re-check on the first trusted gesture.
 let lastSent = "";
 function sendSocials() {
   try {
@@ -146,8 +147,18 @@ function sendSocials() {
     chrome.runtime.sendMessage({ type: "w3pg:socials", socials: s }).catch(() => undefined);
   } catch { /* ignore */ }
 }
-setTimeout(sendSocials, 800);
-setTimeout(sendSocials, 4000);
+let socialsRecheck = true;
+async function maybeSendSocials() {
+  try {
+    if (window.top !== window) return; // background ignores socials from subframes
+    const v = (await chrome.runtime.sendMessage({ type: "w3pg:getVerdict", originSeen: true })) as (Verdict & { originSeen?: boolean }) | undefined;
+    // no verdict yet: stay conservative and walk. Otherwise only when something could use the socials.
+    if (v && v.band === "none" && !v.xToken && !v.originSeen && !v.score && !v.signals.some((s) => s.id.startsWith("provider-"))) return;
+    sendSocials();
+  } catch { /* ignore */ }
+}
+if (typeof requestIdleCallback === "function") requestIdleCallback(() => void maybeSendSocials(), { timeout: 3000 });
+else setTimeout(() => void maybeSendSocials(), 1500);
 
 // One cheap pass at idle for the on-load verdict: seed field, drainer-kit script URLs, brand name in the title.
 // Top frame, once, no observer, no network. Inline script bodies are left to the deep scan.
@@ -174,25 +185,44 @@ function quickScan() {
 if (typeof requestIdleCallback === "function") requestIdleCallback(quickScan, { timeout: 3000 });
 else setTimeout(quickScan, 1200);
 
-// WalletConnect / AppKit modal: mobile wallets bypass the provider wrapper, so the modal itself is the signal
+// WalletConnect / AppKit modal: mobile wallets bypass the provider wrapper, so the modal itself is the signal.
+// Nothing is observed until there is a reason: a wallet-connect CTA is on the page at idle, or the user clicks one.
+const WC_MODAL_SEL = "wcm-modal, w3m-modal, w3m-router, wui-flex, #walletconnect-wrapper, [class*='walletconnect-modal']";
+const WC_CTA_SEL = "w3m-button, appkit-button, w3m-connect-button, appkit-connect-button, w3m-core-button, appkit-core-button, wcm-button";
 let wcSent = false;
-const wcObs = new MutationObserver(() => {
-  if (wcSent) return;
-  if (document.querySelector("wcm-modal, w3m-modal, w3m-router, wui-flex, #walletconnect-wrapper, [class*='walletconnect-modal']")) {
-    wcSent = true;
-    chrome.runtime.sendMessage({ type: "w3pg:provider", event: { kind: "wc-modal", method: "walletconnect", detail: "wc_modal", msSinceLoad: performance.now(), hadGesture: true } }).catch(() => undefined);
-    wcObs.disconnect();
-  }
-});
-wcObs.observe(document.documentElement, { childList: true, subtree: true });
-// a WC modal opens within seconds of load or right after a click: watch 20s, and re-arm for 8s after each trusted gesture (then drop the observer)
-let wcTimer = setTimeout(() => wcObs.disconnect(), 20_000);
-const wcGesture = (e: Event) => {
-  if (!e.isTrusted || wcSent) return;
-  try { if (!chrome.runtime?.id) { wcObs.disconnect(); return; } } catch { wcObs.disconnect(); return; }
+let wcTimer: ReturnType<typeof setTimeout> | undefined;
+function wcFire() {
+  wcSent = true;
+  wcObs.disconnect();
   clearTimeout(wcTimer);
-  wcObs.observe(document.documentElement, { childList: true, subtree: true });
-  wcTimer = setTimeout(() => wcObs.disconnect(), 8_000);
+  chrome.runtime.sendMessage({ type: "w3pg:provider", event: { kind: "wc-modal", method: "walletconnect", detail: "wc_modal", msSinceLoad: performance.now(), hadGesture: true } }).catch(() => undefined);
+}
+const wcObs = new MutationObserver(() => {
+  if (!wcSent && document.querySelector(WC_MODAL_SEL)) wcFire();
+});
+/** Watch document.body for a WC modal for a short bounded window. */
+function wcArm(ms: number) {
+  if (wcSent || !document.body) return;
+  if (document.querySelector(WC_MODAL_SEL)) { wcFire(); return; }
+  wcObs.observe(document.body, { childList: true, subtree: true });
+  clearTimeout(wcTimer);
+  wcTimer = setTimeout(() => wcObs.disconnect(), ms);
+}
+// one-shot at idle: a modal already open, or a known connect-button element on the page (cheap selector, no text scan)
+function wcIdleCheck() {
+  try { if (document.querySelector(WC_MODAL_SEL)) wcFire(); else if (document.querySelector(WC_CTA_SEL)) wcArm(10_000); } catch { /* ignore */ }
+}
+if (typeof requestIdleCallback === "function") requestIdleCallback(wcIdleCheck, { timeout: 3000 });
+else setTimeout(wcIdleCheck, 1500);
+// a trusted click on a wallet-connect CTA: watch 8s for the modal (then drop the observer)
+const wcGesture = (e: Event) => {
+  if (!e.isTrusted) return;
+  try { if (!chrome.runtime?.id) { wcObs.disconnect(); return; } } catch { wcObs.disconnect(); return; }
+  // any trusted gesture may open a WC modal (a plain, icon-only or oddly worded connect button too): watch briefly.
+  // this is still far cheaper than the old always-on observer, which watched every page for 20s from load with no interaction.
+  if (!wcSent) wcArm(8_000);
+  // one late social-link check for pages that only turned wallet-active after load
+  if (socialsRecheck) { socialsRecheck = false; setTimeout(() => void maybeSendSocials(), 1500); }
 };
 window.addEventListener("pointerdown", wcGesture, { capture: true, passive: true });
 window.addEventListener("keydown", wcGesture, { capture: true, passive: true });

@@ -702,7 +702,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     switch (msg?.type) {
       case "w3pg:getVerdict": {
         const tabId = fromExtension(sender) ? (msg.tabId ?? sender.tab?.id) : sender.tab?.id;
-        sendResponse(tabId !== undefined ? await getTabVerdict(tabId) : undefined);
+        const tv = tabId !== undefined ? await getTabVerdict(tabId) : undefined;
+        // page-scan asks with `originSeen` to decide whether the social-link walk can matter (a page opened from a post/ad is judged with its origin)
+        sendResponse(tv && msg.originSeen && tabId !== undefined ? { ...tv, originSeen: !!(await getTabOrigin(tabId)) } : tv);
         return;
       }
       case "w3pg:getWarning": {
