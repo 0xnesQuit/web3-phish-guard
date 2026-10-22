@@ -562,24 +562,29 @@ function modal(g: GateDetails, d: { reason?: string; score?: number }, hostLabel
     if (d.reason) rows.push(`<li>${esc(d.reason)}</li>`);
     root.innerHTML = `
       <style>
-        .bg{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;font:14px/1.5 system-ui,sans-serif}
-        .card{max-width:520px;width:calc(100% - 32px);background:#1b0e0e;color:#f5e9e9;border:2px solid #e5484d;border-radius:14px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
-        h1{font-size:18px;margin:0 0 6px;color:#ff6b6b}
-        .sub{opacity:.8;margin-bottom:12px}
+        .bg{position:fixed;inset:0;background:rgba(6,8,14,.78);display:flex;align-items:center;justify-content:center;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+        .card{box-sizing:border-box;max-width:520px;width:calc(100% - 32px);max-height:calc(100vh - 32px);overflow:auto;background:#141926;color:#e8ecf6;border:1px solid #222a3a;border-top:3px solid #ff5b6e;border-radius:14px;padding:22px 24px;box-shadow:0 24px 70px rgba(0,0,0,.65)}
+        h1{font-size:18px;line-height:1.3;font-weight:700;margin:0 0 6px;color:#ff5b6e}
+        .sub{color:#9aa6c0;margin-bottom:14px}
         ul{margin:0 0 14px;padding-left:18px}
-        li{margin:4px 0}
-        .bad{color:#ff9b9b}
+        li{margin:5px 0;color:#e8ecf6}
+        li b{color:#e8ecf6}
+        .bad,li b.bad{color:#ff7d8c}
         .imp:empty{display:none}
-        .imp .h{list-style:none;margin-left:-18px;font-weight:600;font-size:13px;opacity:.85}
-        .warn li{font-weight:700;color:#ff6b6b}
-        .imp .chk{opacity:.6;font-style:italic}
-        code{font-family:ui-monospace,monospace;background:#2a1414;padding:1px 6px;border-radius:5px}
+        .imp{border-top:1px solid #222a3a;padding-top:8px}
+        .imp .h{list-style:none;margin-left:-18px;font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#9aa6c0}
+        .warn{background:rgba(255,91,110,.1);border:1px solid rgba(255,91,110,.35);border-radius:10px;padding:8px 12px 8px 30px}
+        .warn li{font-weight:700;color:#ff5b6e}
+        .imp .chk{color:#9aa6c0;font-style:italic}
+        code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;background:#0e121c;border:1px solid #222a3a;color:#e8ecf6;padding:1px 6px;border-radius:6px}
         .row{display:flex;gap:10px;flex-wrap:wrap}
-        button{font:inherit;font-weight:600;padding:10px 16px;border-radius:9px;border:0;cursor:pointer}
-        .rej{background:#e5484d;color:#fff}
-        .ok{background:transparent;color:#f5b8b8;border:1px solid #7a3030}
-        .ok:hover{background:#2a1414}
-        .host{font-size:12px;opacity:.6;margin-top:10px;word-break:break-all}
+        button{font:inherit;font-weight:600;padding:10px 18px;border-radius:10px;border:1px solid transparent;cursor:pointer}
+        button:focus-visible{outline:2px solid #5b8cff;outline-offset:2px}
+        .rej{background:#5b8cff;color:#0b1020}
+        .rej:hover{background:#7aa0ff}
+        .ok{background:transparent;color:#ff9aa6;border-color:#4a2a33}
+        .ok:hover{background:rgba(255,91,110,.12);border-color:#ff5b6e}
+        .host{font-size:12px;color:#9aa6c0;margin-top:12px;word-break:break-all}
       </style>
       <div class="bg" role="dialog" aria-modal="true" aria-labelledby="w3pg-t">
         <div class="card">

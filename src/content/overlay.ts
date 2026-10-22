@@ -35,31 +35,34 @@ function render(v: Verdict) {
   root.innerHTML = `
     <style>
       :host{all:initial}
-      .card{font:13px/1.45 system-ui,sans-serif;background:#2b1f00;color:#ffe6a8;border:1px solid #a97a1a;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.45);overflow:hidden}
+      .card{box-sizing:border-box;font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#141926;color:#e8ecf6;border:1px solid #222a3a;border-left:3px solid #f5a524;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);overflow:hidden}
       .head{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;user-select:none}
       .i{font-size:18px;line-height:1}
-      .t{font-weight:700;flex:1;min-width:0}
+      .t{font-weight:700;flex:1;min-width:0;color:#e8ecf6}
       .score{flex:none;background:#f5a524;color:#1a1200;font-weight:800;font-size:12px;border-radius:999px;padding:2px 8px}
-      .x{background:transparent;border:1px solid #a97a1a;color:#ffe6a8;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit;font-size:12px}
-      .body{padding:0 12px 10px 40px}
+      .x{background:transparent;border:1px solid #222a3a;color:#9aa6c0;border-radius:8px;padding:3px 9px;cursor:pointer;font:inherit;font-size:12px}
+      .x:hover{border-color:#5b8cff;color:#e8ecf6}
+      .x:focus-visible,.deep:focus-visible{outline:2px solid #5b8cff;outline-offset:2px}
+      .body{padding:0 12px 12px 40px}
       ul{margin:0 0 6px;padding-left:16px}
-      li{margin:2px 0}
-      .s{opacity:.8;font-size:12px}
+      li{margin:3px 0;color:#e8ecf6}
+      .s{color:#9aa6c0;font-size:12px}
       .card.min .body{display:none}
       .card.min .head{padding:6px 10px}
       .card.min .t{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .card.min .x{display:none}
-      .deep{margin-top:4px;font:inherit;font-weight:600;font-size:12px;background:#f5a524;color:#1a1200;border:0;border-radius:8px;padding:6px 12px;cursor:pointer}
+      .deep{margin-top:8px;font:inherit;font-weight:600;font-size:12px;background:#5b8cff;color:#0b1020;border:0;border-radius:9px;padding:7px 14px;cursor:pointer}
+      .deep:hover{background:#7aa0ff}
       .deep[disabled]{opacity:.6;cursor:default}
       .card.min .deep,.card.min .deepout{display:none}
-      .deepout{margin-top:8px}
+      .deepout{margin-top:10px}
       .deepout .v{font-weight:700;margin-bottom:4px}
-      .deepout .v.dangerous{color:#ff8a8a}
-      .deepout .v.suspicious{color:#ffd27a}
-      .deepout .v.safe{color:#9be3b0}
-      .deepout .sum{opacity:.92;margin-bottom:4px}
+      .deepout .v.dangerous{color:#ff5b6e}
+      .deepout .v.suspicious{color:#f5a524}
+      .deepout .v.safe{color:#43c08a}
+      .deepout .sum{color:#e8ecf6;margin-bottom:4px}
       .deepout ul{margin:4px 0}
-      .deepout .sbx{opacity:.8;font-size:12px;margin-top:4px}
+      .deepout .sbx{color:#9aa6c0;font-size:12px;margin-top:4px}
     </style>
     <div class="card" id="card" role="alert" aria-live="polite">
       <div class="head" id="head">
