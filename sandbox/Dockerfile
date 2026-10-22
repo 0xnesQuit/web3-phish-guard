@@ -1,6 +1,13 @@
 # Playwright's image already has Chromium and all system libraries. Pin a version close to the playwright dep.
 FROM mcr.microsoft.com/playwright:v1.49.1-noble
 
+# Security patch: the base image ships Node 22.12.0, but the October 2026 CVEs (Brotli OOB-write RCE, TLS hostname
+# bypass, eMudhra CA distrust) need 22.23.4+. Upgrade to the latest patched 22.x and refresh the system CA store.
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && node -v
+
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
