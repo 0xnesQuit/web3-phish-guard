@@ -11,3 +11,8 @@ packages/
 reports/
 research_notes/
 data/top-sites.json
+
+# Environment secrets (the committed .env.example stays tracked)
+.env
+.env.*
+!.env.example
