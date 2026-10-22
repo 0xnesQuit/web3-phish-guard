@@ -3,6 +3,7 @@ import { score, bandOf, BLOCK_THRESHOLD, WARN_THRESHOLD } from "./lib/scoring";
 import { loadStaticData, refreshRemoteData, remoteDataStatus, brandByHandle, brandByToken } from "./lib/lists";
 import { SOURCES, refreshSource, refreshMetaMaskDiffs, warmLists, isWarm, blocklistHit, blocklistPathHit, allowlistHit, siblingHit, attackedBrandHit, listStatus, newestDomains, newestPaths } from "./lib/blocklist";
 import { domainAgeDays } from "./lib/rdap";
+import { localAddrFlags, refreshAddrLists, refreshAddrListsIfStale, ADDR_LIST_REFRESH_MINUTES } from "./lib/addrlists";
 import { simulateEnabled, strictGateEnabled, addrScreenEnabled, setTabVerdict, getTabVerdict, clearTab, addBypass, isBypassed, addUserAllow, getUserAllow, removeUserAllow, putWarning, getWarning, consumeWarning } from "./lib/state";
 import { sourceFromHost, setTabOrigin, getTabOrigin, setPendingClick, takePendingClick, peekPendingClick, isShortener, isAdHop } from "./lib/origin";
 import { resolveBrand, resolvePoster } from "./lib/xquik";
@@ -35,6 +36,7 @@ async function ensureAlarms(): Promise<void> {
   const wanted: Array<[string, chrome.alarms.AlarmCreateInfo]> = [
     ...SOURCES.map((s): [string, chrome.alarms.AlarmCreateInfo] => [`refresh:${s.id}`, { periodInMinutes: s.every, delayInMinutes: 0.1 }]),
     ["refresh:metamask-diffs", { periodInMinutes: 5, delayInMinutes: 2 }],
+    ["refresh:addrlists", { periodInMinutes: ADDR_LIST_REFRESH_MINUTES, delayInMinutes: 0.5 }],
     ["refresh:data", { periodInMinutes: 60 * 12, delayInMinutes: 1 }],
     ["prune", { periodInMinutes: 60 * 24, delayInMinutes: 30 }],
   ];
@@ -89,6 +91,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     await ensureReady();
     if (alarm.name === "prune") { await pruneCaches(); return; }
     if (id === "metamask-diffs") { await refreshMetaMaskDiffs(); if (isWarm()) await syncDnr(); }
+    else if (id === "addrlists") { await refreshAddrLists(); }
     else if (id === "data") {
       const r = await refreshRemoteData();
       if (r.updated) console.info(`[w3pg] remote data: ${r.files} files`);
@@ -118,6 +121,7 @@ async function ensureReady() {
         const w = await warmLists([...data.lists.freeHostsStrong, ...data.lists.freeHostsWeak], data.lists.shared ?? []);
         await syncDnr();
         void ensureAlarms();
+        void refreshAddrListsIfStale();
         if (w.needsRefresh) void refreshAllSources();
       }
       return data;
@@ -925,13 +929,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // gate counterparty screen: only from a content script, only a well-formed address; any failure means "not flagged"
         const address = typeof msg.address === "string" ? msg.address.toLowerCase() : "";
         if (sender.tab?.id === undefined || !/^0x[0-9a-f]{40}$/.test(address)) { sendResponse({ bad: false, flags: [] }); return; }
-        // address screening off: nothing leaves the device
-        if (!(await addrScreenEnabled())) { sendResponse({ bad: false, flags: [] }); return; }
+        // offline OFAC + MEW darklist check: always runs, storage read and Set lookups only
+        const local = await localAddrFlags(address);
+        // address screening off: local flags only, nothing leaves the device
+        if (!(await addrScreenEnabled())) { sendResponse({ bad: local.length > 0, flags: local }); return; }
         const chain = Number.isInteger(msg.chain) && msg.chain > 0 ? msg.chain : 1;
+        let remote: string[] = [];
         try {
           const res = await fetch(`${API_BASE}/v1/addr?address=${address}&chain=${chain}`, { signal: AbortSignal.timeout(7000), credentials: "omit" });
-          sendResponse(res.ok ? parseAddrReply(await res.json()) : { bad: false, flags: [] });
-        } catch { sendResponse({ bad: false, flags: [] }); }
+          if (res.ok) remote = parseAddrReply(await res.json()).flags;
+        } catch { /* fail open: keep the local flags */ }
+        const flags = [...new Set([...local, ...remote])];
+        sendResponse({ bad: flags.length > 0, flags });
         return;
       }
       case "w3pg:simulateSol": {
