@@ -45,6 +45,19 @@ for dst in "${BLOCK[@]}"; do
   iptables -I "$CHAIN" -s "$SUBNET" -d "$dst" -m comment --comment "w3pg-sandbox-egress" -j DROP
 done
 
+# DOCKER-USER only sees FORWARDED traffic. Packets from the container to this host's own addresses (the bridge
+# gateway 172.31.253.1, docker0, the public IP) traverse INPUT, not FORWARD, so the rules above never match them,
+# and a host service bound to 0.0.0.0 (e.g. sshd) stays reachable from inside the container. Drop new connections
+# from the sandbox subnet to the host directly in INPUT. Only NEW: replies to the host's own connections to
+# 127.0.0.1:8080 come back through INPUT as ESTABLISHED and must not be dropped.
+while iptables -L INPUT -n --line-numbers 2>/dev/null | grep -q "w3pg-sandbox-host"; do
+  n=$(iptables -L INPUT -n --line-numbers | awk '/w3pg-sandbox-host/{print $1; exit}')
+  iptables -D INPUT "$n"
+done
+iptables -I INPUT -s "$SUBNET" -m conntrack --ctstate NEW -m comment --comment "w3pg-sandbox-host" -j DROP
+
 echo "egress block installed for $SUBNET -> ${BLOCK[*]}"
+echo "host-INPUT block installed for $SUBNET (new connections to this host dropped)"
 echo "verify:  iptables -L $CHAIN -n --line-numbers | grep w3pg-sandbox-egress"
+echo "verify:  iptables -L INPUT -n --line-numbers | grep w3pg-sandbox-host"
 echo "NOTE: re-run this after any Docker daemon restart."
