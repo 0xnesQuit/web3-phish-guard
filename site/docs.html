@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guard3 Documentation</title>
+<meta name="description" content="How Guard3 protects crypto users: the layers, the attacks it stops and how, where it is strong, and the situations where it will not protect you.">
+<style>
+  :root{
+    --bg:#0b0e16; --bg2:#10141f; --card:#141926; --line:#222a3a; --line2:#2b3448;
+    --ink:#e8ecf6; --muted:#9aa6c0; --faint:#6b7691;
+    --accent:#5b8cff; --accent2:#7aa2ff; --danger:#ff5b6e; --warn:#f5a524; --ok:#43c08a;
+    --radius:14px; --sidebar:260px;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:#cdd7ee;word-break:break-word}
+
+  /* layout */
+  .layout{display:flex;align-items:flex-start}
+  aside{position:sticky;top:0;align-self:flex-start;width:var(--sidebar);height:100vh;overflow-y:auto;border-right:1px solid var(--line);padding:22px 16px 40px;background:var(--bg)}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .brand .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#9c6bff);box-shadow:0 4px 14px rgba(91,140,255,.3)}
+  .brand b{font-size:18px}
+  .tag{color:var(--faint);font-size:12px;margin:0 0 18px}
+  nav.toc a{display:block;color:var(--muted);font-size:13.5px;padding:5px 10px;border-radius:8px;margin:1px 0}
+  nav.toc a:hover{color:var(--ink);background:var(--bg2);text-decoration:none}
+  nav.toc .grp{color:var(--faint);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 4px;padding:0 10px}
+  nav.toc a.sub{padding-left:22px;font-size:13px}
+
+  main{flex:1;min-width:0;max-width:860px;margin:0 auto;padding:40px 28px 100px}
+  .hero{padding:10px 0 8px}
+  .hero h1{font-size:clamp(28px,5vw,42px);line-height:1.12;margin:0 0 12px;letter-spacing:-.5px}
+  .hero p.lead{font-size:18px;color:var(--muted);max-width:640px;margin:0}
+  .pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin:14px 8px 0 0}
+
+  section{padding:34px 0;border-top:1px solid var(--line)}
+  section:first-of-type{border-top:0}
+  h2{font-size:26px;margin:0 0 4px;letter-spacing:-.3px;scroll-margin-top:20px}
+  h3{font-size:18px;margin:26px 0 6px;scroll-margin-top:20px}
+  h4{font-size:15px;margin:18px 0 4px;color:var(--ink)}
+  .sub{color:var(--muted);margin:0 0 18px;max-width:680px}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:6px 0;color:var(--muted)}
+  li b,li strong{color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:14px 0}
+  .card h4{margin-top:0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+
+  .lead-row{display:flex;gap:12px;align-items:flex-start;margin:12px 0}
+  .lead-row .n{flex:none;width:26px;height:26px;border-radius:8px;background:rgba(91,140,255,.15);color:var(--accent2);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--faint);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+  td{color:var(--muted)}
+  td b{color:var(--ink)}
+
+  .note{border-left:3px solid var(--accent);background:var(--bg2);border-radius:0 10px 10px 0;padding:12px 16px;margin:16px 0;color:var(--muted);font-size:14px}
+  .note.warn{border-left-color:var(--warn)}
+  .note.danger{border-left-color:var(--danger)}
+  .note.ok{border-left-color:var(--ok)}
+  .note b{color:var(--ink)}
+
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle}
+  .b-yes{background:rgba(67,192,138,.14);color:#6fd6a8}
+  .b-part{background:rgba(245,165,36,.14);color:#f5c97a}
+  .b-no{background:rgba(255,91,110,.14);color:#ff8d9b}
+
+  footer{border-top:1px solid var(--line);padding:24px 0;color:var(--faint);font-size:13px}
+
+  .menu-btn{display:none}
+  @media(max-width:900px){
+    aside{position:fixed;left:0;top:0;z-index:30;transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 40px rgba(0,0,0,.6)}
+    body.nav-open aside{transform:translateX(0)}
+    body.nav-open .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20}
+    .menu-btn{display:inline-flex;position:fixed;top:12px;left:12px;z-index:40;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    main{padding-top:64px}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<button class="menu-btn" id="menu">☰ Contents</button>
+<div class="scrim" id="scrim"></div>
+<div class="layout">
+  <aside id="aside">
+    <div class="brand"><span class="logo"></span><b>Guard3</b></div>
+    <p class="tag">Documentation</p>
+    <nav class="toc">
+      <a href="#overview">Overview</a>
+      <div class="grp">How it works</div>
+      <a href="#architecture" class="sub">The four layers</a>
+      <a href="#onload" class="sub">1. On-load page check</a>
+      <a href="#gate" class="sub">2. The wallet gate</a>
+      <a href="#deepscan" class="sub">3. Deep scan</a>
+      <a href="#addrscreen" class="sub">4. Address screening</a>
+      <div class="grp">Threats</div>
+      <a href="#threats" class="sub">What it stops, and how</a>
+      <a href="#clickfix" class="sub">ClickFix / fake CAPTCHA</a>
+      <div class="grp">Honesty</div>
+      <a href="#strengths" class="sub">Where it is strong</a>
+      <a href="#limits" class="sub">Where it will not protect you</a>
+      <div class="grp">Engineering</div>
+      <a href="#hardening" class="sub">Security measures</a>
+      <a href="#privacy" class="sub">Privacy</a>
+      <a href="#settings" class="sub">Settings</a>
+      <a href="#opensource" class="sub">Open source</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <h1>A second pair of eyes before you sign.</h1>
+      <p class="lead">Guard3 is a browser extension that protects crypto users from phishing sites and wallet drainers. This page explains, in full, what it does, how each layer works, exactly which attacks it stops, and, just as honestly, the situations where it cannot protect you.</p>
+      <span class="pill">Chrome and Firefox</span>
+      <span class="pill">No account, no tracking</span>
+      <span class="pill">Checks run on your device</span>
+      <span class="pill">Open source</span>
+    </div>
+
+    <section id="overview">
+      <h2>Overview</h2>
+      <p class="sub">What Guard3 is, and the one idea behind it.</p>
+      <p>Most crypto theft today is not a smart-contract hack. It is a person being tricked: a fake airdrop page, a lookalike domain, a drainer that asks your wallet for one unlimited approval, a fake "verify you are human" box that makes you run malware yourself. Guard3 sits between you and those moments.</p>
+      <p>The core idea: <b>to steal your funds, an attacker must eventually get your wallet to sign or send something, and that request has to pass through your browser.</b> Guard3 watches the pages you open and, more importantly, the wallet requests those pages make, and it warns or blocks before the dangerous step completes. It judges what a transaction would actually do, not just how a site looks.</p>
+      <div class="note ok"><b>What you get out of the box:</b> a warning or a full-page block before a known scam page loads, a plain-language review of risky wallet requests before they reach your wallet, and an on-demand deep analysis when you want certainty. No account, no sign-up, and no browsing history collected.</div>
+    </section>
+
+    <section id="architecture">
+      <h2>How it works: the four layers</h2>
+      <p class="sub">Guard3 is defense in depth. If one layer misses, the next still has a chance. Each later layer judges something more concrete than the one before it.</p>
+      <div class="grid">
+        <div class="card"><h4>1. On-load page check</h4><p>The moment a page loads, it is scored on your device against phishing blocklists, brand data and on-page signals. Dangerous pages get a warning or a full-page block before you interact.</p></div>
+        <div class="card"><h4>2. The wallet gate</h4><p>Guard3 wraps the page's wallet connection. When a site asks to approve, sign or send, the request is held and shown to you in plain language, with a live simulation, before it reaches your wallet.</p></div>
+        <div class="card"><h4>3. Deep scan</h4><p>One click runs a closer look: an AI verdict plus a decoy-wallet sandbox that opens the page in an isolated browser and watches what it tries to do.</p></div>
+        <div class="card"><h4>4. Address screening</h4><p>At the gate, the counterparty address is checked against known-scam and sanctioned lists, locally and, if you allow it, online.</p></div>
+      </div>
+      <p>The key design choice: the <b>wallet gate (layer 2)</b> is the last line and the strongest, because it works at the protocol level. Even if the page looked clean and no list flagged it, the moment it asks your wallet to do something dangerous, Guard3 is already in the path.</p>
+    </section>
+
+    <section id="onload">
+      <h2>1. On-load page check</h2>
+      <p class="sub">Catches known and lookalike scam pages before you touch them. Runs entirely on your device; your full URLs never leave the browser for this.</p>
+      <h3>What it looks at</h3>
+      <ul>
+        <li><b>Community blocklists.</b> Known phishing and drainer hosts from reviewed sources (MetaMask, ScamSniffer, PhishDestroy and Guard3's own moderated community list). A listed host is blocked by the browser before anything on it can run.</li>
+        <li><b>Brand impersonation.</b> Guard3 knows the official domains of many crypto projects. A page that carries a project's name on a domain the project does not own is flagged, including short-token lookalikes and homoglyph or typosquat tricks.</li>
+        <li><b>Domain age.</b> A domain registered days ago that imitates a real brand is a strong scam signal. Age is resolved from public registries (RDAP), then certificate-transparency, then a paid WHOIS fallback when the free sources are blind.</li>
+        <li><b>On-page signals (one cheap pass).</b> A recovery-phrase field on load, drainer-kit script URLs, a brand name in the title that the domain does not own, and a page that asks your wallet to connect before you click anything.</li>
+        <li><b>Where you came from.</b> Arriving on a claim page from an X link or an ad is itself part of the risk picture.</li>
+      </ul>
+      <div class="note">These combine into a score. Low is clean, a middle band warns, a high band blocks the page full-screen with the reasons laid out. Known-blocklist hosts are blocked at the network level regardless.</div>
+    </section>
+
+    <section id="gate">
+      <h2>2. The wallet gate</h2>
+      <p class="sub">The heart of Guard3. It interposes between a website and your wallet for the requests that can move funds.</p>
+      <h3>Where it sits</h3>
+      <p>Guard3 wraps the page's wallet provider (<code>window.ethereum</code> and the wallets a page announces) the moment the page starts, using captured browser built-ins so a hostile page cannot un-hook it. Every wallet interaction the page makes passes through this one point, before your actual wallet (MetaMask, Rabby, and so on) ever sees it.</p>
+      <h3>What it holds</h3>
+      <p>It intercepts the signing requests that can move or authorize assets: a transaction send, an <code>approve</code> or unlimited approve, Permit and Permit2 signatures, <code>setApprovalForAll</code>, raw <code>eth_sign</code>, Seaport and Blur orders, and EIP-7702 delegations.</p>
+      <h3>What it shows you</h3>
+      <ul>
+        <li><b>Plain-language decode.</b> What the request actually does: "this gives an unlimited spend of your USDC to this address", not a hex blob.</li>
+        <li><b>Live simulation.</b> The pending transaction is simulated against a public node so the dialog can say what would really leave your wallet and what would come back, before you sign.</li>
+        <li><b>Counterparty screening.</b> The spender or recipient is checked against scam lists (see layer 4).</li>
+        <li><b>A clear choice.</b> Allow forwards the request to your real wallet; deny rejects it and your wallet never even opens.</li>
+      </ul>
+      <h3>When it interrupts (and when it stays out of the way)</h3>
+      <p>By default Guard3 is risk-targeted, not an alarm on every transaction. It holds a request when there is a reason: a high-risk action (unlimited approval, Permit2, setApprovalForAll, raw sign, a delegation), a poisoned or raw-wallet counterparty, or a page that is already suspicious. On a site you trust it stays out of the way. If you want the Pocket-Universe style "check everything", <b>Strict mode</b> makes it confirm every signing request, on every site.</p>
+      <div class="note warn"><b>Simulation-spoofing guard.</b> A clever drainer can show a harmless preview, then flip the contract state so the same signed transaction drains on execution. Guard3 re-simulates right before signing and asks again if the outcome changed.</div>
+    </section>
+
+    <section id="deepscan">
+      <h2>3. Deep scan</h2>
+      <p class="sub">An on-demand, deeper analysis for when the automatic layers are not enough and you want certainty.</p>
+      <ul>
+        <li><b>AI verdict.</b> A snapshot of the page (title, a text sample, script names, link domains, wallet buttons) plus the extension's own findings are sent to Guard3's server, which asks an AI model whether it is a scam and why, in plain language. The page content is treated as untrusted; injection text like "ignore previous instructions" is treated as a scam signal, not followed.</li>
+        <li><b>Decoy-wallet sandbox.</b> In parallel, a server-side headless browser opens the page in an isolated, throwaway environment with a fake wallet. It records every request the page makes to that wallet, rejects the dangerous ones, and reports what the page tried to do, without risking anything of yours.</li>
+        <li><b>Escalation.</b> A confident "dangerous" verdict escalates the page to a full-page block, and clearly-malicious hosts can be added to the moderated community list that protects everyone.</li>
+      </ul>
+      <div class="note">The deep-scan verdict is shown with its reasons. A result is never pushed below what the local checks already found; the two are combined, so the AI can only make a verdict stronger, never talk you into "safe".</div>
+    </section>
+
+    <section id="addrscreen">
+      <h2>4. Address screening</h2>
+      <p class="sub">At the gate, is the address you are about to pay or approve a known bad one?</p>
+      <ul>
+        <li><b>Offline lists (always on, no network).</b> A local copy of the OFAC sanctioned list and the MyEtherWallet darklist ships in the extension and is checked instantly against the counterparty, with no network request. This works even when online screening is turned off.</li>
+        <li><b>Online screening (optional, default on).</b> The address is also checked against the GoPlus malicious-address database and the latest OFAC and MyEtherWallet data through Guard3's server. The address is one the transaction would send on-chain anyway; no page, wallet balance or amount is sent.</li>
+        <li><b>False-positive safety.</b> Well-known-good contracts (Uniswap Permit2 and routers, OpenSea Seaport, and the gate's known-contract table) and your own address are never flagged. A match adds a clear warning row to the gate.</li>
+      </ul>
+      <div class="note"><b>Privacy switch.</b> Turning off online screening gives you a network-free posture at the gate: the offline sanctioned and darklist checks still run locally, so known-bad addresses are still caught without any address leaving your device.</div>
+    </section>
+
+    <section id="threats">
+      <h2>What Guard3 stops, and how</h2>
+      <p class="sub">Attack by attack. The honest limitations for each are in the next section.</p>
+      <table>
+        <tr><th>Attack</th><th>How Guard3 defends</th></tr>
+        <tr><td><b>Phishing and lookalike sites</b> (fake airdrop, mint, claim, checker pages)</td><td>On-load blocklists, brand-impersonation and domain-age heuristics, and a full-page block for clear cases. Deep scan for the uncertain ones.</td></tr>
+        <tr><td><b>Wallet drainers</b> (unlimited approve, Permit2, setApprovalForAll, drain transactions)</td><td>The gate holds the request, decodes what it really does, and simulates what would leave your wallet, before you sign. Risk-targeted by default, every transaction in Strict mode.</td></tr>
+        <tr><td><b>Seed-phrase harvesters</b> (fake wallet-restore pages)</td><td>A recovery-phrase field on a web page is near-certain fraud and is flagged on load; paste protection warns if you try to enter a seed phrase into a page.</td></tr>
+        <tr><td><b>Malicious and sanctioned addresses</b></td><td>The counterparty is screened at the gate against OFAC, the MyEtherWallet darklist and GoPlus, both offline and online.</td></tr>
+        <tr><td><b>Address poisoning</b> (lookalike address swapped in)</td><td>A page that replaces the address you copied is detected; at a dApp send, the gate shows the real destination you are signing to.</td></tr>
+        <tr><td><b>ClickFix / fake CAPTCHA</b> (paste-and-run malware)</td><td>Detected at the browser stage, see the section below.</td></tr>
+        <tr><td><b>Fake wallets</b> (a page announcing a wallet it is not)</td><td>EIP-6963 wallet announcements are checked; a fake identity is flagged.</td></tr>
+        <tr><td><b>Simulation spoofing</b></td><td>Re-simulation right before signing catches a preview that was flipped after you approved it.</td></tr>
+        <tr><td><b>Drainer-kit scripts on compromised sites</b> (including legit sites hit by a server CVE)</td><td>Known drainer-kit markers are detected; the gate judges the wallet request by what it does, not by how trusted the site is (fully, with Strict mode on).</td></tr>
+      </table>
+    </section>
+
+    <section id="clickfix">
+      <h2>ClickFix (fake CAPTCHA, paste-and-run)</h2>
+      <p class="sub">A rising attack worth its own section, because the protection is specific and the limit is important.</p>
+      <p>A page poses as a Cloudflare or "verify you are human" check and tells you to press Windows+R, paste, and hit Enter. The page has quietly copied a malicious command to your clipboard; you run it yourself, and it installs an info-stealer that drains wallets and steals everything.</p>
+      <h4>How Guard3 defends, at the browser stage</h4>
+      <ul>
+        <li><b>Clipboard watch.</b> If a page copies a system command (PowerShell, mshta, curl piped to a shell, and similar) to your clipboard, Guard3 detects it and warns you never to paste it.</li>
+        <li><b>Lure-text detection.</b> Guard3 also reads the fake instructions as the page renders, before you click: a "run a command" step plus a "paste" step. The Windows Run-dialog pattern triggers on its own; the Terminal variant also requires fake-verification wording, so a normal developer install page ("open your terminal and paste this") is not flagged.</li>
+      </ul>
+      <div class="note danger"><b>The hard limit:</b> once you actually run the command in your own terminal or Run dialog, it is outside the browser, and a browser extension cannot stop it. That is your operating system's and antivirus's job. Guard3's protection is to catch the lure and the clipboard poisoning and warn you before you paste.</div>
+    </section>
+
+    <section id="strengths">
+      <h2>Where Guard3 is strong</h2>
+      <p class="sub">The situations where it protects you well.</p>
+      <ul>
+        <li>You open a <b>fake airdrop, mint or claim page</b>, especially a lookalike domain of a real project. The on-load layer usually catches it before you interact.</li>
+        <li>A <b>dApp (or a scam site) asks your wallet to approve, sign or drain</b> through the page. The gate holds it, simulates it, and shows you what it really does, even if the site itself looked fine.</li>
+        <li>You are about to <b>pay or approve a known scam or sanctioned address</b>. It is flagged at the gate, online or offline.</li>
+        <li>A page tries the <b>ClickFix clipboard trick</b>. You are warned before you paste.</li>
+        <li>A site shows a <b>harmless preview, then flips it</b> at signing time. The re-simulation catches it.</li>
+        <li>A <b>compromised but otherwise legit site</b> (for example one hit by a server vulnerability) starts serving a drainer. The gate judges the wallet request itself; with Strict mode on it is caught even on sites you trust.</li>
+      </ul>
+    </section>
+
+    <section id="limits">
+      <h2>Where Guard3 will not protect you</h2>
+      <p class="sub">Read this part carefully. A security tool that overstates itself is dangerous. Here is where Guard3 is blind or partial, and why.</p>
+
+      <h3>It cannot see inside your wallet's own screens</h3>
+      <p>Guard3 watches what <b>web pages</b> ask your wallet through the page connection. If you open MetaMask's own interface and type or paste an address and send directly from there, that flow never touches a web page, and no extension can see inside another extension. So the classic "copy a poisoned address from your history and paste it into MetaMask" is <b>outside Guard3's reach</b>. There your wallet's own warnings and a hardware wallet's on-device check are the defense.</p>
+
+      <h3>Mobile WalletConnect flows</h3>
+      <p>A connection made through WalletConnect to a phone wallet can bypass the page's injected provider. Guard3 has only a weaker signal here (it notices the WalletConnect dialog), not the full gate.</p>
+
+      <h3>After you run a command yourself (ClickFix)</h3>
+      <p>As above: once a pasted command executes in your operating system, a browser extension cannot undo it. Guard3 protects at the browser stage, not after execution.</p>
+
+      <h3>General credential theft and device exploits</h3>
+      <p>Guard3 is crypto-specific. It does <b>not</b> protect your email or bank passwords, and it is not antivirus. A browser or operating-system exploit, or malware already on your machine, is out of scope. Keep your browser and OS patched.</p>
+
+      <h3>A real domain served over a forged certificate (CA or MITM attacks)</h3>
+      <p>If an attacker can serve a malicious page at a project's real domain with a valid-looking certificate (a compromised certificate authority plus a network position), Guard3's domain and brand layer is blind, because the domain really is the correct one. The defense that still applies is the gate: if that page tries to drain your wallet, the transaction simulation still shows what it would do. The primary fix for a compromised CA is your browser distrusting it, not an extension.</p>
+
+      <h3>Coverage gaps and timing</h3>
+      <ul>
+        <li><b>Brand-new scams.</b> Lists are reactive. A freshly spun-up drainer address or domain may not be on any list yet. The heuristics and the simulation still apply, but a list hit is not guaranteed.</li>
+        <li><b>Non-EVM scam addresses.</b> Address screening covers EVM chains well; for Solana and Tron the address lists are sparse (sanctioned addresses aside).</li>
+        <li><b>True first-paint certainty.</b> The strongest on-page signals are read a moment after the page parses, which is still before you click, but not literally the first pixel.</li>
+      </ul>
+
+      <h3>If you turn protections off</h3>
+      <p>Settings let you reduce protection (turn off on-page warnings, turn off online address screening). That is your choice, shown with a clear warning. Known-phishing hosts stay blocked by the browser even then, but the softer warnings will not appear.</p>
+
+      <div class="note danger"><b>Bottom line.</b> Guard3 is strongest exactly where most crypto theft happens: a scam page, and a wallet request through a page. It is weak or blind on things outside the browser (your wallet's own send screen, your operating system) and on attacks that need infrastructure-level compromise. It is one strong layer, not a guarantee. Verify large transfers independently, and use a hardware wallet.</p></div>
+    </section>
+
+    <section id="hardening">
+      <h2>Security measures and engineering</h2>
+      <p class="sub">The choices that make the protection itself hard to defeat.</p>
+      <ul>
+        <li><b>Un-removable provider hook.</b> The wallet interception uses captured browser built-ins, so a hostile page cannot redefine prototypes to un-hook or bypass it.</li>
+        <li><b>Isolated UI.</b> Guard3's in-page dialog and warning card render in a closed shadow DOM, isolated from the page, so a page cannot read or forge them.</li>
+        <li><b>Nonce-guarded block page.</b> The full-page block reads its data from a one-shot nonce, so a web page cannot open it with a forged host to talk you past it.</li>
+        <li><b>Simulation before signing, and again at signing.</b> Not just a preview, but a re-check to defeat preview-then-flip drainers.</li>
+        <li><b>Honest verdicts.</b> A "clean" result means "no phishing signals found", not "verified safe", and the UI is tuned not to over-reassure on unknown sites.</li>
+        <li><b>Keys never in the client.</b> The AI and paid-data keys live only on Guard3's server, reached through a rate-limited endpoint; the extension cannot read them.</li>
+        <li><b>Hardened sandbox host.</b> The decoy-wallet sandbox runs in an isolated container on a locked-down host: it opens hostile pages, but firewall rules block it from reaching the host's own services, the cloud metadata endpoint or private networks, and its Node runtime is kept patched.</li>
+      </ul>
+    </section>
+
+    <section id="privacy">
+      <h2>Privacy</h2>
+      <p class="sub">What stays on your device, and the few things that leave it, with the reason.</p>
+      <p>Every page is scored <b>locally</b> first; the full URLs you visit are never sent or logged. The requests that do leave your browser are limited and purposeful:</p>
+      <ul>
+        <li><b>List updates</b> (automatic): phishing and brand lists are downloaded; they carry nothing about your browsing.</li>
+        <li><b>Domain age</b> (only for suspicious pages): just the domain name is looked up, never the path or page.</li>
+        <li><b>Deep scan</b> (only when you press the button): a snapshot of the current page is sent for the AI and sandbox analysis; the page text is not stored.</li>
+        <li><b>Counterparty address check</b> (only when a wallet request is held, and only if online screening is on): the address being approved or paid is checked; it is one the transaction would send on-chain anyway. Turn it off for a network-free gate.</li>
+        <li><b>Transaction simulation</b> (when a request is held): the pending transaction is sent straight from your browser to a public RPC, never to us, and nothing is broadcast.</li>
+      </ul>
+      <p>No wallet addresses, seed phrases, private keys, form inputs, cookies or browsing history are collected. There is a full privacy policy on the <a href="index.html#privacy">home page</a>.</p>
+    </section>
+
+    <section id="settings">
+      <h2>Settings and controls</h2>
+      <p class="sub">You stay in control; the defaults protect a non-technical user out of the box.</p>
+      <table>
+        <tr><th>Setting</th><th>What it does</th><th>Default</th></tr>
+        <tr><td><b>Page protection</b></td><td>On the page / toolbar only / off. "Off" removes the on-page warnings (known-phishing blocklist stays enforced by the browser).</td><td>On the page</td></tr>
+        <tr><td><b>Strict mode</b></td><td>Confirm every transaction, even on trusted sites. More interruptions, wider coverage. Closes the compromised-trusted-site gap.</td><td>Off</td></tr>
+        <tr><td><b>Address screening</b></td><td>Check the counterparty online. Off keeps the local offline OFAC and darklist check, with no network at the gate.</td><td>On</td></tr>
+        <tr><td><b>Transaction simulation</b></td><td>Simulate held transactions through a public RPC.</td><td>On</td></tr>
+        <tr><td><b>Trusted domains</b></td><td>Sites you have marked as trusted, managed by you.</td><td>Empty</td></tr>
+      </table>
+    </section>
+
+    <section id="opensource">
+      <h2>Open source</h2>
+      <p class="sub">Transparency over obscurity.</p>
+      <p>Guard3 is being open sourced: the extension, the server and the sandbox. You can read exactly what it does and verify that no data is misused. The secrets (API keys, tokens) are never part of the code; they live only as server-side secrets. The trade-off of publishing the detection logic is that attackers can read it too, which we accept: the strongest layers (blocklists, the AI, the community signals and the signing-time simulation) are not defeated by reading the source, and transparency earns more trust than it costs.</p>
+      <div class="note">Questions, a false positive, or a scam site we missed? There is a report button in the extension, and a support link on the <a href="index.html#support">home page</a>.</div>
+    </section>
+
+    <footer>
+      Guard3. Web3 phishing and wallet-drainer protection. This page describes current behavior and is kept honest about limitations on purpose.
+    </footer>
+  </main>
+</div>
+
+<script>
+  var b=document.body, m=document.getElementById('menu'), s=document.getElementById('scrim');
+  function close(){b.classList.remove('nav-open');}
+  m.addEventListener('click',function(){b.classList.toggle('nav-open');});
+  s.addEventListener('click',close);
+  document.querySelectorAll('nav.toc a').forEach(function(a){a.addEventListener('click',close);});
+</script>
+</body>
+</html>
